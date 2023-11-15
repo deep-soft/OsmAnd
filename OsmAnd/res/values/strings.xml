@@ -10,6 +10,7 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
+    <string name="topography_maps">Topography maps</string>
     <string name="see_all_plans">See all plans</string>
     <string name="tripltek_promo">Tripltek Promo for %1$s months</string>
     <string name="tripltek_promo_description">Free access to features including unlimited map downloads, 3D relief etc. for %1$s month</string>
