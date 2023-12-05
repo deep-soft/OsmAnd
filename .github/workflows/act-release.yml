@@ -8,8 +8,8 @@ env:
   TAG_VERSION:                 "osmand-v1.0.0"
   TAG_BUILD:                   "-b"
   TAG_REF:                     "0000000"
-  PROG_NAME:                   "osmand"
-  PROG_VERSION:                "v1.0.0"
+  PRG_NAME:                   "osmand"
+  PRG_VERSION:                "v1.0.0"
   VERSION:                     "1.0.0"
 
 permissions:
@@ -97,13 +97,13 @@ jobs:
       shell: bash
       run: |
         #set -x;
-        sed -i 's/storeFile file/#storeFile file/' android/OsmAnd/build.gradle;
-        sed -i 's/signingConfig /#signingConfig /' android/OsmAnd/build.gradle;
+        sed -i 's!storeFile file!// storeFile file!' "android/OsmAnd/build.gradle";
+        sed -i 's!signingConfig !// signingConfig !' "android/OsmAnd/build.gradle";
         echo "storeFile ... ";
-        grep -i storeFile android/OsmAnd/build.gradle || true;
+        grep -i storeFile "android/OsmAnd/build.gradle" || true;
         sleep 2
         echo "signingConfig ... ";
-        grep signingConfig android/OsmAnd/build.gradle || true;
+        grep signingConfig "android/OsmAnd/build.gradle" || true;
         echo "... done";
 
 #    - name: set up JDK 11
