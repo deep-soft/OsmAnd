@@ -108,7 +108,7 @@ jobs:
       working-directory: ./android
       #run: ./gradlew assembleNightlyFreeLegacyFatDebug
       #run: ./gradlew assembleandroidFullRelease
-      run: ./gradlew assembleNightlyFreeRelease
+      run: ./gradlew assembleNightlyFreeLegacyFatRelease
 
 #    - name: Rename APK
 #      working-directory: ./android
