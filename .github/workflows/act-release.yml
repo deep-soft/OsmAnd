@@ -75,9 +75,9 @@ jobs:
         _ref_len_="${#_ref_org_}"
         _ref_=$(echo ${_ref_all_::$_ref_len_})
         _prg_version_base_="v"$(grep "versionName \"" "android/OsmAnd/build.gradle" | cut -d '"' -f2)
-        _prg_version_=$_prg_version_base_
+        _prg_version_="$_prg_version_base_"
         echo "TAG_REF=$_ref_" >> $GITHUB_ENV
-        _build_=${{ env.TAG_BUILD }}.$_ref_
+        _build_="${{ env.TAG_BUILD }}.$_ref_"
         echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
         echo "PRG_VERSION=$_prg_version_" >> $GITHUB_ENV
         echo "TAG_VERSION=$_prg_version_" >> $GITHUB_ENV
@@ -91,6 +91,20 @@ jobs:
         echo "REF: ${{ env.TAG_REF }}"
         echo "BLD: ${{ env.TAG_BUILD }}"
         echo "${{ env.PRG_NAME }}-src-${{ env.PRG_VERSION }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+
+# signingConfig storeFile
+    - name: skip sign
+      shell: bash
+      run: |
+        #set -x;
+        sed -i 's/storeFile file/#storeFile file/' android/OsmAnd/build.gradle;
+        sed -i 's/signingConfig /#signingConfig /' android/OsmAnd/build.gradle;
+        echo "storeFile ... ";
+        grep -i storeFile android/OsmAnd/build.gradle || true;
+        sleep 2
+        echo "signingConfig ... ";
+        grep signingConfig android/OsmAnd/build.gradle || true;
+        echo "... done";
 
 #    - name: set up JDK 11
 #      uses: actions/setup-java@v3
@@ -143,10 +157,49 @@ jobs:
         # ./gradlew assembleAndroidFullRelease
         ./gradlew assembleAndroidFullOpenglArm64Release
 
-
 #    - name: Rename APK
 #      working-directory: ./android
 #      run: mv OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/debug/OsmAnd-nightlyFree-legacy-fat-debug.apk OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/debug/OsmAnd-nightlyFree-legacy-fat-debug-$(git log -n 1 --format='%h').apk
+
+#assembleAndroidFullOpenglArm64Release
+# android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/OsmAnd-AndroidFull-Opengl-Arm64-Release.apk
+    - name: Copy apk from outputs/
+      shell: bash
+      run: |
+        set -x
+        mkdir -p signed-apk
+        echo "LIST: " ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/
+        ls -l ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/
+        cp ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/* ./signed-apk/
+        echo "LIST: " ./signed-apk/
+        ls -l ./signed-apk/
+        #mv ./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}*-${{ env.PRG_FLAVOR }}-release-unsigned.apk ./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+        #echo "LIST: " ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+        ls -l ./signed-apk/
+
+    - uses: deep-soft/sign-android-release@master
+      name: Sign app APK
+      if: env.ANDROID_SIGNING_KEY != null
+      id: sign-OsmAnd
+      with:
+        releaseDirectory: ./signed-apk
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias: ${{ secrets.ANDROID_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      env:
+        # override default build-tools version (29.0.3) -- optional
+        BUILD_TOOLS_VERSION: "30.0.2"
+
+    - name: Publish signed apk package
+      if: env.ANDROID_SIGNING_KEY != null
+      uses: deep-soft/action-gh-release@v1
+      with:
+        draft: true
+        tag_name: ${{ env.TAG_NAME }}
+        files: |
+          ${{steps.sign-OsmAnd.outputs.signedReleaseFile}}
+          _tag_name_.txt
 
     - name: Publish Release
       continue-on-error: true
