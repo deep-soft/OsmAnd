@@ -107,7 +107,8 @@ jobs:
     - name: Build with Gradle
       working-directory: ./android
       #run: ./gradlew assembleNightlyFreeLegacyFatDebug
-      run: ./gradlew assembleandroidFullRelease
+      #run: ./gradlew assembleandroidFullRelease
+      run: ./gradlew assembleNightlyFreeRelease
 
 #    - name: Rename APK
 #      working-directory: ./android
