@@ -3,6 +3,15 @@ name: act-release
 on:
   [workflow_dispatch]
 
+env:
+  TAG_NAME:                    "OsmAnd"
+  TAG_VERSION:                 "osmand-v1.0.0"
+  TAG_BUILD:                   "-b"
+  TAG_REF:                     "0000000"
+  PROG_NAME:                   "osmand"
+  PROG_VERSION:                "v1.0.0"
+  VERSION:                     "1.0.0"
+
 permissions:
   contents: write
 
@@ -53,6 +62,34 @@ jobs:
         repository: deep-soft/OsmAnd-misc
         path: misc
 
+    - name: Get ref, set build version
+      continue-on-error: true
+      shell: bash
+      run: |
+        # set -x
+        _ref_all_=$(git log -1 --format='%H')
+        # _ref_=$(echo ${_ref_all_::7})
+        _ref_org_=${{ env.TAG_REF }}
+        _ref_len_="${#_ref_org_}"
+        _ref_=$(echo ${_ref_all_::$_ref_len_})
+        _prg_version_base_="v"$(grep "versionName" "android/OsmAnd/build.gradle" | cut -d '"' -f2)
+        _prg_version_=$_prg_version_base_
+        echo "TAG_REF=$_ref_" >> $GITHUB_ENV
+        _build_=${{ env.TAG_BUILD }}.$_ref_
+        echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
+        echo "PRG_VERSION=$_prg_version_" >> $GITHUB_ENV
+        echo "TAG_VERSION=$_prg_version_" >> $GITHUB_ENV
+
+    - name: Print ref, build version
+      shell: bash
+      run: |
+        echo "NAM: ${{ env.PRG_NAME }}"
+        echo "VER: ${{ env.PRG_VERSION }}"
+        echo "TAG: ${{ env.TAG_VERSION }}"
+        echo "REF: ${{ env.TAG_REF }}"
+        echo "BLD: ${{ env.TAG_BUILD }}"
+        echo "${{ env.PRG_NAME }}-src-${{ env.PRG_VERSION }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+
     - name: set up JDK 11
       uses: actions/setup-java@v3
       with:
@@ -76,9 +113,41 @@ jobs:
 #      working-directory: ./android
 #      run: mv OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/debug/OsmAnd-nightlyFree-legacy-fat-debug.apk OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/debug/OsmAnd-nightlyFree-legacy-fat-debug-$(git log -n 1 --format='%h').apk
 
+    - name: Publish Release
+      continue-on-error: true
+      uses: deep-soft/action-gh-release@v1
+      with:
+        draft: true
+        tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}
+        files: |
+            android/OsmAnd/build/outputs/apk/*/*/*.apk
+
     - name: Archive APK
       uses: deep-soft/upload-artifact@v3
       with:
         name: release
         path: android/OsmAnd/build/outputs/apk/*/*/*.apk
         retention-days: 90
+
+# zip release begin
+    - name: Create Archive ALL
+      if:  ${{ inputs.archive_ALL}}
+      uses: deep-soft/zip-release@v2
+      with:
+        type: 'zip'
+        filename: '${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}-ALL'
+        directory: '.'
+        path: '.'
+        exclusions: '*.git* /*node_modules/* .editorconfig'
+        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+    - name: Publish Archive ALL
+      if:  ${{ inputs.archive_ALL}}
+      continue-on-error: true
+      uses: deep-soft/action-gh-release@v1
+      with:
+        draft: true
+        tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}-ALL
+        files: |
+            ${{ env.ZIP_RELEASE_ARCHIVE }}
+# zip release end
