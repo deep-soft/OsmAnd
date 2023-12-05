@@ -112,7 +112,8 @@ jobs:
       #run: ./gradlew assembleandroidFullRelease
       #run: ./gradlew assembleAndroidFullFatRelease
       #run: ./gradlew bundleAndroidFullLegacyFatRelease
-      run: ./gradlew bundleAndroidFullRelease
+      #run: ./gradlew bundleAndroidFullRelease
+      run: ./gradlew bundleAndroidFullLegacyRelease
 
 #    - name: Rename APK
 #      working-directory: ./android
