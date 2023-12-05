@@ -67,7 +67,7 @@ jobs:
       shell: bash
       run: |
         # set -x
-        push android
+        pushd android
         _ref_all_=$(git log -1 --format='%H')
         popd
         # _ref_=$(echo ${_ref_all_::7})
@@ -110,7 +110,8 @@ jobs:
       working-directory: ./android
       #run: ./gradlew assembleNightlyFreeLegacyFatDebug
       #run: ./gradlew assembleandroidFullRelease
-      run: ./gradlew assembleAndroidFullFatRelease
+      #run: ./gradlew assembleAndroidFullFatRelease
+      run: ./gradlew bundleAndroidFullLegacyFatRelease
 
 #    - name: Rename APK
 #      working-directory: ./android
