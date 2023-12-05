@@ -23,8 +23,15 @@ env:
   uPRG_OGL:     "Opengl"
   uPRG_ARCH:    "Arm64"
   uPRG_TYPE:    "Release"
+# version  
   PRG_VERSION:  "v1.0.0"
   VERSION:      "1.0.0"
+# secrets
+  #  ANDROID_SIGNING_KEY: '${{ secrets.ANDROID_SIGNING_KEY }}'
+  #  signingKeyBase64:    '${{ secrets.ANDROID_SIGNING_KEY }}'
+  #  alias:               '${{ secrets.ANDROID_ALIAS }}'
+  #  keyStorePassword:    '${{ secrets.ANDROID_KEY_STORE_PASSWORD }}'
+  #  keyPassword:         '${{ secrets.ANDROID_KEY_PASSWORD }}'
 
 permissions:
   contents: write
@@ -162,45 +169,48 @@ jobs:
       shell: bash
       run: |
         #set -x
-        mkdir -p signed-apk
+        mkdir -p ./signed-apk
         #echo "LIST: " ./android/OsmAnd/build/outputs/apk/*
         #ls -lR ./android/OsmAnd/build/outputs/apk/
         echo "LIST: " ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/
         ls -l ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/
-        cp ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/* ./signed-apk/
-        echo "LIST: " ./signed-apk/
-        ls -l ./signed-apk/
-        #mv ./signed-apk/OsmAnd-androidFull-opengl-arm64-release-unsigned.apk ./signed-apk/OsmAnd-androidFull-opengl-arm64-release.apk
-        mv "./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-unsigned.apk" "./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}.apk"
-        ls -l ./signed-apk/
+        cp ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/*.apk ./signed-apk/
+        pushd ./signed-apk/
+        echo "LIST: " ./
+        ls -l ./
+        #mv "OsmAnd-androidFull-opengl-arm64-release-unsigned.apk" "OsmAnd-androidFull-opengl-arm64-release.apk"
+        mv "${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
+        ls -l ./
+        popd
 
     - uses: deep-soft/sign-android-release@master
       continue-on-error: true
       name: Sign app APK
-      if: env.ANDROID_SIGNING_KEY != null
+      if: secrets.ANDROID_SIGNING_KEY != null
       id: sign-OsmAnd
       with:
         releaseDirectory: ./signed-apk
         signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
-        alias: ${{ secrets.ANDROID_ALIAS }}
+        alias:            ${{ secrets.ANDROID_ALIAS }}
         keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        keyPassword:      ${{ secrets.ANDROID_KEY_PASSWORD }}
       env:
         # override default build-tools version (29.0.3) -- optional
         BUILD_TOOLS_VERSION: "30.0.2"
 
     - name: Publish signed apk package
-      if: env.ANDROID_SIGNING_KEY != null
+      if: secrets.ANDROID_SIGNING_KEY != null
       continue-on-error: true
       uses: deep-soft/action-gh-release@v1
       with:
-        draft: true
+        # draft: true
         tag_name: ${{ env.TAG_NAME }}
         files: |
           ${{steps.sign-OsmAnd.outputs.signedReleaseFile}}
           _tag_name_.txt
 
-    - name: Publish Release
+    - name: Publish unsigned apk package
+      if: secrets.ANDROID_SIGNING_KEY == null
       continue-on-error: true
       uses: deep-soft/action-gh-release@v1
       with:
