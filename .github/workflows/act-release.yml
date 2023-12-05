@@ -131,7 +131,7 @@ jobs:
 
     - name: Patch memory requirements
       working-directory: ./android
-      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
+      run: printf "\norg.gradle.jvmargs=-Xmx2048m \n" >> gradle.properties
 
     - name: gradle build (v2)
       uses: gradle/gradle-build-action@v2
@@ -139,7 +139,7 @@ jobs:
     - name: gradle  Assemble AndroidFull Release
       working-directory: ./android
       run: |
-        ./gradlew tasks
+        #./gradlew tasks
         # ./gradlew assembleAndroidFullRelease
         ./gradlew assembleAndroidFullOpenglArm64Release
 
