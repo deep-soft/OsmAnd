@@ -92,28 +92,45 @@ jobs:
         echo "BLD: ${{ env.TAG_BUILD }}"
         echo "${{ env.PRG_NAME }}-src-${{ env.PRG_VERSION }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
 
-    - name: set up JDK 11
+#    - name: set up JDK 11
+#      uses: actions/setup-java@v3
+#      with:
+#        java-version: '11'
+#        distribution: 'adopt'
+#
+#    - name: Grant execute permission for gradlew
+#      working-directory: ./android
+#      run: chmod +x gradlew
+#
+#    - name: Patch memory requirements
+#      working-directory: ./android
+#      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
+#
+#    - name: Build with Gradle
+#      working-directory: ./android
+#      #run: ./gradlew assembleNightlyFreeLegacyFatDebug
+#      #run: ./gradlew assembleandroidFullRelease
+#      #run: ./gradlew assembleAndroidFullFatRelease
+#      #run: ./gradlew bundleAndroidFullLegacyFatRelease
+#      #run: ./gradlew bundleAndroidFullRelease
+#      #run: ./gradlew bundleAndroidFullLegacyRelease
+#      run: |
+#        ./gradlew tasks --all
+#        ./gradlew assembleNightlyFreeLegacyFatDebug
+
+    - name: Setup java (v3)
       uses: actions/setup-java@v3
       with:
-        java-version: '11'
-        distribution: 'adopt'
+        distribution: 'temurin'
+        java-version: '17'
+        cache: gradle
 
-    - name: Grant execute permission for gradlew
-      working-directory: ./android
-      run: chmod +x gradlew
+    - name: gradle build (v2)
+      uses: gradle/gradle-build-action@v2
 
-    - name: Patch memory requirements
+    - name: gradle  Assemble AndroidFull Release
       working-directory: ./android
-      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
-
-    - name: Build with Gradle
-      working-directory: ./android
-      #run: ./gradlew assembleNightlyFreeLegacyFatDebug
-      #run: ./gradlew assembleandroidFullRelease
-      #run: ./gradlew assembleAndroidFullFatRelease
-      #run: ./gradlew bundleAndroidFullLegacyFatRelease
-      #run: ./gradlew bundleAndroidFullRelease
-      run: ./gradlew bundleAndroidFullLegacyRelease
+      run: ./gradlew assembleAndroidFullRelease
 
 #    - name: Rename APK
 #      working-directory: ./android
