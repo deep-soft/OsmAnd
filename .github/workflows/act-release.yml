@@ -130,7 +130,11 @@ jobs:
 
     - name: gradle  Assemble AndroidFull Release
       working-directory: ./android
-      run: ./gradlew assembleAndroidFullRelease
+      run: |
+        ./gradlew tasks --all
+        # ./gradlew assembleAndroidFullRelease
+        ./gradlew assembleAndroidFullOpenglArm64Release
+
 
 #    - name: Rename APK
 #      working-directory: ./android
