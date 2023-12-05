@@ -4,13 +4,27 @@ on:
   [workflow_dispatch]
 
 env:
-  TAG_NAME:                    "OsmAnd"
-  TAG_VERSION:                 "osmand-v1.0.0"
-  TAG_BUILD:                   "-b"
-  TAG_REF:                     "0000000"
-  PRG_NAME:                   "osmand"
-  PRG_VERSION:                "v1.0.0"
-  VERSION:                     "1.0.0"
+  TAG_NAME:     "OsmAnd"
+  TAG_VERSION:  "OsmAnd-v1.0.0"
+  TAG_BUILD:    "-b"
+  TAG_REF:      "0000000"
+  PRG_NAME:     "OsmAnd"
+  PRG_TASK:     "assemble"
+                 ## assemble, bundle
+  PRG_FLAVOR:   "androidFull"
+                 ## androidFull, nightlyFree, amazonFree, amazonFull, gplayFree, gplayFull, huawei
+  PRG_OGL:      "opengl"
+                 ## opengl, legacy, opengldebug
+  PRG_ARCH:     "arm64"
+                 ## arm64, armv7, x86, armonly, fat (all)
+  PRG_TYPE:     "release"
+                 ## release, debug
+# TitleCase
+  uPRG_OGL:     "Opengl"
+  uPRG_ARCH:    "Arm64"
+  uPRG_TYPE:    "Release"
+  PRG_VERSION:  "v1.0.0"
+  VERSION:      "1.0.0"
 
 permissions:
   contents: write
@@ -85,12 +99,16 @@ jobs:
     - name: Print ref, build version
       shell: bash
       run: |
-        echo "NAM: ${{ env.PRG_NAME }}"
+        echo "NAM: ${{ env.PRG_NAME    }}"
         echo "VER: ${{ env.PRG_VERSION }}"
         echo "TAG: ${{ env.TAG_VERSION }}"
-        echo "REF: ${{ env.TAG_REF }}"
-        echo "BLD: ${{ env.TAG_BUILD }}"
-        echo "${{ env.PRG_NAME }}-src-${{ env.PRG_VERSION }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+        echo "REF: ${{ env.TAG_REF     }}"
+        echo "BLD: ${{ env.TAG_BUILD   }}"
+        echo "FLA: ${{ env.PRG_FLAVOR  }}"
+        echo "OGL: ${{ env.PRG_OGL     }}"
+        echo "ARC: ${{ env.PRG_ARCH    }}"
+        echo "TYP: ${{ env.PRG_TYPE    }}"
+        echo "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
 
 # signingConfig storeFile
     - name: skip sign
@@ -105,32 +123,6 @@ jobs:
         echo "signingConfig ... ";
         grep signingConfig "android/OsmAnd/build.gradle" || true;
         echo "... done";
-
-#    - name: set up JDK 11
-#      uses: actions/setup-java@v3
-#      with:
-#        java-version: '11'
-#        distribution: 'adopt'
-#
-#    - name: Grant execute permission for gradlew
-#      working-directory: ./android
-#      run: chmod +x gradlew
-#
-#    - name: Patch memory requirements
-#      working-directory: ./android
-#      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
-#
-#    - name: Build with Gradle
-#      working-directory: ./android
-#      #run: ./gradlew assembleNightlyFreeLegacyFatDebug
-#      #run: ./gradlew assembleandroidFullRelease
-#      #run: ./gradlew assembleAndroidFullFatRelease
-#      #run: ./gradlew bundleAndroidFullLegacyFatRelease
-#      #run: ./gradlew bundleAndroidFullRelease
-#      #run: ./gradlew bundleAndroidFullLegacyRelease
-#      run: |
-#        ./gradlew tasks --all
-#        ./gradlew assembleNightlyFreeLegacyFatDebug
 
     - name: Setup java (v3)
       uses: actions/setup-java@v3
@@ -156,29 +148,30 @@ jobs:
       working-directory: ./android
       run: |
         # ./gradlew assembleAndroidFullOpenglFatRelease
-        ./gradlew assembleAndroidFullOpenglArm64Release
+        #./gradlew assembleAndroidFullOpenglArm64Release
+        ./gradlew "${{ env.PRG_TASK    }}${{ env.PRG_FLAVOR  }}${{ env.uPRG_OGL  }}${{ env.uPRG_ARCH  }}${{ env.uPRG_TYPE  }}"
 
 #    - name: Rename APK
 #      working-directory: ./android
 #      run: mv OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/debug/OsmAnd-nightlyFree-legacy-fat-debug.apk OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/debug/OsmAnd-nightlyFree-legacy-fat-debug-$(git log -n 1 --format='%h').apk
 
 #assembleAndroidFullOpenglArm64Release
-# android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/OsmAnd-AndroidFull-Opengl-Arm64-Release.apk
+# android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/OsmAnd-androidFull-opengl-arm64-release-unsigned.apk
     - name: Copy apk from outputs/
       continue-on-error: true
       shell: bash
       run: |
-        set -x
+        #set -x
         mkdir -p signed-apk
-        echo "LIST: " ./android/OsmAnd/build/outputs/apk/*
-        ls -lR ./android/OsmAnd/build/outputs/apk/
-        echo "LIST: " ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/
-        ls -l ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/
-        cp ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/* ./signed-apk/
+        #echo "LIST: " ./android/OsmAnd/build/outputs/apk/*
+        #ls -lR ./android/OsmAnd/build/outputs/apk/
+        echo "LIST: " ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/
+        ls -l ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/
+        cp ./android/OsmAnd/build/outputs/apk/androidFullOpenglArm64/release/* ./signed-apk/
         echo "LIST: " ./signed-apk/
         ls -l ./signed-apk/
-        #mv ./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}*-${{ env.PRG_FLAVOR }}-release-unsigned.apk ./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
-        #echo "LIST: " ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+        #mv ./signed-apk/OsmAnd-androidFull-opengl-arm64-release-unsigned.apk ./signed-apk/OsmAnd-androidFull-opengl-arm64-release.apk
+        mv "./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-unsigned.apk" "./signed-apk/${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}.apk"
         ls -l ./signed-apk/
 
     - uses: deep-soft/sign-android-release@master
