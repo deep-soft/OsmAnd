@@ -137,6 +137,8 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+        #distribution: 'adopt'
+        #java-version: '11'
         cache: gradle
 
     - name: Grant execute permission for gradlew
@@ -153,8 +155,7 @@ jobs:
     - name: gradle  Assemble AndroidFull Release
       working-directory: ./android
       run: |
-        #./gradlew tasks
-        # ./gradlew assembleAndroidFullRelease
+        # ./gradlew assembleAndroidFullOpenglFatRelease
         ./gradlew assembleAndroidFullOpenglArm64Release
 
 #    - name: Rename APK
@@ -164,10 +165,13 @@ jobs:
 #assembleAndroidFullOpenglArm64Release
 # android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/OsmAnd-AndroidFull-Opengl-Arm64-Release.apk
     - name: Copy apk from outputs/
+      continue-on-error: true
       shell: bash
       run: |
         set -x
         mkdir -p signed-apk
+        echo "LIST: " ./android/OsmAnd/build/outputs/apk/*
+        ls -lR ./android/OsmAnd/build/outputs/apk/
         echo "LIST: " ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/
         ls -l ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/
         cp ./android/OsmAnd/build/outputs/apk/AndroidFullOpenglArm64/Release/* ./signed-apk/
@@ -178,6 +182,7 @@ jobs:
         ls -l ./signed-apk/
 
     - uses: deep-soft/sign-android-release@master
+      continue-on-error: true
       name: Sign app APK
       if: env.ANDROID_SIGNING_KEY != null
       id: sign-OsmAnd
@@ -193,6 +198,7 @@ jobs:
 
     - name: Publish signed apk package
       if: env.ANDROID_SIGNING_KEY != null
+      continue-on-error: true
       uses: deep-soft/action-gh-release@v1
       with:
         draft: true
@@ -211,6 +217,7 @@ jobs:
             android/OsmAnd/build/outputs/apk/*/*/*.apk
 
     - name: Archive APK
+      continue-on-error: true
       uses: deep-soft/upload-artifact@v3
       with:
         name: release
@@ -220,6 +227,7 @@ jobs:
 # zip release begin
     - name: Create Archive ALL
       if:  ${{ inputs.archive_ALL}}
+      continue-on-error: true
       uses: deep-soft/zip-release@v2
       with:
         type: 'zip'
