@@ -1742,12 +1742,6 @@ public class OsmandSettings {
 		ROTATE_MAP.set(compassMode.getValue());
 	}
 
-	public static final int CENTER_CONSTANT = 0;
-	public static final int BOTTOM_CONSTANT = 1;
-	public static final int MIDDLE_BOTTOM_CONSTANT = 2;
-	public static final int MIDDLE_TOP_CONSTANT = 3;
-	public static final int LANDSCAPE_MIDDLE_RIGHT_CONSTANT = 4;
-
 	public static final int POSITION_PLACEMENT_AUTOMATIC = 0;
 	public static final int POSITION_PLACEMENT_CENTER = 1;
 	public static final int POSITION_PLACEMENT_BOTTOM = 2;
@@ -1828,6 +1822,7 @@ public class OsmandSettings {
 
 	public final OsmandPreference<Boolean> SHOULD_SHOW_FREE_VERSION_BANNER = new BooleanPreference(this, "should_show_free_version_banner", false).makeGlobal().makeShared().cache();
 	public final OsmandPreference<Boolean> USE_HH_ROUTING = new BooleanPreference(this, "use_hh_routing", false).makeGlobal().makeShared().cache();
+	public final OsmandPreference<Boolean> USE_V1_AUTO_ZOOM = new BooleanPreference(this, "use_v1_auto_zoom", false).makeGlobal().makeShared().cache();
 	public final OsmandPreference<Boolean> TRANSPARENT_STATUS_BAR = new BooleanPreference(this, "transparent_status_bar", true).makeGlobal().makeShared();
 
 	public final OsmandPreference<Boolean> SHOW_INFO_ABOUT_PRESSED_KEY = new BooleanPreference(this, "show_info_about_pressed_key", false).makeGlobal().makeShared();
