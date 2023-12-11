@@ -13,6 +13,12 @@ on:
         type: boolean
         default: false
         required: true
+      artifact_unsigned:
+        description: 'artifact_unsigned'
+        type: boolean
+        default: false
+        required: true
+
 
 env:
   TAG_NAME:     "OsmAnd"
@@ -270,6 +276,7 @@ jobs:
             android/OsmAnd/build/outputs/apk/*/*/*.apk
 
     - name: Archive APK
+      if: ${{ inputs.artifact_unsigned }}
       continue-on-error: true
       uses: deep-soft/upload-artifact@v3
       with:
