@@ -156,12 +156,12 @@ jobs:
         env_variable: 'ZIP_SRC_ARCHIVE'
         # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
 
-    - name: Publish Archive ALL
+    - name: Publish Archive src
       if:  ${{ inputs.archive_src}}
       continue-on-error: true
       uses: deep-soft/action-gh-release@v1
       with:
-        # draft: true
+        draft: true
         tag_name: '${{ env.TAG_NAME }}-src'
         files: |
             ${{ env.ZIP_SRC_ARCHIVE }}
