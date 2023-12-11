@@ -237,6 +237,16 @@ jobs:
         # override default build-tools version (29.0.3) -- optional
         BUILD_TOOLS_VERSION: "30.0.2"
 
+    - name: SHA256 checksum
+      uses: deep-soft/sha-checksums@v1
+      with:
+        type: 'SHA256'
+        filename: '${{steps.sign-OsmAnd.outputs.signedReleaseFile}}.sha256'
+        directory: '.'
+        path: '${{steps.sign-OsmAnd.outputs.signedReleaseFile}}'
+        env_variable: 'SHA_SUMS'
+        ignore_git: false
+
     - name: Publish signed apk package
       if: env.ANDROID_SIGNING_KEY != null
       continue-on-error: true
@@ -246,6 +256,7 @@ jobs:
         tag_name: ${{ env.TAG_NAME }}
         files: |
           ${{steps.sign-OsmAnd.outputs.signedReleaseFile}}
+          ${{steps.sign-OsmAnd.outputs.signedReleaseFile}}.sha256
           _tag_name_.txt
 
     - name: Publish unsigned apk package
