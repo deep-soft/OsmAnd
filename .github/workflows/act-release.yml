@@ -188,6 +188,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         cache-overwrite-existing: true
+        cache-disabled: false
 
     - name: gradle  Assemble AndroidFull Release
       working-directory: ./android
