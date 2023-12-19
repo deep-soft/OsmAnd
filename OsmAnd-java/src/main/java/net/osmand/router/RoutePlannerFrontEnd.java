@@ -22,7 +22,7 @@ import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.binary.BinaryMapRouteReaderAdapter.RouteRegion;
 import net.osmand.binary.RouteDataObject;
 import net.osmand.data.LatLon;
-import net.osmand.data.QuadPoint;
+import net.osmand.data.QuadPointDouble;
 import net.osmand.router.BinaryRoutePlanner.RouteSegment;
 import net.osmand.router.BinaryRoutePlanner.RouteSegmentPoint;
 import net.osmand.router.GeneralRouter.RoutingParameter;
@@ -90,13 +90,13 @@ public class RoutePlannerFrontEnd {
 
 		@Override
 		public String toString() {
-			return String.format(">> GPX approximation (%d of %d m route calcs, %d route points searched) for %d m: %d m umatched",
+			return String.format(">> GPX approximation (%d of %d m route calcs, %d route points searched) for %d m: %d m unmatched",
 					routeCalculations, routeDistCalculations, routePointsSearched, routeDistance, routeDistanceUnmatched);
 		}
 
-		public double distFromLastPoint(LatLon startPoint) {
+		public double distFromLastPoint(LatLon pnt) {
 			if (result.size() > 0) {
-				return MapUtils.getDistance(getLastPoint(), startPoint);
+				return MapUtils.getDistance(getLastPoint(), pnt);
 			}
 			return 0;
 		}
@@ -122,6 +122,20 @@ public class RoutePlannerFrontEnd {
 		public GpxPoint() {
 		}
 
+		public RouteSegmentResult getFirstRouteRes() {
+			if (routeToTarget == null || routeToTarget.isEmpty()) {
+				return null;
+			}
+			return routeToTarget.get(0);
+		}
+		
+		public RouteSegmentResult getLastRouteRes() {
+			if (routeToTarget == null || routeToTarget.isEmpty()) {
+				return null;
+			}
+			return routeToTarget.get(routeToTarget.size() - 1);
+		}
+		
 		public GpxPoint(GpxPoint point) {
 			this.ind = point.ind;
 			this.loc = point.loc;
@@ -170,7 +184,7 @@ public class RoutePlannerFrontEnd {
 			if (r.getPointsLength() > 1) {
 				RouteSegmentPoint road = null;
 				for (int j = 1; j < r.getPointsLength(); j++) {
-					QuadPoint pr = MapUtils.getProjectionPoint31(px, py, r.getPoint31XTile(j - 1),
+					QuadPointDouble pr = MapUtils.getProjectionPoint31(px, py, r.getPoint31XTile(j - 1),
 							r.getPoint31YTile(j - 1), r.getPoint31XTile(j), r.getPoint31YTile(j));
 					double currentsDistSquare = squareDist((int) pr.x, (int) pr.y, px, py);
 					if (road == null || currentsDistSquare < road.distToProj) {
@@ -276,11 +290,7 @@ public class RoutePlannerFrontEnd {
 									start.routeToTarget = null;
 								}
 							}
-							if (routeFound && next.ind == gpxPoints.size() - 1) {
-								// last point - last route found
-								makeSegmentPointPrecise(start.routeToTarget.get(start.routeToTarget.size() - 1),
-										next.loc, false);
-							} else if (routeFound) {
+							if (routeFound && next.ind < gpxPoints.size() - 1) {
 								// route is found - cut the end of the route and move to next iteration
 								// start.stepBackRoute = new ArrayList<RouteSegmentResult>();
 								// boolean stepBack = true;
@@ -318,7 +328,7 @@ public class RoutePlannerFrontEnd {
 					next = findNextGpxPointWithin(gpxPoints, start, gctx.ctx.config.minStepApproximation);
 					if (prev != null) {
 						prev.routeToTarget.addAll(prev.stepBackRoute);
-						makeSegmentPointPrecise(prev.routeToTarget.get(prev.routeToTarget.size() - 1), start.loc, false);
+//						makeSegmentPointPrecise(prev.routeToTarget.get(prev.routeToTarget.size() - 1), start.loc, false);
 						if (next != null) {
 							log.warn("NOT found route from: " + start.pnt.getRoad() + " at " + start.pnt.getSegmentStart());
 						}
@@ -357,7 +367,8 @@ public class RoutePlannerFrontEnd {
 			while (st != end) {
 				LatLon point = r.getPoint(st);
 				boolean pointIsClosed = false;
-				for (int k = start.ind; !pointIsClosed && k < next.ind; k++) {
+				int delta = 0, startInd = Math.max(0, start.ind - delta), nextInd = Math.min(gpxPoints.size(), next.ind + delta);
+				for (int k = startInd; !pointIsClosed && k < nextInd; k++) {
 					pointIsClosed = pointCloseEnough(minPointApproximation, point, gpxPoints.get(k), gpxPoints.get(k + 1));
 				}
 				if (!pointIsClosed) {
@@ -411,7 +422,15 @@ public class RoutePlannerFrontEnd {
 		}
 		RouteSegmentResult res = start.routeToTarget.get(segmendInd);
 		int end = res.getEndPointIndex();
-		next.pnt = new RouteSegmentPoint(res.getObject(), end, end, 0);
+		int beforeEnd = res.isForwardDirection() ? end - 1 : end + 1;
+//		res.setEndPointIndex(beforeEnd);
+		next.pnt = new RouteSegmentPoint(res.getObject(), beforeEnd, end, 0);
+		// use start point as it overlaps
+		// as we step back we can't use precise coordinates
+//		next.pnt.preciseX = MapUtils.get31TileNumberX(next.loc.getLongitude());
+//		next.pnt.preciseY = MapUtils.get31TileNumberY(next.loc.getLatitude());
+		next.pnt.preciseX = next.pnt.getEndPointX();
+		next.pnt.preciseY = next.pnt.getEndPointY();
 		return true;
 	}
 
@@ -423,29 +442,34 @@ public class RoutePlannerFrontEnd {
 		for (int i = 0; i < gpxPoints.size() && !gctx.ctx.calculationProgress.isCancelled; ) {
 			GpxPoint pnt = gpxPoints.get(i);
 			if (pnt.routeToTarget != null && !pnt.routeToTarget.isEmpty()) {
-				LatLon startPoint = pnt.routeToTarget.get(0).getStartPoint();
+				makeSegmentPointPrecise(pnt.getFirstRouteRes(), pnt.loc, true);
+				LatLon startPoint = pnt.getFirstRouteRes().getStartPoint();
 				if (lastStraightLine != null) {
 					lastStraightLine.add(startPoint);
+					System.out.println(startPoint);
 					addStraightLine(gctx, lastStraightLine, straightPointStart, reg);
 					lastStraightLine = null;
 				}
 				if (gctx.distFromLastPoint(startPoint) > 1) {
 					gctx.routeGapDistance += gctx.distFromLastPoint(startPoint);
-					System.out.println(String.format("????? gap of route point = %f, gap of actual gpxPoint = %f, %s ",
+					System.out.println(String.format("?? gap of route point = %f, gap of actual gpxPoint = %f, %s ",
 							gctx.distFromLastPoint(startPoint), gctx.distFromLastPoint(pnt.loc), pnt.loc));
 				}
 				gctx.finalPoints.add(pnt);
 				gctx.result.addAll(pnt.routeToTarget);
 				i = pnt.targetInd;
+				makeSegmentPointPrecise(pnt.getLastRouteRes(), gpxPoints.get(i).loc, false);
 			} else {
-				// add straight line from i -> i+1 
+				// add straight line from i -> i+1
+				LatLon lastPoint = null;
 				if (lastStraightLine == null) {
 					lastStraightLine = new ArrayList<LatLon>();
 					straightPointStart = pnt;
 					// make smooth connection
-					if (gctx.distFromLastPoint(pnt.loc) > 1) {
-						lastStraightLine.add(gctx.getLastPoint());
-					}
+					lastPoint = gctx.getLastPoint();
+				}
+				if (lastPoint == null) {
+					lastPoint = pnt.loc;
 				}
 				lastStraightLine.add(pnt.loc);
 				i++;
@@ -656,24 +680,21 @@ public class RoutePlannerFrontEnd {
 				}
 			}
 			if (routeIsCorrect) {
-				RouteSegmentResult firstSegement = res.detailed.get(0);
+				RouteSegmentResult firstSegment = res.detailed.get(0);
 				// correct start point though don't change end point
-				if (!prevRouteCalculated) {
-					// make first position precise
-					makeSegmentPointPrecise(firstSegement, start.loc, true);
-				} else {
-					if (firstSegement.getObject().getId() == start.pnt.getRoad().getId()) {
-						// start point could shift to +-1 due to direction
-						firstSegement.setStartPointIndex(start.pnt.getSegmentStart());
-						if (firstSegement.getObject().getPointsLength() != start.pnt.getRoad().getPointsLength()) {
-							firstSegement.setObject(start.pnt.road);
+				if (prevRouteCalculated) {
+					if (firstSegment.getObject().getId() == start.pnt.getRoad().getId()) {
+						// start point is end point of prev route
+						firstSegment.setStartPointIndex(start.pnt.getSegmentEnd());
+						if (firstSegment.getObject().getPointsLength() != start.pnt.getRoad().getPointsLength()) {
+							firstSegment.setObject(start.pnt.road);
 						}
 					} else {
 						// for native routing this is possible when point lies on intersection of 2 lines
 						// solution here could be to pass to native routing id of the route
 						// though it should not create any issue
 						System.out.println("??? not found " + start.pnt.getRoad().getId() + " instead "
-								+ firstSegement.getObject().getId());
+								+ firstSegment.getObject().getId());
 					}
 				}
 				start.routeToTarget = res.detailed;
@@ -709,7 +730,7 @@ public class RoutePlannerFrontEnd {
 			}
 			for (int i = start; i < end; i++) {
 				RouteDataObject r = sr.getObject();
-				QuadPoint pp = MapUtils.getProjectionPoint31(px, py, r.getPoint31XTile(i), r.getPoint31YTile(i),
+				QuadPointDouble pp = MapUtils.getProjectionPoint31(px, py, r.getPoint31XTile(i), r.getPoint31YTile(i),
 						r.getPoint31XTile(i + 1), r.getPoint31YTile(i + 1));
 				double currentsDist = squareDist((int) pp.x, (int) pp.y, px, py);
 				if (currentsDist <= SQR) {
@@ -897,7 +918,7 @@ public class RoutePlannerFrontEnd {
 	protected double projectDistance(List<RouteSegmentResult> res, int k, int px, int py) {
 		RouteSegmentResult sr = res.get(k);
 		RouteDataObject r = sr.getObject();
-		QuadPoint pp = MapUtils.getProjectionPoint31(px, py,
+		QuadPointDouble pp = MapUtils.getProjectionPoint31(px, py,
 				r.getPoint31XTile(sr.getStartPointIndex()), r.getPoint31YTile(sr.getStartPointIndex()),
 				r.getPoint31XTile(sr.getEndPointIndex()), r.getPoint31YTile(sr.getEndPointIndex()));
 		double currentsDist = squareDist((int) pp.x, (int) pp.y, px, py);
@@ -911,8 +932,8 @@ public class RoutePlannerFrontEnd {
 
 		RouteDataObject r = new RouteDataObject(routeSegmentResult.getObject());
 		routeSegmentResult.setObject(r);
-		QuadPoint before = null;
-		QuadPoint after = null;
+		QuadPointDouble before = null;
+		QuadPointDouble after = null;
 		if (pind > 0) {
 			before = MapUtils.getProjectionPoint31(px, py, r.getPoint31XTile(pind - 1),
 					r.getPoint31YTile(pind - 1), r.getPoint31XTile(pind), r.getPoint31YTile(pind));
@@ -926,7 +947,7 @@ public class RoutePlannerFrontEnd {
 				MapUtils.get31LongitudeX(r.getPoint31XTile(pind)));
 		double ddBefore = Double.POSITIVE_INFINITY;
 		double ddAfter = Double.POSITIVE_INFINITY;
-		QuadPoint i = null;
+		QuadPointDouble i = null;
 		if (before != null) {
 			ddBefore = MapUtils.getDistance(point, MapUtils.get31LatitudeY((int) before.y),
 					MapUtils.get31LongitudeX((int) before.x));
