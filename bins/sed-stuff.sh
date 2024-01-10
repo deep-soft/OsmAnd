@@ -10,16 +10,19 @@ case $os_name in
     echo "Install gnu-sed"
     brew install gnu-sed
     export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
-    echo "SED_EXE=$(which sed)" >> $GITHUB_ENV
+    SED_EXE=$(which sed)
+    echo "SED_EXE=$SED_EXE" >> $GITHUB_ENV
     ls -l /usr/local/opt/gnu-sed/libexec/gnubin
   ;;
   Linux*)
     echo "Run on Linux"
-    echo "SED_EXE=$(which sed)" >> $GITHUB_ENV
+    SED_EXE=$(which sed)
+    echo "SED_EXE=$SED_EXE" >> $GITHUB_ENV
     ;;
   *)
     echo "Run on unknown OS: $os_name"
-    echo "SED_EXE=$(which sed)" >> $GITHUB_ENV
+    SED_EXE=$(which sed)
+    echo "SED_EXE=$SED_EXE" >> $GITHUB_ENV
   ;;
 esac
 
