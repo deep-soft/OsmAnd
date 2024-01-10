@@ -125,7 +125,7 @@ jobs:
         DEBUG_MODE_1: ${{ inputs.DEBUG_MODE_1 }}
         DEBUG_MODE_2: ${{ inputs.DEBUG_MODE_2 }}
       run: |
-        bash bins/sed-stuff.sh "_" "${{ inputs.SED_STUFF_PARAMS }}"
+        bash android/bins/sed-stuff.sh "_" "${{ inputs.SED_STUFF_PARAMS }}"
 
     - name: Get ref, set build version
       continue-on-error: true
