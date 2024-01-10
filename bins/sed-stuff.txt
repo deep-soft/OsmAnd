@@ -4,7 +4,7 @@
 
 #1
 S:return mapRenderer.getState().getZoomLevel().ordinal() + mapRenderer.getTileZoomOffset();
-R:return mapRenderer.getState().getZoomLevel().ordinal() : currentViewport.getZoom();
+R:return mapRenderer != null ? mapRenderer.getState().getZoomLevel().ordinal() : currentViewport.getZoom();
 F:/home/runner/work/OsmAnd/OsmAnd/android/OsmAnd/src/net/osmand/plus/views/OsmandMapTileView.java
 
 #EOF
