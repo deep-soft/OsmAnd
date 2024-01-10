@@ -18,7 +18,23 @@ on:
         type: boolean
         default: false
         required: true
-
+      SED_STUFF:
+        description: SED_STUFF
+        type: boolean
+        default: false
+        required: true
+      SED_STUFF_PARAMS:
+        description: SED_STUFF_PARAMS
+        default: "filename_to_cat"
+        required: true
+      DEBUG_MODE_1:
+        description: DEBUG_MODE_1
+        default: "N"
+        required: true
+      DEBUG_MODE_2:
+        description: DEBUG_MODE_2
+        default: "N"
+        required: true
 
 env:
   TAG_NAME:     "OsmAnd"
@@ -99,6 +115,17 @@ jobs:
       with:
         repository: deep-soft/OsmAnd-misc
         path: misc
+
+# temporary fix ?!
+    - name: sed-stuff
+      if: ${{ inputs.SED_STUFF }}
+      continue-on-error: true
+      shell: bash
+      env:
+        DEBUG_MODE_1: ${{ inputs.DEBUG_MODE_1 }}
+        DEBUG_MODE_2: ${{ inputs.DEBUG_MODE_2 }}
+      run: |
+        bash bins/sed-stuff.sh "_" "${{ inputs.SED_STUFF_PARAMS }}"
 
     - name: Get ref, set build version
       continue-on-error: true
