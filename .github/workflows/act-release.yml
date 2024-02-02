@@ -202,7 +202,7 @@ jobs:
             ${{ env.ZIP_SRC_ARCHIVE }}
 # zip release end
 
-    - name: Setup java (v3)
+    - name: Setup java
       uses: deep-soft/setup-java@v4
       with:
         distribution: 'temurin'
@@ -219,7 +219,7 @@ jobs:
       working-directory: ./android
       run: printf "\norg.gradle.jvmargs=-Xmx2048m \n" >> gradle.properties
 
-    - name: gradle build (v2)
+    - name: gradle build
       uses: deep-soft/gradle-build-action@v3
       with:
         cache-overwrite-existing: true
