@@ -252,7 +252,8 @@ jobs:
         echo "LIST: " ./
         ls -l ./
         #mv "OsmAnd-androidFull-opengl-arm64-release-unsigned.apk" "OsmAnd-androidFull-opengl-arm64-release.apk"
-        mv "${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
+        #mv "${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-${{ env.TAG_BUILD }}.apk"
+        mv "${{ env.PRG_NAME }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.PRG_TYPE }}-unsigned.apk" "${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-${{ env.PRG_OGL }}-${{ env.PRG_ARCH }}-${{ env.TAG_BUILD }}.apk"
         ls -l ./
         popd
 
