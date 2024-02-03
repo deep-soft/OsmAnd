@@ -1,4 +1,4 @@
-# 2024-02-02 21:10
+# 2024-02-03 12:30
 #
 name: act-release
 
@@ -144,7 +144,8 @@ jobs:
         _prg_version_base_="v"$(grep "versionName \"" "android/OsmAnd/build.gradle" | cut -d '"' -f2)
         _prg_version_="$_prg_version_base_"
         echo "TAG_REF=$_ref_" >> $GITHUB_ENV
-        _build_="${{ env.TAG_BUILD }}.$_ref_"
+        _crt_date_=$(date "+%Y%m%d_%H%M")
+        _build_="$_crt_date_${{ env.TAG_BUILD }}.$_ref_"
         echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
         echo "PRG_VERSION=$_prg_version_" >> $GITHUB_ENV
         echo "TAG_VERSION=$_prg_version_" >> $GITHUB_ENV
@@ -184,12 +185,12 @@ jobs:
       uses: deep-soft/zip-release@v2
       with:
         type: 'zip'
-        filename: '${{ env.TAG_NAME }}-src'
+        filename: '${{ env.TAG_NAME }}-${{ env.TAG_VERSION }}-src'
         directory: '.'
         path: '.'
-        exclusions: '*.git* /*node_modules/* .editorconfig'
-        env_variable: 'ZIP_SRC_ARCHIVE'
-        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+        exclusions: '*.git/* /*node_modules/* .editorconfig'
+        env_variable: 'ZIP_ARCHIVE_SRC'
+        # archive name is ${{ env.ZIP_ARCHIVE_RELEASE }}
 
     - name: Publish Archive src
       if:  ${{ inputs.archive_src}}
@@ -199,7 +200,7 @@ jobs:
         draft: true
         tag_name: '${{ env.TAG_NAME }}-src'
         files: |
-            ${{ env.ZIP_SRC_ARCHIVE }}
+            ${{ env.ZIP_ARCHIVE_SRC }}
 # zip release end
 
     - name: Setup java
@@ -207,8 +208,6 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
-        #distribution: 'adopt'
-        #java-version: '11'
         cache: gradle
 
     - name: Grant execute permission for gradlew
@@ -324,7 +323,7 @@ jobs:
         directory: '.'
         path: '.'
         exclusions: '*.git* /*node_modules/* .editorconfig'
-        # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+        # archive name is ${{ env.ZIP_ARCHIVE_RELEASE }}
 
     - name: Publish Archive ALL
       if:  ${{ inputs.archive_ALL}}
@@ -334,5 +333,5 @@ jobs:
         draft: true
         tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}-ALL
         files: |
-            ${{ env.ZIP_RELEASE_ARCHIVE }}
+            ${{ env.ZIP_ARCHIVE_RELEASE }}
 # zip release end
