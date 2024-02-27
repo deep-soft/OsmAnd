@@ -2508,7 +2508,7 @@
     <string name="plan_route_no_markers_toast">Debes añadir al menos un marcador para usar esta función.</string>
     <string name="rendering_value_darkyellow_name">Amarillo oscuro</string>
     <string name="wrong_input">Entrada incorrecta</string>
-    <string name="enter_new_name">Ingresar nuevo nombre</string>
+    <string name="enter_new_name">Introduzca el nuevo nombre</string>
     <string name="shared_string_back">Atrás</string>
     <string name="shared_string_view">Ver</string>
     <string name="waypoints_added_to_map_markers">Puntos de referencia añadidos en «Marcadores del mapa»</string>
@@ -3069,7 +3069,7 @@
     <string name="rendering_attr_tracktype_grade5_name">Suave (con rodaduras apenas visibles entre la vegetación)</string>
     <string name="routeInfo_tracktype_name">Firmeza de la superficie</string>
     <string name="shared_string_file_is_saved">Se ha guardado «%s»</string>
-    <string name="shared_string_open_track">Abrir traza</string>
+    <string name="shared_string_open_track">Abrir pista</string>
     <string name="shared_string_track_is_saved">Traza «%s» guardada</string>
     <string name="app_mode_campervan">Autocaravana (RV)</string>
     <string name="rendering_attr_showLez_description">Mostrar zonas de baja emisión en el mapa. No afecta a la navegación.</string>
@@ -3956,7 +3956,7 @@
     <string name="rename_track">Renombrar traza</string>
     <string name="shared_string_sec">seg</string>
     <string name="shared_string_turn">Giro</string>
-    <string name="start_recording">Iniciar grabación</string>
+    <string name="start_recording">Iniciar la grabación</string>
     <string name="show_track_on_map">Mostrar traza en el mapa</string>
     <string name="routing_engine_vehicle_type_wheelchair">Silla de ruedas</string>
     <string name="routing_engine_vehicle_type_hiking">Senderismo</string>
@@ -5359,7 +5359,7 @@
     <string name="help_article_map_vector_maps_name">Mapas vectoriales (Estilos de mapas)</string>
     <string name="help_article_navigation_auto_car_name">Android Auto</string>
     <string name="help_article_navigation_car_play_name">CarPlay</string>
-    <string name="help_article_navigation_guidance_name">Guía</string>
+    <string name="help_article_navigation_guidance_name">Orientación de la navegación</string>
     <string name="help_article_navigation_guidance_map_during_navigation_name">Pantalla del mapa durante la navegación</string>
     <string name="help_article_navigation_routing_name">Parámetros de la ruta</string>
     <string name="help_article_navigation_routing_bicycle_based_routing_name">Rutas en bicicleta (BTT)</string>
@@ -5627,4 +5627,5 @@
     <string name="speedometer_description">Muestra tu velocidad actual a través del GPS</string>
     <string name="shared_string_speedometer">Velocímetro</string>
     <string name="speed_limit_warning">Aviso del límite de velocidad</string>
+    <string name="help_article_setup_a_route_name">Crear una ruta</string>
 </resources>
