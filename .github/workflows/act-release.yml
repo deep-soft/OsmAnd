@@ -5,6 +5,11 @@ name: act-release
 on:
   workflow_dispatch:
     inputs:
+      gradle_cache:
+        description: 'gradle_cache'
+        type: boolean
+        default: false
+        required: true
       archive_src:
         description: 'archive_src'
         type: boolean
@@ -225,6 +230,7 @@ jobs:
         printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
 
     - name: gradle build
+      if:  ${{ inputs.gradle_cache}}
       uses: deep-soft/gradle-build-action@v3
       with:
         cache-overwrite-existing: true
