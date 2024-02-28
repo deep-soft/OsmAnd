@@ -1,10 +1,15 @@
 #BOF#
 # sed-stuff.txt
-# 2024.01.10 21:30
+# 2024.02.28 08:10
 
 #1
 S:return mapRenderer.getState().getZoomLevel().ordinal() + mapRenderer.getTileZoomOffset();
 R:return mapRenderer != null ? mapRenderer.getState().getZoomLevel().ordinal() : currentViewport.getZoom();
 F:/home/runner/work/OsmAnd/OsmAnd/android/OsmAnd/src/net/osmand/plus/views/OsmandMapTileView.java
+
+#2
+S:private void setupSpeedTab(View view, com.github.mikephil.charting.charts.ElevationChart chart, int position) {
+R:private void setupSpeedTab(View view, ElevationChart chart, int position) {
+F:/home/runner/work/OsmAnd/OsmAnd/android/OsmAnd/src/net/osmand/plus/myplaces/tracks/dialogs/GPXItemPagerAdapter.java
 
 #EOF
