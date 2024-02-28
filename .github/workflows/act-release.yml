@@ -214,14 +214,15 @@ jobs:
 
     - name: Grant execute permission for gradlew
       working-directory: ./android
+      #  ./gradlew clean
       run: |
         chmod +x gradlew
-        ./gradlew clean
 
     - name: Patch memory requirements
       working-directory: ./android
       #run: printf "\norg.gradle.jvmargs=-Xmx2048m \n" >> gradle.properties
-      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
+      run: |
+        printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
 
     - name: gradle build
       uses: deep-soft/gradle-build-action@v3
@@ -231,9 +232,9 @@ jobs:
 
     - name: gradle  Assemble AndroidFull Release
       working-directory: ./android
+      # ./gradlew assembleAndroidFullOpenglFatRelease
+      #./gradlew assembleAndroidFullOpenglArm64Release
       run: |
-        # ./gradlew assembleAndroidFullOpenglFatRelease
-        #./gradlew assembleAndroidFullOpenglArm64Release
         ./gradlew "${{ env.PRG_TASK    }}${{ env.PRG_FLAVOR  }}${{ env.uPRG_OGL  }}${{ env.uPRG_ARCH  }}${{ env.uPRG_TYPE  }}"
 
 #    - name: Rename APK
@@ -273,9 +274,9 @@ jobs:
         alias:            ${{ secrets.ANDROID_ALIAS }}
         keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
         keyPassword:      ${{ secrets.ANDROID_KEY_PASSWORD }}
-      env:
-        # override default build-tools version (29.0.3) -- optional
-        BUILD_TOOLS_VERSION: "34.0.0"
+      #env:
+      #  # override default build-tools version (29.0.3) -- optional
+      #  BUILD_TOOLS_VERSION: "34.0.0"
 
     - name: SHA256 checksum
       uses: deep-soft/sha-checksums@v1
