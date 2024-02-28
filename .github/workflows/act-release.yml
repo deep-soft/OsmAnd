@@ -214,7 +214,9 @@ jobs:
 
     - name: Grant execute permission for gradlew
       working-directory: ./android
-      run: chmod +x gradlew
+      run: |
+        chmod +x gradlew
+        ./gradlew clean
 
     - name: Patch memory requirements
       working-directory: ./android
