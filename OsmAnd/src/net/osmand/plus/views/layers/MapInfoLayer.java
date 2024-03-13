@@ -201,7 +201,7 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 		alarmWidget.setVisibility(false);
 
 		View speedometerView = mapActivity.findViewById(R.id.speedometer_widget);
-		speedometerWidget = new SpeedometerWidget(app, speedometerView);
+		speedometerWidget = new SpeedometerWidget(app, mapActivity, speedometerView);
 		speedometerWidget.setVisibility(false);
 
 		setupRulerWidget(mapRulerLayout);
@@ -233,8 +233,10 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 	}
 
 	public void updateRow(MapWidget widget) {
-		topWidgetsPanel.updateRow(widget);
-		bottomWidgetsPanel.updateRow(widget);
+		if(getMapActivity() != null || !getMapActivity().isActivityDestroyed()) {
+			topWidgetsPanel.updateRow(widget);
+			bottomWidgetsPanel.updateRow(widget);
+		}
 	}
 
 	@Nullable
