@@ -7,21 +7,13 @@ import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
 import net.osmand.osm.PoiType;
+import net.osmand.search.SearchUICore;
 import net.osmand.util.Algorithms;
 
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
 
 import gnu.trove.list.array.TIntArrayList;
 
@@ -38,6 +30,7 @@ public class Amenity extends MapObject {
 	public static final String COLLECTION_TIMES = "collection_times";
 	public static final String CONTENT = "content";
 	public static final String CUISINE = "cuisine";
+	public static final String WIKIPEDIA = "wikipedia";
 	public static final String WIKIDATA = "wikidata";
 	public static final String WIKIMEDIA_COMMONS = "wikimedia_commons";
 	public static final String MAPILLARY = "mapillary";
@@ -63,6 +56,9 @@ public class Amenity extends MapObject {
 	public static final String NAME = "name";
 	public static final String SEPARATOR = ";";
 	public static final String ALT_NAME_WITH_LANG_PREFIX = "alt_name:";
+	private static final String COLLAPSABLE_PREFIX = "collapsable_";
+	public static final String AMENITY_PREFIX = "amenity_";
+	private static final List<String> HIDING_EXTENSIONS_AMENITY_TAGS = Arrays.asList(PHONE, WEBSITE);
 
 	private String subType;
 	private PoiCategory type;
@@ -113,6 +109,28 @@ public class Amenity extends MapObject {
 
 	public void setSubType(String subType) {
 		this.subType = subType;
+	}
+
+	public String getSubTypeStr() {
+		PoiCategory pc = getType();
+		String[] subtypes = getSubType().split(";");
+		String typeStr = "";
+		//multi value
+		for (String subType : subtypes) {
+			PoiType pt = pc.getPoiTypeByKeyName(subType);
+			if (pt != null) {
+				if (!typeStr.isEmpty()) {
+					typeStr += ", " + pt.getTranslation().toLowerCase();
+				} else {
+					typeStr = pt.getTranslation();
+				}
+			}
+		}
+		if (typeStr.isEmpty()) {
+			typeStr = getSubType();
+			typeStr = Algorithms.capitalizeFirstLetterAndLowercase(typeStr.replace('_', ' '));
+		}
+		return typeStr;
 	}
 
 	public String getOpeningHours() {
@@ -265,7 +283,48 @@ public class Amenity extends MapObject {
 
 	public StringBuilder printNamesAndAdditional() {
 		StringBuilder s = new StringBuilder();
-		printNames(" ", getInternalAdditionalInfoMap(), s);
+		Map<String, String> additionals = new HashMap<>();
+		Map<String, String> poi_type = new HashMap<>();
+		Map<String, String> text = new HashMap<>();
+		if (additionalInfo != null) {
+			for (Map.Entry<String, String> e : additionalInfo.entrySet()) {
+				String key = e.getKey();
+				String val = e.getValue();
+				AbstractPoiType pt = MapPoiTypes.getDefault().getAnyPoiAdditionalTypeByKey(key);
+				if (pt == null && !Algorithms.isEmpty(val) && val.length() < 50) {
+					pt = MapPoiTypes.getDefault().getAnyPoiAdditionalTypeByKey(key + "_" + val);
+				}
+				if (pt != null) {
+					additionals.put(key, val);
+				} else {
+					PoiType pt2 = MapPoiTypes.getDefault().getPoiTypeByKey(key);
+					if (pt2 != null) {
+						String cat = pt2.getCategory().getKeyName();
+						if (poi_type.containsKey(cat)) {
+							val = poi_type.get(cat) + ";" + val;
+						}
+						poi_type.put(pt2.getCategory().getKeyName(), val);
+					} else {
+						text.put(key, val);
+					}
+				}
+			}
+		}
+		if (poi_type.size() > 0) {
+			s.append(" [ ");
+			printNames("", poi_type, s);
+			s.append(" ] ");
+		}
+		if (additionals.size() > 0) {
+			s.append(" poi_additional:[ ");
+			printNames("", additionals, s);
+			s.append(" ] ");
+		}
+		if (text.size() > 0) {
+			s.append(" non_default_poi_xml:[ ");
+			printNames("", text, s);
+			s.append(" ] ");
+		}
 		printNames(" name:", getNamesMap(true), s);
 		return s;
 	}
@@ -555,5 +614,49 @@ public class Amenity extends MapObject {
 			}
 		}
 		return a;
+	}
+	
+	public Map<String, String> getAmenityExtensions() {
+		Map<String, String> result = new HashMap<>();
+		Map<String, List<PoiType>> collectedPoiAdditionalCategories = new HashMap<>();
+		
+		String name = this.name;
+		if (name != null) {
+			result.put(AMENITY_PREFIX + NAME, name);
+		}
+		
+		if (subType != null) {
+			result.put(AMENITY_PREFIX + SUBTYPE, subType);
+		}
+		
+		if (type != null) {
+			result.put(AMENITY_PREFIX + TYPE, type.getKeyName());
+		}
+		
+		if (openingHours != null) {
+			result.put(AMENITY_PREFIX + OPENING_HOURS, openingHours);
+		}
+		if (hasAdditionalInfo()) {
+			SearchUICore searchUICore = new SearchUICore(MapPoiTypes.getDefault(), "en", false);
+			result.putAll(getAdditionalInfoAndCollectCategories(searchUICore.getPoiTypes(),
+					HIDING_EXTENSIONS_AMENITY_TAGS, collectedPoiAdditionalCategories, null));
+			
+			//join collected tags by category into one string
+			for (Map.Entry<String, List<PoiType>> entry : collectedPoiAdditionalCategories.entrySet()) {
+				String categoryName = COLLAPSABLE_PREFIX + entry.getKey();
+				List<PoiType> categoryTypes = entry.getValue();
+				if (!categoryTypes.isEmpty()) {
+					StringBuilder builder = new StringBuilder();
+					for (PoiType poiType : categoryTypes) {
+						if (builder.length() > 0) {
+							builder.append(SEPARATOR);
+						}
+						builder.append(poiType.getKeyName());
+					}
+					result.put(categoryName, builder.toString());
+				}
+			}
+		}
+		return result;
 	}
 }

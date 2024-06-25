@@ -97,6 +97,11 @@ public class ColorUtilities {
 		return a << ALPHA_CHANNEL | r << RED_CHANNEL | g << GREEN_CHANNEL | b << BLUE_CHANNEL;
 	}
 
+	@ColorInt
+	public static int invertColor(@ColorInt int color) {
+		return (color & 0xFF000000) | (~color & 0x00FFFFFF);
+	}
+
 	/********************************* Basic colors *********************************/
 
 	@ColorInt
@@ -353,6 +358,11 @@ public class ColorUtilities {
 	@ColorRes
 	public static int getToolbarActiveColorId(boolean nightMode) {
 		return nightMode ? R.color.app_bar_active_dark : R.color.app_bar_active_light;
+	}
+
+	@ColorInt
+	public static int getStatusBarColor(@NonNull Context context, boolean nightMode) {
+		return getColor(context, getStatusBarColorId(nightMode));
 	}
 
 	@ColorRes

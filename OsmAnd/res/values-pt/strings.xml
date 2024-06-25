@@ -1419,7 +1419,7 @@
     <string name="shared_string_waypoints">Pontos de rota</string>
     <string name="shared_string_dismiss">Cancelar</string>
     <string name="rendering_category_others">Outros atributos do mapa</string>
-    <string name="rendering_attr_showAccess_name">Mostrar restrições de acesso</string>
+    <string name="rendering_attr_showAccess_name">Mostrar restrições de acesso e de portagem</string>
     <string name="rendering_attr_showSurfaceGrade_name">Mostrar qualidade da via</string>
     <string name="rendering_attr_showSurfaces_name">Mostrar superfície da via</string>
     <string name="rendering_attr_moreDetailed_name">Mais detalhes</string>
@@ -2860,7 +2860,7 @@
     <string name="use_osm_live_public_transport">Transportes públicos OsmAnd Live</string>
     <string name="time_of_day">Hora do dia</string>
     <string name="by_transport_type">Por %1$s</string>
-    <string name="step_by_step">Curva a curva</string>
+    <string name="step_by_step">Passo a passo</string>
     <string name="routeInfo_road_types_name">Tipos de estrada</string>
     <string name="exit_at">Sair em</string>
     <string name="shared_string_swap">Trocar</string>
@@ -3497,7 +3497,7 @@
     <string name="wiki_menu_download_descr">São necessários mapas adicionais para visualizar os POIs da Wikipédia no mapa.</string>
     <string name="select_wikipedia_article_langs">Selecione os idiomas dos artigos da Wikipédia no mapa. Pode mudar para qualquer idioma disponível enquanto lê um artigo da Wikipédia.</string>
     <string name="mapillary_item">OsmAnd + Mapillary</string>
-    <string name="tracker_item">OsmAnd Tracker</string>
+    <string name="tracker_item">OsmAnd tracker</string>
     <string name="quick_action_item">Botão de ações rápidas</string>
     <string name="radius_ruler_item">Régua radial</string>
     <string name="measure_distance_item">Medir distância</string>
@@ -3948,7 +3948,7 @@
     <string name="shared_string_sec">seg</string>
     <string name="announcement_time_approach">Aproximação</string>
     <string name="announcement_time_prepare_long">Prepare longo</string>
-    <string name="announcement_time_prepare">Prepare</string>
+    <string name="announcement_time_prepare">Preparar</string>
     <string name="announcement_time_off_route">Fora da rota</string>
     <string name="announcement_time_arrive">Chegada ao destino</string>
     <string name="shared_string_turn">Virar</string>
@@ -4260,7 +4260,7 @@
     <string name="benefits_for_contributors_secondary_descr">Autentique-se com a sua conta do OpenStreetMap e veja se está qualificado para obter atualizações de mapas mensais e a cada hora ilimitadas.</string>
     <string name="use_login_and_password">Usar nome de utilizador e palavra-passe</string>
     <string name="available_until">Disponível até %1$s</string>
-    <string name="enough_contributions_descr">Parabéns! Fez contribuições suficientes para o OpenStreetMap e pode desfrutar de atualizações ilimitadas de mapas.</string>
+    <string name="enough_contributions_descr">Parabéns! Fez contribuições suficientes para o OpenStreetMap e pode desfrutar de atualizações ilimitadas de mapas OsmAnd!</string>
     <string name="shared_string_contributions">Contribuições</string>
     <string name="contributions_may_calculate_with_delay">O cálculo das contribuições pode demorar algumas horas.</string>
     <string name="map_updates_are_unavailable_yet">As atualizações do mapa ainda não estão disponíveis :-(</string>
@@ -4479,8 +4479,8 @@
     <string name="rendering_attr_OSMMapperAssistantNote_description">Mostrar observações ou comentários (etiqueta \"note\")</string>
     <string name="rendering_attr_OSMMapperAssistantIconsLowZooms_name">Ícones em ampliações baixas</string>
     <string name="rendering_attr_OSMMapperAssistantIconsLowZooms_description">Visualização esquemática de ícones em ampliações baixas</string>
-    <string name="rendering_attr_showWaterwayTunnels_name">Túneis de cursos de água</string>
-    <string name="rendering_attr_showWaterwayTunnels_description">Não esconder túneis de cursos de água</string>
+    <string name="rendering_attr_showWaterwayTunnels_name">Aumentar a visibilidade dos túneis fluviais</string>
+    <string name="rendering_attr_showWaterwayTunnels_description">Aumentar a visibilidade dos túneis fluviais</string>
     <string name="rendering_value_category_name">Categoria</string>
     <string name="rendering_value_all_name">Todos</string>
     <string name="rendering_value_omit_name">Omissão</string>
@@ -4633,7 +4633,7 @@
     <string name="app_mode_mountain_bicycle">Bicicleta de montanha</string>
     <string name="lanes_widgets_desc">Mostra a disposição atual das vias de trânsito na estrada em que se encontra e destaca as vias que deve tomar para seguir a rota.</string>
     <string name="compass_on_circles">Bússola em círculos</string>
-    <string name="distance_circles">Círculos-distância</string>
+    <string name="distance_circles">Círculos de distância</string>
     <string name="circle_settings">Configurações dos círculos</string>
     <string name="colour_of_circles">Cor dos círculos</string>
     <string name="rendering_attr_weatherTempContours_name">Isolinhas de temperatura</string>
@@ -4656,7 +4656,7 @@
     <string name="rendering_attr_hideMilitaryAreas_name">Ocultar áreas militares</string>
     <string name="rendering_attr_hideMilitaryAreas_description">Ocultar áreas militares, normalmente de acesso proibido a civis</string>
     <string name="explore_plans">Explorar planos</string>
-    <string name="time_to_navigation_point_widget_settings_desc">Toque no widget para alterar o modo.</string>
+    <string name="time_to_navigation_point_widget_settings_desc">Toque no widget para mudar de modo.</string>
     <string name="map_widget_time_to_destination">Tempo até ao destino</string>
     <string name="map_widget_time_to_intermediate">Tempo até ao ponto intermédio</string>
     <string name="map_widget_distance_to_intermediate">Distância até ao ponto intermédio</string>
@@ -4890,8 +4890,8 @@
     <string name="weather_temperature_celsius">Celsius</string>
     <string name="action_not_supported_with_map_style">Esta ação não é compatível com o estilo de mapa selecionado.</string>
     <string name="rendering_attr_depthContourColorScheme_name">Esquema de cores das linhas</string>
-    <string name="map_widget_sunset_desc">Mostra a hora do próximo pôr do sol ou o tempo que resta até o pôr do sol.</string>
-    <string name="map_widget_sunrise_desc">Mostra a hora do próximo nascer do sol ou o tempo que resta até o nascer do sol.</string>
+    <string name="map_widget_sunset_desc">Mostra a hora do próximo pôr do sol ou o tempo que falta para o pôr do sol.</string>
+    <string name="map_widget_sunrise_desc">Mostra a hora do próximo nascer do sol ou o tempo que falta para o nascer do sol.</string>
     <string name="shared_string_next_sunset">Próximo pôr do sol</string>
     <string name="shared_string_sunrise">Nascer do sol</string>
     <string name="shared_string_next_sunrise">Próximo nascer do sol</string>
@@ -5011,7 +5011,7 @@
     <string name="x_axis">Eixo X</string>
     <string name="share_as_file">Partilhar como ficheiro</string>
     <string name="value_downloaded_of_mb">A descarregar %1$.1f/%2$.1f MB</string>
-    <string name="skip_download">Ignorar descarregamento</string>
+    <string name="skip_download">Ignorar descarga</string>
     <string name="determine_location">Permita-nos determinar a sua localização</string>
     <string name="share_link">Partilhar a ligação</string>
     <string name="sound_beep_complex">Bipe: complexo</string>
@@ -5021,11 +5021,10 @@
     <string name="sound_beep_simple">Bipe: simples</string>
     <string name="sound_beep_simple_loud">Bipe: simples e alto</string>
     <string name="last_synchronized">Última sincronização</string>
-    <string name="display_position_automatic_descr">Depende da orientação do mapa: a parte inferior para a direção do movimento, o centro para tudo o resto.</string>
+    <string name="display_position_automatic_descr">Depende da orientação do mapa: em baixo para a direção do movimento, ao centro para todas as outras.</string>
     <string name="shared_string_select_recent">Selecionar recente</string>
     <string name="change_appearance">Alterar aparência</string>
     <string name="shared_string_kilograms">quilogramas</string>
-    <string name="change_default_tracks_appearance_confirmation_description">Alterar a aparência dos trilhos %1$s\?</string>
     <string name="shared_string_apply_changes">Aplicar alterações</string>
     <string name="shared_string_yards">jardas</string>
     <string name="no_visible_tracks_description">Selecione os trilhos a mostrar no mapa.</string>
@@ -5213,7 +5212,7 @@
     <string name="save_track_external_sensors_data">Dados</string>
     <string name="tracks_empty_folder">Pasta vazia</string>
     <string name="track_not_recorded">Não gravado</string>
-    <string name="delete_track_folder_dialog_message">Isto eliminará a pasta \"%1$s\" e todos os trilhos (%2$s) incluídos.</string>
+    <string name="delete_track_folder_dialog_message">Isto irá eliminar a pasta \"%1$s\" e todos os %2$s trilhos nela contidas.</string>
     <string name="delete_folder_question">Eliminar pasta\?</string>
     <string name="delete_folder">Eliminar pasta</string>
     <string name="show_all_tracks_on_the_map">Mostrar todos os trilhos no mapa</string>
@@ -5356,7 +5355,7 @@
     <string name="help_article_navigation_routing_public_transport_navigation_name">Roteamento de transporte público</string>
     <string name="send_logcat_log_descr">Ficheiro de registo detalhado</string>
     <string name="shared_string_cache">Cache</string>
-    <string name="average_glide_time_interval_desc">Especifique o intervalo de tempo para cálculo da média do planar.</string>
+    <string name="average_glide_time_interval_desc">Especificar o intervalo de tempo para o cálculo da média do deslizamento.</string>
     <string name="key_event_action_previous_app_profile">Perfil da aplicação anterior</string>
     <string name="show_toast_about_key_pressed">Mostrar notificação do sistema sobre a tecla pressionada</string>
     <string name="help_article_search_search_coordinates_name">Pesquisar coordenadas</string>
@@ -5376,7 +5375,7 @@
     <string name="widget_available_ram_desc">Mostra a memória disponível atribuída ao OsmAnd.</string>
     <string name="press_button_to_link_with_action">Pressione o botão no seu dispositivo para vinculá-lo à ação: %1$s</string>
     <string name="contact_us">Contacte-nos</string>
-    <string name="glide_ratio_to_target">Rácio de planar para o alvo</string>
+    <string name="glide_ratio_to_target">Rácio de deslizamento até ao objetivo</string>
     <string name="deletion_error">Erro ao eliminar</string>
     <string name="sort_size_descending">Tamanho grande primeiro</string>
     <string name="smart_folder_saved">Pasta inteligente guardada</string>
@@ -5399,7 +5398,7 @@
     <string name="folder">Pasta</string>
     <string name="delete_all_items">Eliminar todos os itens</string>
     <string name="change_key_binding">Alterar vinculação das teclas</string>
-    <string name="average_glide_ratio">Rácio médio de planar</string>
+    <string name="average_glide_ratio">Rácio de deslizamento médio</string>
     <string name="shared_string_created">Criado</string>
     <string name="free_versions">Versões gratuitas</string>
     <string name="open_issue_on_github_descr">Faça perguntas, sugira funcionalidades</string>
@@ -5451,7 +5450,7 @@
     <string name="add_new_type">Adicionar novo tipo</string>
     <string name="wikipedia_and_travel_maps">Wikipédia e mapas de viagens</string>
     <string name="key_event_action_move_up">Mover para cima</string>
-    <string name="map_widget_group_glide_desc">Os widgets mostram o rácio de planar em relação ao alvo ou o rácio de planar médio para a viagem atual.</string>
+    <string name="map_widget_group_glide_desc">Os widgets mostram a relação de deslizamento para o objetivo ou a relação de deslizamento média para a viagem atual.</string>
     <plurals name="tracks">
         <item quantity="one">%1$d (%2$d trilho)</item>
         <item quantity="many">%1$d (%2$d trilhos)</item>
@@ -5462,7 +5461,7 @@
     <string name="help_article_navigation_setup_gpx_navigation_name">Navegar por trilho</string>
     <string name="help_article_navigation_routing_online_routing_name">Roteamento online</string>
     <string name="help_article_map_map_context_menu_name">Menu de contexto do mapa</string>
-    <string name="map_widget_glide_average_desc">Mostra o rácio de planar médio para o intervalo definido.</string>
+    <string name="map_widget_glide_average_desc">Mostra o rácio de deslizamento médio para o intervalo definido.</string>
     <string name="add_smart_folder">Adicionar pasta inteligente</string>
     <string name="empty_name">Nome vazio</string>
     <string name="edit_filter">Editar filtro</string>
@@ -5479,14 +5478,14 @@
     <string name="live_monitoring_adress_descr">Especificar o endereço web com a sintaxe de parâmetros lat={0}, lon={1}, timestamp={2}, hdop={3}, altitude={4}, speed={5}, bearing={6}, eta={7}, etfa={8}, eda={9}, edfa={10}.</string>
     <string name="help_article_map_legend_nautical_map_name">Estilo de mapa náutico</string>
     <string name="discard_filter_changes">Descartar alterações do filtro</string>
-    <string name="map_widget_group_glide_ratio">Rácio de planar</string>
+    <string name="map_widget_group_glide_ratio">Rácio de deslizamento</string>
     <string name="app_mode_hang_gliding">Asa-delta</string>
     <string name="key_event_action_zoom_out">Afastar</string>
     <string name="key_event_action_toggle_drower">Mostrar / ocultar menu lateral</string>
     <string name="help_article_plan_route_name">Planear rota</string>
     <string name="save_as_smart_folder">Guardar como pasta inteligente</string>
     <string name="help_article_widgets_map_buttons_name">Botões do mapa</string>
-    <string name="map_widget_glide_target_desc">Mostra o rácio de planar necessário para atingir o ponto alvo.</string>
+    <string name="map_widget_glide_target_desc">Mostra a razão de planeio necessária para atingir o objetivo.</string>
     <string name="weather_online">Previsão meteorológica online</string>
     <string name="help_article_map_track_context_menu_name">Menu de contexto de trilhos</string>
     <string name="date_of_creation">Data da criação</string>
@@ -5500,7 +5499,7 @@
     <string name="shared_string_delete_immediately">Eliminar imediatamente</string>
     <string name="shared_string_loading">A carregar</string>
     <string name="help_article_navigation_auto_car_name">Android Auto</string>
-    <string name="delete_smart_folder_dialog_message">Isto eliminará a pasta inteligente \"%1$s\".</string>
+    <string name="delete_smart_folder_dialog_message">Isto irá remover a pasta inteligente \"%1$s\". (Nenhum trilho será eliminado.)</string>
     <string name="shared_string_is_deleted">%1$s foi eliminado.</string>
     <string name="sort_size_ascending">Tamanho pequeno primeiro</string>
     <string name="help_article_widgets_info_widgets_name">Widgets informativos</string>
@@ -5571,7 +5570,7 @@
     <string name="rendering_attr_showToll_description">Mostrar restrições de portagens nas estradas</string>
     <string name="zoom_non_animated">Ampliação não animada</string>
     <string name="key_assignments_already_cleared_message">Já foram eliminadas todas as atribuições de teclas</string>
-    <string name="target_elevation">Elevação do alvo</string>
+    <string name="target_elevation">Elevação do objetivo</string>
     <string name="remove_widget_first">Remova o widget primeiro</string>
     <string name="lang_zh_hant">Chinês tradicional</string>
     <string name="add_row">Adicionar linha</string>
@@ -5623,13 +5622,13 @@
     <string name="sorted_sufolders_toast">As subpastas em \"%1$s\" são ordenadas por: \"%2$s\"</string>
     <string name="special_routing_cpp">Tipo de roteamento especial</string>
     <string name="default_buttons">Botões predefinidos</string>
-    <string name="custom_map_button_name_present">Este botão já está presente</string>
+    <string name="custom_map_button_name_present">Este botão já existe</string>
     <string name="add_button">Adicionar botão</string>
     <string name="custom_buttons">Botões personalizados</string>
     <string name="speed_limit_warning">Aviso de limite de velocidade</string>
     <string name="shared_string_limit">Limite</string>
     <string name="when_exceeded">Quando excedido</string>
-    <string name="speedometer_description">Mostra a velocidade atual detetada pelo GPS</string>
+    <string name="speedometer_description">Mostra a sua velocidade atual conforme indicada pelo GPS</string>
     <string name="help_article_setup_a_route_name">Configurar uma rota</string>
     <string name="rendering_attr_padusDisplayMode_description">Por tipo de acesso ou nome do gestor</string>
     <string name="rendering_value_access_name">Por tipo de acesso</string>
@@ -5644,6 +5643,115 @@
     <string name="shared_sting_all_colors">Todas as cores</string>
     <string name="routing_type_a_star_classic">A* clássico</string>
     <string name="auto_zoom_discrete">Discreto</string>
-    <string name="auto_zoom">Amplificação automática</string>
-    <string name="java_safe">Java (Seguro)</string>
+    <string name="auto_zoom">Ampliação automática</string>
+    <string name="java_safe">Java (seguro)</string>
+    <string name="routing_type_a_star_2_phase">A* 2 fases</string>
+    <string name="lang_ta_in">Tâmil (Índia)</string>
+    <string name="release_4_7">- Novo widget \"Velocímetro\" compatível com Android Auto
+\n
+\n - Configure o ecrã do mapa adicionando vários botões de \"Ação rápida\"
+\n
+\n - Melhorada a legibilidade dos dados nos gráficos
+\n
+\n - Adicionados filtros por dados do sensor em trilhos
+\n
+\n - Personalização da aparência melhorada para grupos de trilhos
+\n
+\n - Adicionado suporte para etiquetas GPX adicionais
+\n
+\n - Personalização da \"Distância durante a navegação\": escolha entre números exatos ou arredondados
+\n
+\n - Interface unificada para seleção de trilhos
+\n
+\n - Autenticação no OpenStreetMap alterada para OAuth 2.0
+\n
+\n</string>
+    <string name="distance_during_navigation">Distância durante a navegação</string>
+    <string name="precise">Preciso</string>
+    <string name="round_up">Arredondado</string>
+    <string name="distance_during_navigation_description">Escolha como as informações de distância são apresentadas nos widgets de navegação (distância até ao ponto, próxima curva, vias).
+\n
+\nEscolha \"%1$s\" para números exatos ou \"%2$s\" para uma leitura mais fácil.</string>
+    <string name="download_cloud_versions">Descarregar versões na nuvem</string>
+    <string name="upload_local_versions">Enviar versões locais</string>
+    <string name="map_widget_map_scale">Escala do mapa</string>
+    <string name="gpx_approximation_cpp">Baseado no roteamento (C++)</string>
+    <string name="gpx_approximation_java">Baseado no roteamento (Java)</string>
+    <string name="gpx_approximation_geo_java">Baseado na geometria (Java, rápido)</string>
+    <string name="change_default_appearance_confirmation">Alterar a aparência padrão de %1$s?</string>
+    <string name="unchanged_parameter_summary">Cada trilho irá reter os seus próprios parâmetros.</string>
+    <string name="shared_string_unchanged">Inalterado</string>
+    <string name="fix_north_up">Ativar o norte fixo para cima</string>
+    <string name="fix_north_up_descr">Não rodar o mapa com gestos na orientação do mapa de norte para cima</string>
+    <string name="use_3d_track_visualization">Visualização 3D</string>
+    <string name="shared_string_changes">Alterações</string>
+    <string name="change_default_tracks_appearance_confirmation">Aplicar alterações aos trilhos existentes na pasta ou apenas aos novos?</string>
+    <string name="apply_only_to_new">Aplicar apenas a novos</string>
+    <string name="release_4_8">• A ser preparado para 4.8</string>
+    <string name="shared_string_scale">Escala</string>
+    <string name="relief_3d_download_description">São necessários mapas adicionais para visualizar o terreno no mapa.</string>
+    <string name="vertical_exaggeration_description">Ao alterar o valor da escala, o relevo 3D é realçado.</string>
+    <string name="vertical_exaggeration">Exagero vertical</string>
+    <string name="delete_actions_button">Botão eliminar</string>
+    <string name="use_nearby_roads_summary">Utiliza o mapa offline para encontrar estradas próximas e dados de elevação. Pode ajustar a geometria da via.</string>
+    <string name="retrieve_elevation_data_summary">O OsmAnd pode obter dados de elevação a partir de estradas ou mapas de terreno próximos.</string>
+    <string name="shared_string_osm_id">ID do OSM</string>
+    <string name="delete_actions_button_confirmation">Quer mesmo eliminar \"%1$s\" com todas as ações adicionadas?</string>
+    <string name="use_terrain_maps_summary">Utiliza mapas de terreno para dados de elevação. A geometria do trilho mantém-se inalterada.</string>
+    <string name="use_terrain_maps">Usar mapas de terreno</string>
+    <string name="use_nearby_roads">Usar estradas nas proximidades</string>
+    <string name="visualized_by">Visualizado por</string>
+    <string name="top_and_bottom">Topo e base</string>
+    <string name="required_maps">Mapas necessários</string>
+    <string name="missing_maps_description">Alguns mapas offline necessários para este itinerário estão em falta ou não estão atualizados. Descarregue ou atualize estes mapas.</string>
+    <string name="missing_maps_header">Mapas em falta ou desatualizados</string>
+    <string name="route_line_use_coloring_speed">A linha da rota é colorida de acordo com a velocidade do movimento.</string>
+    <string name="route_line_use_coloring_altitude">A linha do itinerário é colorida por altitude de elevação.</string>
+    <string name="top">Topo</string>
+    <string name="bottom">Base</string>
+    <string name="wall_color">Cor das paredes</string>
+    <string name="track_line">Linha do trilho</string>
+    <string name="upward_gradient">Gradiente ascendente</string>
+    <string name="title_3d_track">Trilho 3D</string>
+    <string name="explore_3d_track_description">Explore o trilho em 3D interativo! Visualize a altura, a velocidade e muito mais diretamente no mapa.</string>
+    <string name="maps_that_also_be_used">Mapas que também serão utilizados: %1$s</string>
+    <string name="required_maps_calculate_online_summary">A lista de mapas em falta baseia-se no percurso em linha reta. Para obter uma lista exata de mapas, o OsmAnd pode pré-calcular o seu percurso online.</string>
+    <string name="fixed_height">Altura fixa</string>
+    <string name="getting_list_of_required_maps">A obter lista de mapas necessários…</string>
+    <string name="downward_gradient">Gradiente descendente</string>
+    <string name="track_vertical_exaggeration_description">Ao alterar o valor da escala, pode alterar a altura do trilho 3D.</string>
+    <string name="gpx_approximation_geo_cpp">Baseado em geometria (C++, rápido)</string>
+    <string name="allow_display_on_top">Permitir visualização sobreposta</string>
+    <string name="allow_display_on_top_description">Permitir a apresentação de textos de mapas sobrepostos</string>
+    <string name="show_debug_info">Mostrar informação de depuração</string>
+    <string name="show_debug_info_description">Apresentar informações gráficas sobre a colocação de cada texto do mapa</string>
+    <string name="map_text">Textos do mapa</string>
+    <string name="routing_attr_avoid_cobblestone_name">Evitar pedras irregulares</string>
+    <string name="routing_attr_avoid_cobblestone_description">Evitar pedras irregulares</string>
+    <string name="steps_per_minute_unit">PPM</string>
+    <string name="disable_map_layers">Desativar camadas de mapas</string>
+    <string name="disable_map_layers_descr">Desativar todas as camadas de mapas por cima do mapa vetorial (é necessário reiniciar).</string>
+    <string name="height_legend_description">São utilizados mapas de cores de altitude para visualizar o relevo.</string>
+    <string name="wall_height">Altura da parede</string>
+    <string name="missing_maps_ignore">Usar mapas existentes</string>
+    <string name="change_terrain_color_scheme">Alterar o esquema de cores do terreno</string>
+    <string name="clear_all_key_shortcuts_summary">Todas as atribuições de teclas para o tipo selecionado serão removidas.</string>
+    <string name="no_assigned_keys">Sem teclas atribuídas</string>
+    <string name="shared_string_key">Tecla</string>
+    <string name="new_key_assignment">Nova atribuição de teclas</string>
+    <string name="key_name_pattern">Tecla \"%1$s\"</string>
+    <string name="key_assignment_add_key">Adicionar tecla</string>
+    <string name="travel_topics">Tópicos de viagem</string>
+    <string name="play_weather_forecast">Reproduzir a previsão meteorológica</string>
+    <string name="rendering_value_dark_orange_name">Laranja escuro</string>
+    <string name="clear_key_assignment_summary">A atribuição de teclas para a ação selecionada será apagada.</string>
+    <string name="key_assignment_add_action">Adicionar ação</string>
+    <string name="backup_error_failed_to_transfer_file">Falha na transferência dos ficheiros da nuvem.</string>
+    <string name="contact_support_retry">Tente novamente ou contacte o apoio ao cliente</string>
+    <string name="user_palette">Paleta do utilizador</string>
+    <string name="shared_string_colors">Cores</string>
+    <string name="clear_all_key_shortcuts">Limpar todos os atalhos de teclado</string>
+    <string name="no_assigned_keys_desc">Selecione uma ação e atribua uma tecla tocando no botão \"Adicionar\".</string>
+    <string name="action_icon">Ícone da ação</string>
+    <string name="assigned_keys">Teclas atribuídas</string>
 </resources>

@@ -1,7 +1,7 @@
 package net.osmand.plus.charts;
 
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
-import static com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM;
+import static com.github.mikephil.charting.charts.ElevationChart.GRID_LINE_LENGTH_X_AXIS_DP;
 import static net.osmand.plus.charts.GPXDataSetAxisType.DISTANCE;
 import static net.osmand.plus.charts.GPXDataSetAxisType.TIME;
 import static net.osmand.plus.charts.GPXDataSetAxisType.TIME_OF_DAY;
@@ -33,8 +33,14 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+import com.github.mikephil.charting.utils.Utils;
 
+import net.osmand.ColorPalette;
+import net.osmand.ColorPalette.ColorValue;
 import net.osmand.gpx.ElevationDiffsCalculator;
 import net.osmand.gpx.ElevationDiffsCalculator.Extremum;
 import net.osmand.gpx.GPXInterpolator;
@@ -70,12 +76,12 @@ public class ChartUtils {
 	}
 
 	public static void setupElevationChart(@NonNull ElevationChart chart, float topOffset, float bottomOffset,
-									boolean useGesturesAndScale) {
+	                                       boolean useGesturesAndScale) {
 		setupElevationChart(chart, topOffset, bottomOffset, useGesturesAndScale, null);
 	}
 
 	public static void setupElevationChart(@NonNull ElevationChart chart, float topOffset, float bottomOffset,
-									boolean useGesturesAndScale, @Nullable Drawable markerIcon) {
+	                                       boolean useGesturesAndScale, @Nullable Drawable markerIcon) {
 		GpxMarkerView markerView = new GpxMarkerView(chart.getContext(), markerIcon);
 		setupElevationChart(chart, markerView, topOffset, bottomOffset, useGesturesAndScale);
 	}
@@ -83,9 +89,10 @@ public class ChartUtils {
 	public static void setupElevationChart(@NonNull ElevationChart chart, @NonNull GpxMarkerView markerView, float topOffset, float bottomOffset, boolean useGesturesAndScale) {
 		Context context = chart.getContext();
 		int labelsColor = ContextCompat.getColor(context, R.color.text_color_secondary_light);
-		int yAxisGridColor = AndroidUtils.getColorFromAttr(context, R.attr.chart_grid_line_color);
+		int yAxisGridColor = AndroidUtils.getColorFromAttr(context, R.attr.chart_y_grid_line_axis_color);
+		int xAxisGridColor = AndroidUtils.getColorFromAttr(context, R.attr.chart_x_grid_line_axis_color);
 		Typeface typeface = FontCache.getFont(context, context.getString(R.string.font_roboto_medium));
-		chart.setupGPXChart(markerView, topOffset, bottomOffset, labelsColor, yAxisGridColor, typeface, useGesturesAndScale);
+		chart.setupGPXChart(markerView, topOffset, bottomOffset, xAxisGridColor, labelsColor, yAxisGridColor, typeface, useGesturesAndScale);
 	}
 
 	private static float setupAxisDistance(OsmandApplication ctx, AxisBase axisBase, double meters) {
@@ -151,7 +158,8 @@ public class ChartUtils {
 		axisBase.setGranularity(granularity);
 		axisBase.setValueFormatter((value, axis) -> {
 			if (!Algorithms.isEmpty(formatX)) {
-				return MessageFormat.format(formatX + mainUnitX, value);
+				boolean shouldShowUnit = axis.mEntries.length >= 1 && axis.mEntries[0] == value;
+				return MessageFormat.format(shouldShowUnit ? formatX + mainUnitX : formatX, value);
 			} else {
 				return OsmAndFormatter.formatInteger((int) (value + 0.5), mainUnitX, ctx);
 			}
@@ -326,6 +334,79 @@ public class ChartUtils {
 		dataSet.setBarWidth(1);
 		chart.getAxisRight().setAxisMaximum(dataSet.getYMax());
 		chart.getAxisLeft().setAxisMaximum(dataSet.getYMax());
+
+		return dataSet;
+	}
+
+	public static void setupGradientChart(OsmandApplication app, LineChart chart, float topOffset, float bottomOffset,
+	                                      boolean useGesturesAndScale, int xAxisGridColor, int labelsColor) {
+		chart.setExtraRightOffset(16.0F);
+		chart.setExtraLeftOffset(16.0F);
+		chart.setExtraTopOffset(topOffset);
+		chart.setExtraBottomOffset(bottomOffset);
+
+		chart.setHardwareAccelerationEnabled(true);
+		chart.setTouchEnabled(useGesturesAndScale);
+		chart.setDragEnabled(useGesturesAndScale);
+		chart.setScaleEnabled(useGesturesAndScale);
+		chart.setPinchZoom(useGesturesAndScale);
+		chart.setScaleYEnabled(false);
+		chart.setAutoScaleMinMaxEnabled(true);
+		chart.setDrawBorders(false);
+		chart.getDescription().setEnabled(false);
+		chart.setMaxVisibleValueCount(10);
+		chart.setMinOffset(0.0F);
+		chart.setDragDecelerationEnabled(false);
+
+		XAxis xAxis = chart.getXAxis();
+		xAxis.setDrawAxisLine(true);
+		xAxis.setAxisLineWidth(1.0F);
+		xAxis.setAxisLineColor(xAxisGridColor);
+		xAxis.setDrawGridLines(true);
+		xAxis.setGridLineWidth(1.0F);
+		xAxis.setGridColor(xAxisGridColor);
+		xAxis.enableGridDashedLine(Utils.dpToPx(app, GRID_LINE_LENGTH_X_AXIS_DP), Float.MAX_VALUE, 0.0F);
+		xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+		xAxis.setTextColor(labelsColor);
+		xAxis.setAvoidFirstLastClipping(true);
+		xAxis.setEnabled(true);
+
+		YAxis leftYAxis = chart.getAxisLeft();
+		leftYAxis.setEnabled(false);
+
+		YAxis rightYAxis = chart.getAxisRight();
+		rightYAxis.setEnabled(false);
+
+		Legend legend = chart.getLegend();
+		legend.setEnabled(false);
+	}
+
+	@NonNull
+	public static <E> LineData buildGradientChart(@NonNull OsmandApplication app,
+	                                              @NonNull LineChart chart,
+	                                              @NonNull ColorPalette colorPalette,
+	                                              @Nullable IAxisValueFormatter valueFormatter,
+	                                              boolean nightMode) {
+
+		XAxis xAxis = chart.getXAxis();
+		xAxis.setEnabled(false);
+
+		List<ColorValue> colorValues = colorPalette.getColors();
+		int[] colors = new int[colorValues.size()];
+		List<Entry> entries = new ArrayList<>();
+
+		for (int i = 0; i < colorValues.size(); i++) {
+			int clr = colorValues.get(i).clr;
+			colors[i] = clr;
+			entries.add(new Entry((float) colorValues.get(i).val, 0));
+		}
+
+		LineDataSet barDataSet = new LineDataSet(entries, "");
+		barDataSet.setColors(colors);
+		barDataSet.setHighLightColor(ColorUtilities.getSecondaryTextColor(app, nightMode));
+		LineData dataSet = new LineData(barDataSet);
+		dataSet.setDrawValues(false);
+		chart.getXAxis().setValueFormatter(valueFormatter);
 
 		return dataSet;
 	}

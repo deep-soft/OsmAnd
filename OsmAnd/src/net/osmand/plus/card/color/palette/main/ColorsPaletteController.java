@@ -29,19 +29,17 @@ import java.util.Objects;
 public class ColorsPaletteController implements IColorsPaletteController {
 
 	protected final OsmandApplication app;
-	protected OnColorsPaletteListener externalListener;
-	protected List<WeakReference<IColorsPalette>> palettes = new ArrayList<>();
-	protected ColorsCollection colorsCollection;
+	protected final List<WeakReference<IColorsPalette>> palettes = new ArrayList<>();
 
+	protected ColorsCollection collection;
 	protected PaletteColor editedPaletteColor;
 	protected PaletteColor selectedPaletteColor;
+	protected OnColorsPaletteListener listener;
 
-	public ColorsPaletteController(@NonNull OsmandApplication app,
-	                               @NonNull ColorsCollection colorsCollection,
-	                               @ColorInt int selectedColorInt) {
+	public ColorsPaletteController(@NonNull OsmandApplication app, @NonNull ColorsCollection collection, @Nullable Integer color) {
 		this.app = app;
-		this.colorsCollection = colorsCollection;
-		this.selectedPaletteColor = colorsCollection.findPaletteColor(selectedColorInt);
+		this.collection = collection;
+		this.selectedPaletteColor = color != null ? collection.findPaletteColor(color) : null;
 	}
 
 	@Override
@@ -77,7 +75,7 @@ public class ColorsPaletteController implements IColorsPaletteController {
 
 	@Override
 	public void setPaletteListener(@NonNull OnColorsPaletteListener onColorsPaletteListener) {
-		this.externalListener = onColorsPaletteListener;
+		this.listener = onColorsPaletteListener;
 	}
 
 	@Override
@@ -92,32 +90,39 @@ public class ColorsPaletteController implements IColorsPaletteController {
 	}
 
 	@Override
-	public void onSelectColorFromPalette(@NonNull PaletteColor color) {
+	public void onSelectColorFromPalette(@NonNull PaletteColor color, boolean renewLastUsedTime) {
 		if (!Objects.equals(selectedPaletteColor, color)) {
 			PaletteColor oldSelectedColor = selectedPaletteColor;
 			selectColor(color);
-			notifyUpdatePaletteSelection(oldSelectedColor, selectedPaletteColor);
+			if (renewLastUsedTime) {
+				color.renewLastUsedTime();
+				notifyUpdatePaletteColors(color);
+			} else {
+				notifyUpdatePaletteSelection(oldSelectedColor, selectedPaletteColor);
+			}
 		}
 	}
 
 	@Override
 	public void onApplyColorPickerSelection(@Nullable Integer oldColor, @ColorInt int newColor) {
-		PaletteColor paletteColor = colorsCollection.addOrUpdateColor(editedPaletteColor, newColor);
+		PaletteColor paletteColor = collection.addOrUpdateColor(editedPaletteColor, newColor);
 		if (paletteColor != null) {
 			notifyUpdatePaletteColors(paletteColor);
-			if (externalListener != null) {
-				externalListener.onColorAddedToPalette(editedPaletteColor, paletteColor);
+			if (listener != null) {
+				listener.onColorAddedToPalette(editedPaletteColor, paletteColor);
 			}
 			if (oldColor == null || Objects.equals(editedPaletteColor, selectedPaletteColor)) {
+				PaletteColor oldSelectedColor = selectedPaletteColor;
 				selectColor(paletteColor);
+				notifyUpdatePaletteSelection(oldSelectedColor, selectedPaletteColor);
 			}
 		}
 		editedPaletteColor = null;
 	}
 
 	@Override
-	public void selectColor(@ColorInt int colorInt) {
-		selectColor(colorsCollection.findPaletteColor(colorInt));
+	public void selectColor(@ColorInt @Nullable Integer color) {
+		selectColor(color != null ? collection.findPaletteColor(color) : null);
 	}
 
 	@Override
@@ -127,18 +132,14 @@ public class ColorsPaletteController implements IColorsPaletteController {
 	}
 
 	protected void onColorSelected(@Nullable PaletteColor paletteColor) {
-		if (externalListener != null && paletteColor != null) {
-			externalListener.onColorSelectedFromPalette(paletteColor);
+		if (listener != null && paletteColor != null) {
+			listener.onColorSelectedFromPalette(paletteColor);
 		}
 	}
 
 	@Override
 	public void refreshLastUsedTime() {
-		long now = System.currentTimeMillis();
-		if (selectedPaletteColor != null) {
-			selectedPaletteColor.setLastUsedTime(now);
-			colorsCollection.syncSettings();
-		}
+		collection.askRenewLastUsedTime(selectedPaletteColor);
 	}
 
 	@Override
@@ -199,12 +200,12 @@ public class ColorsPaletteController implements IColorsPaletteController {
 	}
 
 	private void duplicateColor(@NonNull PaletteColor paletteColor) {
-		PaletteColor duplicate = colorsCollection.duplicateColor(paletteColor);
+		PaletteColor duplicate = collection.duplicateColor(paletteColor);
 		notifyUpdatePaletteColors(duplicate);
 	}
 
 	private void removeCustomColor(@NonNull PaletteColor paletteColor) {
-		if (colorsCollection.askRemoveColor(paletteColor)) {
+		if (collection.askRemoveColor(paletteColor)) {
 			notifyUpdatePaletteColors(null);
 		}
 	}
@@ -223,7 +224,7 @@ public class ColorsPaletteController implements IColorsPaletteController {
 	@NonNull
 	@Override
 	public List<PaletteColor> getColors(@NonNull PaletteSortingMode sortingMode) {
-		return colorsCollection.getColors(sortingMode);
+		return collection.getColors(sortingMode);
 	}
 
 	@NonNull
@@ -247,7 +248,7 @@ public class ColorsPaletteController implements IColorsPaletteController {
 
 	@NonNull
 	public String getColorName(@ColorInt int colorInt) {
-		PaletteColor paletteColor = colorsCollection.findPaletteColor(colorInt);
+		PaletteColor paletteColor = collection.findPaletteColor(colorInt);
 		return paletteColor != null
 				? paletteColor.toHumanString(app)
 				: app.getString(R.string.shared_string_custom);

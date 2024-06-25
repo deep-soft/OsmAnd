@@ -11,6 +11,8 @@ import net.osmand.plus.track.GradientScaleType;
 import net.osmand.router.RouteStatisticsHelper;
 import net.osmand.util.Algorithms;
 
+import java.util.Arrays;
+
 public enum ColoringType {
 
 	// For route only
@@ -155,6 +157,10 @@ public enum ColoringType {
 
 	@NonNull
 	public static ColoringType[] valuesOf(@NonNull ColoringPurpose purpose) {
-		return purpose == ColoringPurpose.ROUTE_LINE ? ROUTE_TYPES : TRACK_TYPES;
+		return purpose == ColoringPurpose.TRACK ? TRACK_TYPES : ROUTE_TYPES;
+	}
+
+	public static boolean isColorTypeInPurpose(@NonNull ColoringType type, @NonNull ColoringPurpose purpose) {
+		return Arrays.asList(valuesOf(purpose)).contains(type);
 	}
 }

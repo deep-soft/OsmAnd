@@ -153,5 +153,4 @@ class SmartFolderFragment : TrackFolderFragment(), SmartFolderUpdateListener,
 	override fun onDialogClosed() {
 		updateContent()
 	}
-
 }

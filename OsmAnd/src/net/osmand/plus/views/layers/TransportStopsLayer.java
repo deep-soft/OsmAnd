@@ -1,11 +1,12 @@
 package net.osmand.plus.views.layers;
 
+import static net.osmand.plus.AppInitEvents.MAPS_INITIALIZED;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.util.DisplayMetrics;
-import android.view.WindowManager;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -29,8 +30,9 @@ import net.osmand.data.RotatedTileBox;
 import net.osmand.data.TransportStop;
 import net.osmand.osm.edit.Node;
 import net.osmand.osm.edit.Way;
+import net.osmand.plus.AppInitEvents;
+import net.osmand.plus.AppInitializeListener;
 import net.osmand.plus.AppInitializer;
-import net.osmand.plus.AppInitializer.InitEvents;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.render.RenderingIcons;
@@ -38,6 +40,7 @@ import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.transport.TransportStopRoute;
 import net.osmand.plus.transport.TransportStopType;
+import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.PointImageDrawable;
@@ -46,7 +49,7 @@ import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProvider;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.layers.core.TransportStopsTileProvider;
 import net.osmand.plus.views.layers.core.TransportStopsTileProvider.StopsCollectionPoint;
-import net.osmand.plus.views.layers.geometry.GeometryWay;
+import net.osmand.plus.views.layers.geometry.GeometryWayPathAlgorithms;
 import net.osmand.util.MapUtils;
 
 import java.io.IOException;
@@ -92,8 +95,7 @@ public class TransportStopsLayer extends OsmandMapLayer implements IContextMenuP
 		super.initLayer(view);
 
 		DisplayMetrics dm = new DisplayMetrics();
-		WindowManager wmgr = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
-		wmgr.getDefaultDisplay().getMetrics(dm);
+		AndroidUtils.getDisplay(getContext()).getMetrics(dm);
 		path = new Path();
 		attrs = new RenderingLineAttributes("transport_route");
 		attrs.defaultWidth = (int) (6 * view.getDensity());
@@ -277,7 +279,7 @@ public class TransportStopsLayer extends OsmandMapLayer implements IContextMenuP
 								tx.add(x);
 								ty.add(y);
 							}
-							GeometryWay.calculatePath(tb, tx, ty, path);
+							GeometryWayPathAlgorithms.calculatePath(tb, tx, ty, path);
 						}
 					}
 					attrs.drawPath(canvas, path);
@@ -492,10 +494,10 @@ public class TransportStopsLayer extends OsmandMapLayer implements IContextMenuP
 	private void addMapsInitializedListener() {
 		OsmandApplication app = getApplication();
 		if (app.isApplicationInitializing()) {
-			app.getAppInitializer().addListener(new AppInitializer.AppInitializeListener() {
+			app.getAppInitializer().addListener(new AppInitializeListener() {
 				@Override
-				public void onProgress(@NonNull AppInitializer init, @NonNull InitEvents event) {
-					if (event == AppInitializer.InitEvents.MAPS_INITIALIZED) {
+				public void onProgress(@NonNull AppInitializer init, @NonNull AppInitEvents event) {
+					if (event == MAPS_INITIALIZED) {
 						mapsInitialized = true;
 					}
 				}

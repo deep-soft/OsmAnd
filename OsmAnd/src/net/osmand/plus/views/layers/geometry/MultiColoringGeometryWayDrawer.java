@@ -15,15 +15,13 @@ import android.graphics.Shader;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import net.osmand.ColorPalette;
 import net.osmand.core.jni.QListFColorARGB;
 import net.osmand.core.jni.VectorLinesCollection;
 import net.osmand.plus.routing.ColoringType;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.layers.MapTileLayer;
-import net.osmand.plus.views.layers.geometry.MultiColoringGeometryWay.GeometryGradientWayStyle;
-import net.osmand.plus.views.layers.geometry.MultiColoringGeometryWay.GeometrySolidWayStyle;
-import net.osmand.router.RouteColorize;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -86,7 +84,8 @@ public class MultiColoringGeometryWayDrawer<T extends MultiColoringGeometryWayCo
 	@Override
 	protected void drawVectorLine(@NonNull VectorLinesCollection collection,
 	                              int lineId, int baseOrder, boolean shouldDrawArrows, boolean approximationEnabled,
-	                              @NonNull GeometryWayStyle<?> style, @NonNull List<DrawPathData31> pathsData) {
+	                              @NonNull GeometryWayStyle<?> style,
+	                              @NonNull List<DrawPathData31> pathsData) {
 		Paint borderPaint = getContext().getBorderPaint();
 		int borderColor = coloringType.isGradient() ? borderPaint.getColor() : 0;
 		float borderWidth = coloringType.isGradient() ? borderPaint.getStrokeWidth() : 0;
@@ -266,7 +265,7 @@ public class MultiColoringGeometryWayDrawer<T extends MultiColoringGeometryWayCo
 		private int getCircleColor(@NonNull GeometrySolidWayStyle<?> style) {
 			if (style instanceof GeometryGradientWayStyle<?>) {
 				GeometryGradientWayStyle<?> gradientStyle = ((GeometryGradientWayStyle<?>) style);
-				return RouteColorize.getIntermediateColor(gradientStyle.currColor, gradientStyle.nextColor, percent);
+				return ColorPalette.getIntermediateColor(gradientStyle.currColor, gradientStyle.nextColor, percent);
 			}
 			return style.getColor(0);
 		}

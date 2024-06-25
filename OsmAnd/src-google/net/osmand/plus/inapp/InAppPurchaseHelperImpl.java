@@ -16,7 +16,6 @@ import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.ProductDetailsResponseListener;
 import com.android.billingclient.api.Purchase;
 
-import net.osmand.Period;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.inapp.InAppPurchases.InAppPurchase;
@@ -166,12 +165,18 @@ public class InAppPurchaseHelperImpl extends InAppPurchaseHelper {
 								productDetailsList.addAll(productDetailsListSubs);
 								InAppPurchaseHelperImpl.this.productDetailsList = productDetailsList;
 								getProductDetailsResponseListener(runnable.userRequested()).onProductDetailsResponse(billingResult, productDetailsList);
+								processIncompletePurchases(purchases);
 							}
 						});
 					});
+				} else {
+					processIncompletePurchases(purchases);
 				}
+			}
+
+			private void processIncompletePurchases(List<Purchase> purchases) {
 				for (Purchase purchase : purchases) {
-					List<String> skus = purchase.getSkus();
+					List<String> skus = purchase.getProducts();
 					if (!Algorithms.isEmpty(skus)) {
 						InAppSubscription subscription = getSubscriptions().getSubscriptionBySku(skus.get(0));
 						if (!purchase.isAcknowledged() || (subscription != null && !subscription.isPurchased())) {
@@ -289,7 +294,7 @@ public class InAppPurchaseHelperImpl extends InAppPurchaseHelper {
 			List<Purchase> purchases = billingManager.getPurchases();
 			if (purchases != null) {
 				for (Purchase p : purchases) {
-					if (p.getSkus().contains(sku)) {
+					if (p.getProducts().contains(sku)) {
 						return p;
 					}
 				}
@@ -471,7 +476,7 @@ public class InAppPurchaseHelperImpl extends InAppPurchaseHelper {
 						if (needRestoreUserInfo()) {
 							restoreUserInfo(purchase);
 						}
-						List<String> skus = purchase.getSkus();
+						List<String> skus = purchase.getProducts();
 						if (!Algorithms.isEmpty(skus) && !tokensSent.contains(skus.get(0))) {
 							tokensToSend.add(purchase);
 						}
@@ -524,7 +529,7 @@ public class InAppPurchaseHelperImpl extends InAppPurchaseHelper {
 	}
 
 	private PurchaseInfo getPurchaseInfo(Purchase purchase) {
-		return new PurchaseInfo(purchase.getSkus(), purchase.getOrderId(), purchase.getPurchaseToken(),
+		return new PurchaseInfo(purchase.getProducts(), purchase.getOrderId(), purchase.getPurchaseToken(),
 				purchase.getPurchaseTime(), purchase.getPurchaseState(), purchase.isAcknowledged(), purchase.isAutoRenewing());
 	}
 

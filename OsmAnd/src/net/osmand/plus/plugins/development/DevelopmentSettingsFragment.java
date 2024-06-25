@@ -72,6 +72,7 @@ public class DevelopmentSettingsFragment extends BaseSettingsFragment implements
 		debuggingAndDevelopment.setIconSpaceReserved(false);
 
 		setupDebugRenderingInfoPref();
+		setupDisableMapLayersPref();
 		setupSimulateInitialStartupPref();
 		setupFullscreenMapDrawingModePref();
 		setupShouldShowFreeVersionBannerPref();
@@ -82,8 +83,6 @@ public class DevelopmentSettingsFragment extends BaseSettingsFragment implements
 		setupTripRecordingPrefs();
 
 		setupMapTextsPrefs();
-
-		setupRoutesPrefs();
 
 		Preference info = findPreference("info");
 		info.setIconSpaceReserved(false);
@@ -127,6 +126,12 @@ public class DevelopmentSettingsFragment extends BaseSettingsFragment implements
 		SwitchPreferenceEx debugRenderingInfo = findPreference(settings.DEBUG_RENDERING_INFO.getId());
 		debugRenderingInfo.setDescription(getString(R.string.trace_rendering_descr));
 		debugRenderingInfo.setIconSpaceReserved(false);
+	}
+
+	private void setupDisableMapLayersPref() {
+		SwitchPreferenceEx disableMapLayers = findPreference(settings.DISABLE_MAP_LAYERS.getId());
+		disableMapLayers.setDescription(getString(R.string.disable_map_layers_descr));
+		disableMapLayers.setIconSpaceReserved(false);
 	}
 
 	private void setupSimulateInitialStartupPref() {
@@ -183,24 +188,11 @@ public class DevelopmentSettingsFragment extends BaseSettingsFragment implements
 
 		SwitchPreferenceEx syminfoPref = findPreference(plugin.SHOW_SYMBOLS_DEBUG_INFO.getId());
 		syminfoPref.setIconSpaceReserved(false);
-		syminfoPref.setDescription("Display graphical info about placement of each map text");
+		syminfoPref.setDescription(R.string.show_debug_info_description);
 
 		SwitchPreferenceEx symtopPref = findPreference(plugin.ALLOW_SYMBOLS_DISPLAY_ON_TOP.getId());
 		symtopPref.setIconSpaceReserved(false);
-		symtopPref.setDescription("Allow displaying map texts on top of each other");
-	}
-
-	private void setupRoutesPrefs() {
-		Preference textsCategory = findPreference("routes");
-		textsCategory.setIconSpaceReserved(false);
-
-		SwitchPreferenceEx raiseRoutesPref = findPreference(plugin.RAISE_ROUTES_ABOVE_RELIEF.getId());
-		raiseRoutesPref.setIconSpaceReserved(false);
-		raiseRoutesPref.setDescription("Display routes 1000 meters higher above the ground");
-
-		SwitchPreferenceEx showTracesPref = findPreference(plugin.SHOW_TRANSPARENT_TRACES.getId());
-		showTracesPref.setIconSpaceReserved(false);
-		showTracesPref.setDescription("Display semi-transparent trace under the route");
+		symtopPref.setDescription(R.string.allow_display_on_top_description);
 	}
 
 	private void setupMemoryAllocatedForRoutingPref() {

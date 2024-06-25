@@ -15,21 +15,19 @@ import android.widget.TextView;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
 
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
-import net.osmand.plus.settings.enums.WidgetSize;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.layers.MapInfoLayer;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.plus.views.mapwidgets.widgetstates.SimpleWidgetState;
+import net.osmand.plus.settings.enums.WidgetSize;
 import net.osmand.util.Algorithms;
 
 public abstract class SimpleWidget extends TextInfoWidget {
@@ -38,6 +36,8 @@ public abstract class SimpleWidget extends TextInfoWidget {
 
 	private TextView widgetNameTextView;
 	private boolean verticalWidget;
+	private boolean isFullRow;
+	protected MapInfoLayer.TextState textState;
 
 	public SimpleWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType, @Nullable String customId, @Nullable WidgetsPanel panel) {
 		super(mapActivity, widgetType);
@@ -52,36 +52,23 @@ public abstract class SimpleWidget extends TextInfoWidget {
 		LinearLayout container = (LinearLayout) view;
 		container.removeAllViews();
 
-		int layoutId = verticalWidget ? getProperVerticalLayoutId(widgetState) : R.layout.map_hud_widget;
+		int layoutId = getContentLayoutId();
 		UiUtilities.getInflater(mapActivity, nightMode).inflate(layoutId, container);
 		findViews();
 		updateWidgetView();
 	}
 
+	@LayoutRes
+	protected int getContentLayoutId() {
+		return verticalWidget ? getProperVerticalLayoutId(widgetState) : R.layout.map_hud_widget;
+	}
+
 	public void updateValueAlign(boolean fullRow) {
-		if (WidgetSize.SMALL == getWidgetSizePref().get()) {
-			if (!(container instanceof ConstraintLayout)) {
-				return;
-			}
-			ConstraintSet constraintSet = new ConstraintSet();
-			constraintSet.clone((ConstraintLayout) container);
-			if (fullRow) {
-				constraintSet.connect(R.id.widget_text, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 0);
-				constraintSet.connect(R.id.widget_text, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 0);
-			} else {
-				constraintSet.clear(R.id.widget_text, ConstraintSet.END);
-				if (shouldShowIcon()) {
-					constraintSet.connect(R.id.widget_text, ConstraintSet.START, R.id.widget_icon, ConstraintSet.END, dpToPx(app, 12));
-				} else {
-					constraintSet.connect(R.id.widget_text, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, dpToPx(app, 0));
-				}
-			}
-			constraintSet.applyTo((ConstraintLayout) container);
-		} else {
+		if (WidgetSize.SMALL != getWidgetSizePref().get()) {
 			ViewGroup.LayoutParams textViewLayoutParams = textView.getLayoutParams();
 			if (textViewLayoutParams instanceof FrameLayout.LayoutParams) {
 				FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) textView.getLayoutParams();
-				params.gravity = fullRow ? Gravity.CENTER : Gravity.START | Gravity.CENTER_VERTICAL;
+				textView.setGravity(fullRow ? Gravity.CENTER : Gravity.START | Gravity.CENTER_VERTICAL);
 				params.setMarginStart(dpToPx(app, (shouldShowIcon() || fullRow) ? 36 : 0));
 				params.setMarginEnd(dpToPx(app, fullRow ? 36 : 0));
 			}
@@ -106,25 +93,14 @@ public abstract class SimpleWidget extends TextInfoWidget {
 	}
 
 	@LayoutRes
-	private static int getProperVerticalLayoutId(@NonNull SimpleWidgetState simpleWidgetState) {
+	private int getProperVerticalLayoutId(@NonNull SimpleWidgetState simpleWidgetState) {
 		switch (simpleWidgetState.getWidgetSizePref().get()) {
 			case SMALL:
-				return R.layout.simple_map_widget_small;
+				return isFullRow ? R.layout.simple_map_widget_small_full : R.layout.simple_map_widget_small;
 			case LARGE:
 				return R.layout.simple_map_widget_large;
 			default:
 				return R.layout.simple_map_widget_medium;
-		}
-	}
-
-	public int getWidgetMinHeight() {
-		switch (widgetState.getWidgetSizePref().get()) {
-			case SMALL:
-				return (int)app.getResources().getDimension(R.dimen.simple_widget_small_height);
-			case LARGE:
-				return (int)app.getResources().getDimension(R.dimen.simple_widget_large_height);
-			default:
-				return (int)app.getResources().getDimension(R.dimen.simple_widget_medium_height);
 		}
 	}
 
@@ -205,9 +181,6 @@ public abstract class SimpleWidget extends TextInfoWidget {
 		if (typeAllowed && (!shouldHideTopWidgets || emptyValueTextView)) {
 			updateSimpleWidgetInfo(drawSettings);
 		}
-		if (verticalWidget) {
-			app.getOsmandMap().getMapLayers().getMapInfoLayer().updateRow(this);
-		}
 	}
 
 	protected void updateSimpleWidgetInfo(@Nullable OsmandMapLayer.DrawSettings drawSettings) {
@@ -239,7 +212,7 @@ public abstract class SimpleWidget extends TextInfoWidget {
 	}
 
 	@Nullable
-	protected String getAdditionalWidgetName(){
+	protected String getAdditionalWidgetName() {
 		return null;
 	}
 
@@ -290,23 +263,39 @@ public abstract class SimpleWidget extends TextInfoWidget {
 
 	@Override
 	public void updateColors(@NonNull MapInfoLayer.TextState textState) {
+		this.textState = textState;
 		if (verticalWidget) {
-			nightMode = textState.night;
-			textView.setTextColor(textState.textColor);
-			smallTextView.setTextColor(textState.secondaryTextColor);
-			widgetNameTextView.setTextColor(textState.secondaryTextColor);
-			int iconId = getIconId();
-			if (iconId != 0) {
-				setImageDrawable(iconId);
-			}
-			view.findViewById(R.id.widget_bg).setBackgroundResource(textState.widgetBackgroundId);
+			updateVerticalWidgetColors(textState);
 		} else {
 			super.updateColors(textState);
 		}
 	}
 
+	protected void updateVerticalWidgetColors(@NonNull MapInfoLayer.TextState textState) {
+		nightMode = textState.night;
+		textView.setTextColor(textState.textColor);
+		smallTextView.setTextColor(textState.secondaryTextColor);
+		widgetNameTextView.setTextColor(textState.secondaryTextColor);
+		int iconId = getIconId();
+		if (iconId != 0) {
+			setImageDrawable(iconId);
+		}
+		view.findViewById(R.id.widget_bg).setBackgroundResource(textState.widgetBackgroundId);
+	}
+
 	@Override
 	protected View getContentView() {
 		return verticalWidget ? view : container;
+	}
+
+	public void updateFullRowState(boolean fullRow) {
+		if (isFullRow != fullRow) {
+			isFullRow = fullRow;
+			recreateView();
+			if (textState != null) {
+				updateColors(textState);
+			}
+			updateInfo(null);
+		}
 	}
 }

@@ -13,6 +13,7 @@ import net.osmand.plus.R;
 import net.osmand.plus.card.color.palette.main.data.PaletteColor;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.widgets.tools.HorizontalSpaceItemDecoration;
 
 public class ColorsPaletteCard extends BaseCard implements IColorsPalette {
 
@@ -52,6 +53,7 @@ public class ColorsPaletteCard extends BaseCard implements IColorsPalette {
 	private void setupColorsPalette() {
 		rvColors = view.findViewById(R.id.colors_list);
 		rvColors.setLayoutManager(new LinearLayoutManager(activity, RecyclerView.HORIZONTAL, false));
+		rvColors.addItemDecoration(new HorizontalSpaceItemDecoration(getDimen(R.dimen.content_padding_small_half)));
 		rvColors.setClipToPadding(false);
 		rvColors.setAdapter(paletteAdapter);
 	}

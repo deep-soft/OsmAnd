@@ -2,6 +2,7 @@ package net.osmand.plus.quickaction;
 
 
 import android.content.Context;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -12,6 +13,7 @@ import net.osmand.core.android.MapRendererView;
 import net.osmand.data.LatLon;
 import net.osmand.data.RotatedTileBox;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
@@ -87,6 +89,16 @@ public class QuickAction {
         return true;
     }
 
+	public String getExtendedName(@NonNull Context context) {
+		String name = getName(context);
+		int actionNameRes = getActionNameRes();
+		if (actionNameRes != 0 && !name.contains(context.getString(actionNameRes))) {
+			String prefAction = context.getString(actionNameRes);
+			return context.getString(R.string.ltr_or_rtl_combine_via_dash, prefAction, name);
+		}
+		return name;
+	}
+
 	public String getName(@NonNull Context context) {
 		if (Algorithms.isEmpty(name) || !isActionEditable()) {
 			return getDefaultName(context);
@@ -148,6 +160,23 @@ public class QuickAction {
 		int centerPixX = tb.getCenterPixelX();
 		int centerPixY = tb.getCenterPixelY();
 		return NativeUtilities.getLatLonFromElevatedPixel(mapRenderer, tb, centerPixX, centerPixY);
+	}
+
+	public boolean onKeyDown(@NonNull MapActivity mapActivity, int keyCode, KeyEvent event) {
+		return true;
+	}
+
+	public boolean onKeyLongPress(@NonNull MapActivity mapActivity, int keyCode, KeyEvent event) {
+		return true;
+	}
+
+	public boolean onKeyUp(@NonNull MapActivity mapActivity, int keyCode, KeyEvent event) {
+		execute(mapActivity);
+		return true;
+	}
+
+	public boolean onKeyMultiple(@NonNull MapActivity mapActivity, int keyCode, int count, KeyEvent event) {
+		return true;
 	}
 
     public void execute(@NonNull MapActivity mapActivity) {

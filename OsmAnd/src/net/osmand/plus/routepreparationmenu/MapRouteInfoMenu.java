@@ -53,7 +53,6 @@ import net.osmand.data.SpecialPointType;
 import net.osmand.data.ValueHolder;
 import net.osmand.gpx.GPXFile;
 import net.osmand.gpx.GPXUtilities.WptPt;
-import net.osmand.map.WorldRegion;
 import net.osmand.plus.GeocodingLookupService.AddressLookupRequest;
 import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmandApplication;
@@ -103,6 +102,7 @@ import net.osmand.plus.settings.enums.HistorySource;
 import net.osmand.plus.settings.fragments.RouteLineAppearanceFragment;
 import net.osmand.plus.settings.fragments.voice.VoiceLanguageBottomSheetFragment;
 import net.osmand.plus.track.SelectTrackTabsFragment;
+import net.osmand.plus.track.SelectTrackTabsFragment.GpxFileSelectionListener;
 import net.osmand.plus.track.fragments.TrackSelectSegmentBottomSheet;
 import net.osmand.plus.track.fragments.TrackSelectSegmentBottomSheet.OnSegmentSelectedListener;
 import net.osmand.plus.track.helpers.GpxUiHelper;
@@ -192,9 +192,6 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 	private boolean editButtonCollapsed;
 	private boolean addButtonCollapsing;
 	private boolean addButtonCollapsed;
-
-	private List<WorldRegion> suggestedMaps;
-	private boolean suggestedMapsOnlineSearch;
 
 	private interface OnButtonCollapsedListener {
 		void onButtonCollapsed(boolean success);
@@ -514,32 +511,6 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 		}
 	}
 
-	public void updateSuggestedMissingMaps(@Nullable List<WorldRegion> missingMaps, boolean onlineSearch) {
-		WeakReference<MapRouteInfoMenuFragment> fragmentRef = findMenuFragment();
-		MapRouteInfoMenuFragment fragment = fragmentRef != null ? fragmentRef.get() : null;
-		if (fragmentRef != null && fragment.isVisible()) {
-			boolean updated = !Algorithms.objectEquals(missingMaps, suggestedMaps) || suggestedMapsOnlineSearch != onlineSearch;
-			if (updated) {
-				suggestedMaps = missingMaps;
-				suggestedMapsOnlineSearch = onlineSearch;
-				fragment.updateInfo();
-			}
-		}
-	}
-
-	public List<WorldRegion> getSuggestedMaps() {
-		return suggestedMaps;
-	}
-
-	public boolean isSuggestedMapsOnlineSearch() {
-		return suggestedMapsOnlineSearch;
-	}
-
-	public void clearSuggestedMissingMaps() {
-		suggestedMaps = null;
-		suggestedMapsOnlineSearch = false;
-	}
-
 	public void openMenuHeaderOnly() {
 		WeakReference<MapRouteInfoMenuFragment> fragmentRef = findMenuFragment();
 		if (fragmentRef != null && fragmentRef.get().isVisible()) {
@@ -632,7 +603,6 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 		TargetPointsHelper targetPointsHelper = app.getTargetPointsHelper();
 		RoutingHelper routingHelper = app.getRoutingHelper();
 
-		boolean hasPrecalculatedMissingMaps = hasPrecalculatedMissingMaps();
 		boolean hasCalculatedMissingMaps = hasCalculatedMissingMaps(app);
 
 		List<BaseCard> menuCards = new ArrayList<>();
@@ -713,14 +683,12 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 				menuCards.add(new PublicTransportBetaWarningCard(mapActivity));
 			} else if (app.getRoutingHelper().isBoatMode()) {
 				menuCards.add(new NauticalBridgeHeightWarningCard(mapActivity));
-			} else if (hasPrecalculatedMissingMaps || suggestedMapsOnlineSearch) {
-				menuCards.add(new SuggestionsMapsDownloadWarningCard(mapActivity));
 			} else if (app.getTargetPointsHelper().hasTooLongDistanceToNavigate() && !hasCalculatedMissingMaps) {
 				menuCards.add(new LongDistanceWarningCard(mapActivity));
 			}
 		} else {
 			if (hasCalculatedMissingMaps) {
-				menuCards.add(new SuggestionsMapsDownloadWarningCard(mapActivity));
+				menuCards.add(new MissingMapsWarningCard(mapActivity));
 			} else {
 				// Home/work card
 				HomeWorkCard homeWorkCard = new HomeWorkCard(mapActivity);
@@ -783,12 +751,8 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 		setupCards();
 	}
 
-	private boolean hasPrecalculatedMissingMaps() {
-		return !Algorithms.isEmpty(suggestedMaps);
-	}
-
 	private boolean hasCalculatedMissingMaps(@NonNull OsmandApplication app) {
-		return !Algorithms.isEmpty(app.getRoutingHelper().getRoute().getMissingMaps());
+		return app.getRoutingHelper().getRoute().hasMissingMaps();
 	}
 
 	private void setupCards() {
@@ -993,11 +957,9 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 				updateOptionsButtons();
 			}
 		};
-		List<ApplicationMode> values = new ArrayList<>(ApplicationMode.values(app));
-		values.remove(ApplicationMode.DEFAULT);
-
-		if (values.size() > 0 && !values.contains(am)) {
-			ApplicationMode next = values.iterator().next();
+		List<ApplicationMode> appModes = ApplicationMode.getModesForRouting(app);
+		if (appModes.size() > 0 && !appModes.contains(am)) {
+			ApplicationMode next = appModes.iterator().next();
 			updateApplicationMode(am, next);
 		}
 
@@ -1012,9 +974,9 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 		int contentPaddingHalf = mapActivity.getResources().getDimensionPixelSize(R.dimen.content_padding_half);
 		int startTogglePadding = layoutDirection == View.LAYOUT_DIRECTION_LTR ? contentPaddingHalf : contentPadding;
 		int endTogglePadding = layoutDirection == View.LAYOUT_DIRECTION_LTR ? contentPadding : contentPaddingHalf;
-		View[] buttons = new View[values.size()];
+		View[] buttons = new View[appModes.size()];
 		int k = 0;
-		Iterator<ApplicationMode> iterator = values.iterator();
+		Iterator<ApplicationMode> iterator = appModes.iterator();
 		boolean firstMode = true;
 		while (iterator.hasNext()) {
 			ApplicationMode mode = iterator.next();
@@ -1022,7 +984,7 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 					ll.findViewById(R.id.app_modes_content), mode, true);
 
 			toggle.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-				public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+				public void onInitializeAccessibilityNodeInfo(@NonNull View host, @NonNull AccessibilityNodeInfo info) {
 					super.onInitializeAccessibilityNodeInfo(host, info);
 					info.setContentDescription(mode.toHumanString());
 					info.setEnabled(host.isEnabled());
@@ -1053,12 +1015,12 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 			buttons[k++] = toggle;
 		}
 		for (int i = 0; i < buttons.length; i++) {
-			AppModeDialog.updateButtonStateForRoute(app, values, selected, listener, buttons, i, true, true, nightMode);
+			AppModeDialog.updateButtonStateForRoute(app, appModes, selected, listener, buttons, i, true, true, nightMode);
 		}
 
 		ApplicationMode activeMode = app.getRoutingHelper().getAppMode();
 
-		int idx = values.indexOf(activeMode);
+		int idx = appModes.indexOf(activeMode);
 
 		OnGlobalLayoutListener globalListener = new OnGlobalLayoutListener() {
 			@Override
@@ -2037,18 +1999,29 @@ public class MapRouteInfoMenu implements IRouteInformationListener, CardListener
 	public void chooseAndShowFollowTrack() {
 		selectFromTracks = true;
 		MapActivity mapActivity = getMapActivity();
-		if (mapActivity != null) {
-			SelectTrackTabsFragment.GpxFileSelectionListener gpxFileSelectionListener = gpxFile -> {
+		if (mapActivity == null) {
+			return;
+		}
+
+		boolean isFollowTrack = mapActivity.getMyApplication().getRoutingHelper().getCurrentGPXRoute() != null;
+		if (isFollowTrack) {
+			openFollowTrackFragment(mapActivity);
+		} else {
+			GpxFileSelectionListener gpxFileSelectionListener = gpxFile -> {
 				if (TrackSelectSegmentBottomSheet.shouldShowForGpxFile(gpxFile)) {
 					mapActivity.getMapRouteInfoMenu().selectTrack(gpxFile, true, getOnSegmentSelectedListener());
 				} else {
 					mapActivity.getMapRouteInfoMenu().selectTrack(gpxFile, false);
-					FollowTrackFragment trackOptionsFragment = new FollowTrackFragment();
-					FollowTrackFragment.showInstance(mapActivity.getSupportFragmentManager(), trackOptionsFragment);
+					openFollowTrackFragment(mapActivity);
 				}
 			};
 			SelectTrackTabsFragment.showInstance(mapActivity.getSupportFragmentManager(), gpxFileSelectionListener);
 		}
+	}
+
+	private void openFollowTrackFragment(@NonNull MapActivity mapActivity) {
+		FollowTrackFragment trackOptionsFragment = new FollowTrackFragment();
+		FollowTrackFragment.showInstance(mapActivity.getSupportFragmentManager(), trackOptionsFragment);
 	}
 
 	private OnSegmentSelectedListener getOnSegmentSelectedListener() {

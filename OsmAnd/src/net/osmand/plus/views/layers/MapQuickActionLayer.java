@@ -33,6 +33,7 @@ import net.osmand.plus.quickaction.QuickAction.QuickActionSelectionListener;
 import net.osmand.plus.quickaction.QuickActionsWidget;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.MapPosition;
+import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
@@ -78,7 +79,7 @@ public class MapQuickActionLayer extends OsmandMapLayer implements QuickActionUp
 	public void initLayer(@NonNull OsmandMapTileView view) {
 		super.initLayer(view);
 
-		Context context = getContext();
+		Context context = AndroidUtils.createDisplayContext(getContext());
 		contextMarker = new ImageView(context);
 		contextMarker.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT));
 		contextMarker.setImageDrawable(AppCompatResources.getDrawable(context, R.drawable.map_pin_context_menu));
@@ -222,9 +223,8 @@ public class MapQuickActionLayer extends OsmandMapLayer implements QuickActionUp
 			view.setLatLon(lat, lon);
 		}
 		inMovingMarkerMode = true;
-		AndroidUiHelper.setVisibility(mapActivity, View.INVISIBLE,
-				R.id.map_ruler_layout, R.id.map_left_widgets_panel,
-				R.id.map_right_widgets_panel, R.id.map_center_info);
+		AndroidUiHelper.setVisibility(mapActivity, View.INVISIBLE, R.id.map_ruler_layout, R.id.map_center_info);
+		AndroidUiHelper.setVisibility(mapActivity, View.GONE, R.id.map_left_widgets_panel, R.id.map_right_widgets_panel);
 		updateMapDisplayPosition();
 		view.refreshMap();
 	}
@@ -317,7 +317,9 @@ public class MapQuickActionLayer extends OsmandMapLayer implements QuickActionUp
 
 	@Override
 	public void onActionsUpdated() {
-		setSelectedButton(selectedButton);
+		if (quickActionsWidget != null) {
+			quickActionsWidget.updateActions();
+		}
 	}
 
 	@Override

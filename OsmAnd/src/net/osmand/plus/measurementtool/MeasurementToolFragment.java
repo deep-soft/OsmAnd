@@ -124,7 +124,7 @@ import net.osmand.plus.widgets.multistatetoggle.RadioItem;
 import net.osmand.plus.widgets.multistatetoggle.RadioItem.OnRadioItemClickListener;
 import net.osmand.plus.widgets.multistatetoggle.TextToggleButton;
 import net.osmand.plus.widgets.multistatetoggle.TextToggleButton.TextRadioItem;
-import net.osmand.router.RoutePlannerFrontEnd.GpxRouteApproximation;
+import net.osmand.router.GpxRouteApproximation;
 import net.osmand.util.Algorithms;
 
 import java.io.ByteArrayInputStream;
@@ -360,7 +360,7 @@ public class MeasurementToolFragment extends BaseOsmAndFragment implements Route
 			topMapControls = mapActivity.findViewById(R.id.top_controls_container);
 
 			infoTypeBtn = new IconToggleButton(app, infoButtonsContainer, nightMode);
-			pointsBtn = new IconRadioItem(R.drawable.ic_action_plan_route_point_colored, true);
+			pointsBtn = new IconRadioItem(R.drawable.ic_action_plan_route_point_colored).setUseDefaultColor();
 			graphBtn = new IconRadioItem(R.drawable.ic_action_analyze_intervals);
 
 			ScrollUtils.addOnGlobalLayoutListener(mainView, this::updateInfoViewAppearance);

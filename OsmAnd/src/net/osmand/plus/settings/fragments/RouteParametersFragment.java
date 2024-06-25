@@ -57,6 +57,7 @@ import net.osmand.plus.settings.bottomsheets.GoodsRestrictionsBottomSheet;
 import net.osmand.plus.settings.bottomsheets.HazmatCategoryBottomSheet;
 import net.osmand.plus.settings.bottomsheets.RecalculateRouteInDeviationBottomSheet;
 import net.osmand.plus.settings.controllers.ViaFerrataDialogController;
+import net.osmand.plus.settings.enums.ApproximationType;
 import net.osmand.plus.settings.enums.DrivingRegion;
 import net.osmand.plus.settings.enums.RoutingType;
 import net.osmand.plus.settings.preferences.ListParameters;
@@ -270,6 +271,8 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 						&& !param.equals(GeneralRouter.VEHICLE_WEIGHT)
 						&& !param.equals(GeneralRouter.VEHICLE_WIDTH)
 						&& !param.equals(GeneralRouter.MOTOR_TYPE)
+						&& !param.equals(GeneralRouter.MAX_AXLE_LOAD)
+						&& !param.equals(GeneralRouter.WEIGHT_RATING)
 						&& !param.equals(GeneralRouter.VEHICLE_LENGTH)) {
 					otherRoutingParameters.add(routingParameter);
 				}
@@ -335,7 +338,7 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 		} else {
 			ListParameters listParameters = populateListParameters(ctx, p);
 			OsmandPreference<String> pref = settings.getCustomRoutingProperty(p.getId(), p.getDefaultString());
-			ListPreferenceEx preference = createListPreferenceEx(ctx, pref.getId(), listParameters.names, listParameters.values, title, R.layout.preference_with_descr);
+			ListPreferenceEx preference = createListPreferenceEx(ctx, pref.getId(), listParameters.localizedNames, listParameters.values, title, R.layout.preference_with_descr);
 			preference.setDescription(description);
 			return preference;
 		}
@@ -359,7 +362,7 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 				names[j] = getRoutingStringPropertyName(ctx, id, name);
 			}
 		}
-		return new ListParameters(names, sVls);
+		return new ListParameters(descriptions, names, sVls);
 	}
 
 	private void setupOtherBooleanParameterSummary(ApplicationMode am, RoutingParameter p, TwoStatePreference preference) {
@@ -410,7 +413,7 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 			setupNativePublicTransport();
 		} else {
 			setupRoutingTypePref();
-			setupGpxApproximationPref();
+			setupApproximationTypePref();
 			setupAutoZoomPref();
 			setupOsmLiveForRoutingPref();
 		}
@@ -421,42 +424,6 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 		developmentCategory.setLayoutResource(R.layout.preference_category_with_descr);
 		developmentCategory.setTitle(R.string.development);
 		screen.addPreference(developmentCategory);
-	}
-
-	private void setupGpxApproximationPref() {
-		Preference preference = new Preference(requireContext());
-		preference.setKey(settings.APPROX_SAFE_MODE.getId());
-		preference.setTitle(R.string.gpx_approximation);
-		preference.setLayoutResource(R.layout.preference_with_descr);
-		preference.setIcon(getContentIcon(R.drawable.ic_action_attach_track));
-		preference.setSummary(settings.APPROX_SAFE_MODE.get() ? R.string.java_safe : R.string.cpp);
-		getPreferenceScreen().addPreference(preference);
-	}
-
-	private void showGpxApproximationDialog(@NonNull Preference preference) {
-		boolean selected = settings.APPROX_SAFE_MODE.getModeValue(getSelectedAppMode());
-
-		List<PopUpMenuItem> items = new ArrayList<>();
-		items.add(new PopUpMenuItem.Builder(preference.getContext())
-				.setTitleId(R.string.java_safe)
-				.setSelected(selected)
-				.showCompoundBtn(getActiveProfileColor())
-				.setOnClickListener(itemView -> onPreferenceChange(preference, true))
-				.create());
-
-		items.add(new PopUpMenuItem.Builder(preference.getContext())
-				.setTitleId(R.string.cpp)
-				.setSelected(!selected)
-				.showCompoundBtn(getActiveProfileColor())
-				.setOnClickListener(itemView -> onPreferenceChange(preference, false))
-				.create());
-
-		PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
-		displayData.anchorView = getListView().findViewWithTag(preference);
-		displayData.menuItems = items;
-		displayData.nightMode = isNightMode();
-		displayData.widthMode = PopUpMenuWidthMode.STANDARD;
-		PopUpMenu.show(displayData);
 	}
 
 	private void setupAutoZoomPref() {
@@ -535,6 +502,45 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 		getPreferenceScreen().addPreference(preference);
 	}
 
+	private void showApproximationTypeDialog(@NonNull Preference preference) {
+		List<PopUpMenuItem> items = new ArrayList<>();
+
+		ApproximationType selectedType = settings.APPROXIMATION_TYPE.getModeValue(getSelectedAppMode());
+
+		for (ApproximationType type : ApproximationType.values()) {
+			items.add(new PopUpMenuItem.Builder(app)
+					.setTitleId(type.getTitleId())
+					.setSelected(selectedType == type)
+					.showCompoundBtn(getActiveProfileColor())
+					.setOnClickListener(v -> onPreferenceChange(preference, type))
+					.create());
+		}
+
+		PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+		displayData.anchorView = getListView().findViewWithTag(preference);
+		displayData.menuItems = items;
+		displayData.nightMode = isNightMode();
+		displayData.widthMode = PopUpMenuWidthMode.STANDARD;
+		PopUpMenu.show(displayData);
+	}
+
+	private void setupApproximationTypePref() {
+		ApproximationType[] types = ApproximationType.values();
+		String[] names = new String[types.length];
+		Integer[] values = new Integer[types.length];
+
+		for (int i = 0; i < names.length; i++) {
+			ApproximationType type = types[i];
+			values[i] = type.ordinal();
+			names[i] = type.toHumanString(app);
+		}
+
+		ListPreferenceEx preference = createListPreferenceEx(settings.APPROXIMATION_TYPE.getId(), names,
+				values, R.string.gpx_approximation, R.layout.preference_with_descr);
+		preference.setIcon(getContentIcon(R.drawable.ic_action_attach_track));
+		getPreferenceScreen().addPreference(preference);
+	}
+
 	@Override
 	public boolean onPreferenceClick(Preference preference) {
 		String prefId = preference.getKey();
@@ -548,7 +554,7 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 				String selectedValue = hazmatPreference.getModeValue(appMode);
 				boolean enabled = settings.HAZMAT_TRANSPORTING_ENABLED.getModeValue(appMode);
 				Integer selectedValueIndex = enabled ? hazmatParameters.findIndexOfValue(selectedValue) : null;
-				HazmatCategoryBottomSheet.showInstance(manager, this, HAZMAT_TRANSPORTING_ENABLED, appMode, false, hazmatParameters.names, hazmatParameters.values, selectedValueIndex);
+				HazmatCategoryBottomSheet.showInstance(manager, this, HAZMAT_TRANSPORTING_ENABLED, appMode, false, hazmatParameters.localizedNames, hazmatParameters.values, selectedValueIndex);
 			}
 		} else if (GOODS_RESTRICTIONS_PREFERENCE.equals(prefId)) {
 			FragmentManager manager = getFragmentManager();
@@ -565,8 +571,6 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 			}
 		} else if (DANGEROUS_GOODS_USA.equals(prefId)) {
 			BaseSettingsFragment.showInstance(requireActivity(), DANGEROUS_GOODS, appMode, new Bundle(), this);
-		} else if (settings.APPROX_SAFE_MODE.getId().equals(prefId)) {
-			showGpxApproximationDialog(preference);
 		} else if (settings.USE_DISCRETE_AUTO_ZOOM.getId().equals(prefId)) {
 			showAutoZoomDialog(preference);
 		}
@@ -593,6 +597,8 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 			}
 		} else if (settings.ROUTING_TYPE.getId().equals(prefId)) {
 			showRoutingTypeDialog(preference);
+		} else if (settings.APPROXIMATION_TYPE.getId().equals(prefId)) {
+			showApproximationTypeDialog(preference);
 		} else {
 			super.onDisplayPreferenceDialog(preference);
 		}
@@ -764,7 +770,7 @@ public class RouteParametersFragment extends BaseSettingsFragment {
 		String description;
 		if (selectedValueIndex >= 0) {
 			String yes = getString(R.string.shared_string_yes);
-			String name = hazmatParameters.names[selectedValueIndex];
+			String name = hazmatParameters.localizedNames[selectedValueIndex];
 			description = getString(R.string.ltr_or_rtl_combine_via_comma, yes, name);
 			icon = getIcon(R.drawable.ic_action_hazmat_limit_colored);
 		} else {

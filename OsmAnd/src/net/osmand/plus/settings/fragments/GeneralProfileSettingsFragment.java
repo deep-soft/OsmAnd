@@ -1,5 +1,6 @@
 package net.osmand.plus.settings.fragments;
 
+import static net.osmand.plus.settings.bottomsheets.DistanceDuringNavigationBottomSheet.*;
 import static net.osmand.plus.settings.fragments.SettingsScreenType.EXTERNAL_INPUT_DEVICE;
 
 import android.content.Context;
@@ -16,6 +17,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.AppCompatCheckedTextView;
+import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
 
 import net.osmand.data.PointDescription;
@@ -27,6 +29,7 @@ import net.osmand.plus.keyevent.InputDevicesHelper;
 import net.osmand.plus.keyevent.devices.InputDeviceProfile;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.bottomsheets.DistanceDuringNavigationBottomSheet;
 import net.osmand.plus.settings.controllers.CompassModeDialogController;
 import net.osmand.plus.settings.enums.AngularConstants;
 import net.osmand.plus.settings.enums.DrivingRegion;
@@ -63,6 +66,7 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment {
 		setupKalmanFilterPref();
 		setupMagneticFieldSensorPref();
 		setupMapEmptyStateAllowedPref();
+		setupNotRotateNorthUpPref();
 		setupAnimatePositionPref();
 		setupExternalInputDevicePref();
 		setupTrackballForMovementsPref();
@@ -209,8 +213,11 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment {
 	}
 
 	private void setupPreciseDistanceNumbersPref() {
-		SwitchPreferenceEx preference = findPreference(settings.PRECISE_DISTANCE_NUMBERS.getId());
-		preference.setTitle(getString(R.string.precise_distance_numbers));
+		ApplicationMode selectedMode = getSelectedAppMode();
+		Preference preference = findPreference(settings.PRECISE_DISTANCE_NUMBERS.getId());
+		DistanceDuringNavigationMode enabledMode = settings.PRECISE_DISTANCE_NUMBERS.getModeValue(selectedMode) ? DistanceDuringNavigationMode.PRECISE : DistanceDuringNavigationMode.ROUND_UP;
+		preference.setSummary(getString(enabledMode.nameId));
+		preference.setIcon(getActiveIcon(enabledMode.iconId));
 	}
 
 	private void setupVolumeButtonsAsZoom() {
@@ -239,6 +246,13 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment {
 		mapEmptyStateAllowedPref.setTitle(getString(R.string.tap_on_map_to_hide_interface));
 		mapEmptyStateAllowedPref.setDescription(getString(R.string.tap_on_map_to_hide_interface_descr));
 	}
+
+	private void setupNotRotateNorthUpPref() {
+		SwitchPreferenceEx mapEmptyStateAllowedPref = findPreference(settings.FIXED_NORTH_MAP.getId());
+		mapEmptyStateAllowedPref.setTitle(getString(R.string.fix_north_up));
+		mapEmptyStateAllowedPref.setDescription(getString(R.string.fix_north_up_descr));
+	}
+
 
 	private void setupAnimatePositionPref() {
 		SwitchPreferenceEx animateMyLocation = findPreference(settings.ANIMATE_MY_LOCATION.getId());
@@ -382,6 +396,11 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment {
 		} else if (key.equals(settings.EXTERNAL_INPUT_DEVICE.getId())) {
 			BaseSettingsFragment.showInstance(requireActivity(), EXTERNAL_INPUT_DEVICE, appMode, new Bundle(), this);
 			return true;
+		} else if (key.equals(settings.PRECISE_DISTANCE_NUMBERS.getId())) {
+			FragmentManager fragmentManager = getFragmentManager();
+			if (fragmentManager != null) {
+				DistanceDuringNavigationBottomSheet.showInstance(fragmentManager, preference.getKey(), this, getSelectedAppMode(), false);
+			}
 		}
 		return super.onPreferenceClick(preference);
 	}

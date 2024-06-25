@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	android:background="?attr/list_background_color"
@@ -7,14 +8,7 @@
 	android:focusable="true"
 	android:orientation="vertical">
 
-	<com.google.android.material.appbar.AppBarLayout
-		android:id="@+id/appbar"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content">
-
-		<include layout="@layout/global_preference_toolbar" />
-
-	</com.google.android.material.appbar.AppBarLayout>
+	<include layout="@layout/simple_toolbar" />
 
 	<ScrollView
 		android:layout_width="match_parent"
@@ -26,7 +20,10 @@
 			android:id="@+id/colors_palette"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:layout_margin="@dimen/content_padding"/>
+			android:layout_marginVertical="@dimen/content_padding"
+			android:layout_marginHorizontal="@dimen/content_padding_round_medium"
+			app:horizontalItemsSpacing="@dimen/content_padding_medium"
+			app:verticalItemsSpacing="@dimen/content_padding_small" />
 
 	</ScrollView>
 

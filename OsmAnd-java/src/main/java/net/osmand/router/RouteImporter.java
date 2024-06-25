@@ -98,6 +98,7 @@ public class RouteImporter {
 		collectLocations(resources, segment);
 		collectRoutePointIndexes(resources, segmentRoutePoints);
 		collectRouteTypes(region, segment);
+
 		List<RouteSegmentResult> route = collectRouteSegments(region, resources, segment);
 		for (RouteSegmentResult routeSegment : route) {
 			routeSegment.fillNames(resources);

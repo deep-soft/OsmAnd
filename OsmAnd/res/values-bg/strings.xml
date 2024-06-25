@@ -822,7 +822,7 @@
     <string name="transport_to_go_after">предна дистанция</string>
     <string name="transport_to_go_before">следваща дистанция</string>
     <string name="transport_stops_to_pass">спирки да се пропуснат</string>
-    <string name="transport_route_distance">Изчислена дистанция</string>
+    <string name="transport_route_distance">Дължина на маршрута</string>
     <string name="transport">Обществен транспорт</string>
     <string name="shared_string_ok">OK</string>
     <string name="show_transport_over_map_description">Спирки на обществения транспорт на картата.</string>
@@ -2971,7 +2971,6 @@
 \nДанните за времето се предоставят от Глобалната система за прогнози (GFS, %1$s).</string>
     <string name="empty_screen_weather_clouds_layer">Включете, за да видите слой с облачното покритие на картата.</string>
     <string name="default_appearance">Външен вид по подразбиране</string>
-    <string name="change_default_tracks_appearance_confirmation_description">Променяне на външния вид на %1$s трасета\?</string>
     <string name="determine_location">Позволете ни да определим местоположението ви</string>
     <string name="si_nm_ft">Морски мили/футове</string>
     <string name="share_link">Препратка за споделяне</string>
@@ -3935,4 +3934,14 @@
 \n
 \nМожете да промените избора си в „Настройки“ → „Поверителност и защита“.</string>
     <string name="speed_limit_warning">Предупреждение за ограничения на скоростта</string>
+    <string name="empty_smart_folder_title">Няма подходящо трасе</string>
+    <string name="battery_optimization_banner_content">Оптималното използване на батерията от Андроид може да допринесе за появата на пропуски и неточности в записаните трасета.</string>
+    <plurals name="tracks">
+        <item quantity="one">%1$d (%2$d трасе)</item>
+        <item quantity="other">%1$d (%2$d трасета)</item>
+    </plurals>
+    <string name="battery_optimization_settings">Настройки за оптимизиране на батерията</string>
+    <string name="dont_ask_anymore">Без повторно питане</string>
+    <string name="shared_string_all_tracks">Всички трасета</string>
+    <string name="shared_string_itinerary">Маршрут</string>
 </resources>

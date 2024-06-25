@@ -13,6 +13,7 @@ import net.osmand.plus.settings.backend.preferences.CommonPreference
 import net.osmand.plus.track.data.SmartFolder
 import net.osmand.util.Algorithms
 import net.osmand.util.CollectionUtils
+import java.io.File
 import java.util.Date
 
 class SmartFolderHelper(val app: OsmandApplication) {
@@ -201,6 +202,9 @@ class SmartFolderHelper(val app: OsmandApplication) {
 	}
 
 	fun addTrackItemsToSmartFolder(items: List<TrackItem>) {
+		if (smartFolderCollection.isEmpty()) {
+			return
+		}
 		val newSet = allAvailableTrackItems
 		newSet.addAll(items)
 		allAvailableTrackItems = newSet
@@ -224,6 +228,32 @@ class SmartFolderHelper(val app: OsmandApplication) {
 				}
 			}
 		}
+	}
+
+	fun onGpxFileDeleted(gpxFile: File) {
+		val newAllTracks = HashSet<TrackItem>(allAvailableTrackItems)
+		for (trackItem in newAllTracks) {
+			if (trackItem.path == gpxFile.path) {
+				newAllTracks.remove(trackItem)
+				allAvailableTrackItems = newAllTracks
+				break
+			}
+		}
+		updateAllSmartFoldersItems()
+	}
+
+	fun onTrackRenamed(srcTrackFile: File, destTrackFile: File) {
+		val newAllTracks = HashSet<TrackItem>(allAvailableTrackItems)
+		for (trackItem in newAllTracks) {
+			if (trackItem.path == srcTrackFile.path) {
+				newAllTracks.remove(trackItem)
+				newAllTracks.add(TrackItem(destTrackFile))
+				allAvailableTrackItems = newAllTracks
+				break
+			}
+		}
+		updateAllSmartFoldersItems()
+		notifyUpdateListeners()
 	}
 
 	@WorkerThread
@@ -258,15 +288,19 @@ class SmartFolderHelper(val app: OsmandApplication) {
 		@Deprecated("Deprecated in Java")
 		override fun doInBackground(vararg params: Void): Void? {
 			readSettings()
-			for (folder in smartFolderCollection) {
-				updateSmartFolderItems(folder)
-			}
+			updateAllSmartFoldersItems()
 			return null
 		}
 
 		@Deprecated("Deprecated in Java")
 		override fun onPostExecute(result: Void?) {
 			notifyUpdateListeners()
+		}
+	}
+
+	private fun updateAllSmartFoldersItems() {
+		for (smartFolder in smartFolderCollection) {
+			updateSmartFolderItems(smartFolder)
 		}
 	}
 }

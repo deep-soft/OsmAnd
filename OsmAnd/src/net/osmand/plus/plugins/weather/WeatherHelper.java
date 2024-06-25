@@ -6,6 +6,7 @@ import static net.osmand.plus.plugins.weather.WeatherBand.WEATHER_BAND_CLOUD;
 import static net.osmand.plus.plugins.weather.WeatherBand.WEATHER_BAND_PRECIPITATION;
 import static net.osmand.plus.plugins.weather.WeatherBand.WEATHER_BAND_PRESSURE;
 import static net.osmand.plus.plugins.weather.WeatherBand.WEATHER_BAND_TEMPERATURE;
+import static net.osmand.plus.plugins.weather.WeatherBand.WEATHER_BAND_WIND_ANIMATION;
 import static net.osmand.plus.plugins.weather.WeatherBand.WEATHER_BAND_WIND_SPEED;
 import static net.osmand.plus.plugins.weather.enums.WeatherForecastDownloadState.FINISHED;
 
@@ -33,7 +34,6 @@ import org.apache.commons.logging.Log;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +48,8 @@ public class WeatherHelper {
 	private final Map<Short, WeatherBand> weatherBands = new LinkedHashMap<>();
 	private final AtomicInteger bandsSettingsVersion = new AtomicInteger(0);
 	private final WeatherTotalCacheSize totalCacheSize;
+	private WeatherWebClient.WeatherWebClientListener downloadStateListener;
+	private WeatherWebClient webClient;
 
 	private WeatherTileResourcesManager weatherTileResourcesManager;
 
@@ -62,6 +64,7 @@ public class WeatherHelper {
 		weatherBands.put(WEATHER_BAND_WIND_SPEED, WeatherBand.withWeatherBand(app, WEATHER_BAND_WIND_SPEED));
 		weatherBands.put(WEATHER_BAND_CLOUD, WeatherBand.withWeatherBand(app, WEATHER_BAND_CLOUD));
 		weatherBands.put(WEATHER_BAND_PRECIPITATION, WeatherBand.withWeatherBand(app, WEATHER_BAND_PRECIPITATION));
+		weatherBands.put(WEATHER_BAND_WIND_ANIMATION, WeatherBand.withWeatherBand(app, WEATHER_BAND_WIND_ANIMATION));
 	}
 
 	@NonNull
@@ -114,12 +117,15 @@ public class WeatherHelper {
 		int tileSize = 256;
 		MapPresentationEnvironment mapPresentationEnvironment = mapRenderer.getMapPresentationEnvironment();
 		float densityFactor = mapPresentationEnvironment.getDisplayDensityFactor();
-
-		WeatherWebClient webClient = new WeatherWebClient();
+		if(webClient != null) {
+			webClient.setDownloadStateListener(null);
+		}
+		webClient = new WeatherWebClient();
 		WeatherTileResourcesManager weatherTileResourcesManager = new WeatherTileResourcesManager(
 				new BandIndexGeoBandSettingsHash(), cacheDir.getAbsolutePath(), projResourcesPath,
 				tileSize, densityFactor, webClient.instantiateProxy(true)
 		);
+		webClient.setDownloadStateListener(downloadStateListener);
 		webClient.swigReleaseOwnership();
 		weatherTileResourcesManager.setBandSettings(getBandSettings(weatherTileResourcesManager));
 		this.weatherTileResourcesManager = weatherTileResourcesManager;
@@ -158,8 +164,7 @@ public class WeatherHelper {
 	public void clearOutdatedCache() {
 		totalCacheSize.reset();
 
-		Date date = OsmAndFormatter.getStartOfToday();
-		long dateTime = date.getTime();
+		long dateTime = OsmAndFormatter.getStartOfToday();
 		weatherTileResourcesManager.clearDbCache(dateTime);
 
 		List<String> downloadedRegionIds = offlineForecastHelper.getTempForecastsWithDownloadStates(FINISHED);
@@ -220,6 +225,13 @@ public class WeatherHelper {
 			}
 		}
 		return bandSettings;
+	}
+
+	public void setDownloadStateListener(WeatherWebClient.WeatherWebClientListener listener) {
+		downloadStateListener = listener;
+		if(webClient != null) {
+			webClient.setDownloadStateListener(downloadStateListener);
+		}
 	}
 
 	public int getBandsSettingsVersion() {

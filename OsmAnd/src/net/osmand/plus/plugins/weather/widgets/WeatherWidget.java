@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -117,11 +118,11 @@ public class WeatherWidget extends SimpleWidget {
 	public void updateContent(@Nullable String formattedValue) {
 		app.removeMessagesInUiThread(hideOldDataMessageId);
 		if (!Algorithms.isEmpty(formattedValue)) {
-			setText(formattedValue, weatherBand.getBandUnit().getSymbol());
+			setText(formattedValue, weatherBand.getBandUnit().getUnit(app));
 		} else {
 			setText(NO_VALUE, null);
 		}
-		mapActivity.getMapLayers().getMapInfoLayer().updateSideWidgets();;
+		mapActivity.getMapLayers().getMapInfoLayer().updateSideWidgets();
 	}
 
 	public void setDateTime(@Nullable Date date) {

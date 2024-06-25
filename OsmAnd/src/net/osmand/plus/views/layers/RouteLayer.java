@@ -1,5 +1,7 @@
 package net.osmand.plus.views.layers;
 
+import static net.osmand.util.MapUtils.HIGH_LATLON_PRECISION;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -448,7 +450,7 @@ public class RouteLayer extends BaseRouteLayer implements IContextMenuProvider {
 			boolean shouldShowDirectionArrows = previewRouteLineInfo == null
 					|| previewRouteLineInfo.shouldShowDirectionArrows();
 			routeGeometry.setRouteStyleParams(routeLineColor, routeLineWidth, shouldShowDirectionArrows,
-					directionArrowsColor, actualColoringType, routeInfoAttribute);
+					directionArrowsColor, actualColoringType, routeInfoAttribute, routeGradientPalette);
 			boolean routeUpdated = routeGeometry.updateRoute(tb, route);
 			boolean shouldShowTurnArrows = shouldShowTurnArrows();
 
@@ -879,6 +881,10 @@ public class RouteLayer extends BaseRouteLayer implements IContextMenuProvider {
 		lastRouteProjection = null;
 	}
 
+	public void resetColorAvailabilityCache() {
+		coloringAvailabilityCache.resetCache();
+	}
+
 	private static class RenderState {
 		private Location lastProjection = null;
 		private int startLocationIndex = -1;
@@ -903,7 +909,7 @@ public class RouteLayer extends BaseRouteLayer implements IContextMenuProvider {
 			this.shouldRebuildRoute = this.coloringType != coloringType
 					|| this.routeColor != routeColor;
 
-			this.shouldUpdateRoute = (!MapUtils.areLatLonEqualPrecise(this.lastProjection, lastProjection)
+			this.shouldUpdateRoute = (!MapUtils.areLatLonEqual(this.lastProjection, lastProjection, HIGH_LATLON_PRECISION)
 					|| this.startLocationIndex != startLocationIndex
 					|| this.routeWidth != routeWidth
 					|| this.shouldShowDirectionArrows != shouldShowDirectionArrows)

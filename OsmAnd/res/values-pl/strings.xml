@@ -5040,7 +5040,6 @@
     <string name="shared_string_inches">cale</string>
     <string name="offline_weather_forecast">Prognoza pogody offline</string>
     <string name="offline_weather_forecast_desc">Możesz pobrać prognozę pogody na 7 dni.</string>
-    <string name="change_default_tracks_appearance_confirmation_description">Zmienić wygląd ścieżek %1$s\?</string>
     <string name="no_visible_tracks_description">Wybierz ścieżki, aby wyświetlić je na mapie.</string>
     <string name="shared_string_select_recent">Wybierz ostatnie</string>
     <string name="offline_cache">Pamięć podręczna offline</string>
@@ -5527,7 +5526,7 @@
     <string name="shared_string_extensions">Rozszerzenia</string>
     <string name="shared_string_license">Licencja</string>
     <string name="any_connected_with_device">Dowolne połączenie: %s</string>
-    <string name="max_sensor_temperature">Temperatura, max</string>
+    <string name="max_sensor_temperature">Temperatura, wartość max</string>
     <string name="max_sensor_heartrate">Maksymalne tętno</string>
     <string name="shared_string_next_event">Następne zdarzenie</string>
     <string name="key_assignments_already_cleared_message">Wszystkie kluczowe zadania są już wyczyszczone</string>
@@ -5549,7 +5548,7 @@
 \nJeśli wystąpi którykolwiek z tych problemów, możesz spróbować zmienić zużycie baterii na \"Nieograniczone\".</string>
     <string name="battery_optimization">Optymalizacja baterii</string>
     <string name="shared_string_activity">Aktywność</string>
-    <string name="shared_string_additional">Dodatkowe</string>
+    <string name="shared_string_additional">Dodatki</string>
     <string name="custom_map_button_name_present">Taki przycisk już istnieje</string>
     <string name="shared_string_keywords">Słowa kluczowe</string>
     <string name="add_button">Dodaj przycisk</string>
@@ -5557,4 +5556,114 @@
     <string name="default_buttons">Przyciski domyślne</string>
     <string name="sorted_sufolders_toast">Podfoldery w \"%1$s\" sortowane są według: \"%2$s\"</string>
     <string name="sort_subfolders">Sortuj podfoldery</string>
+    <string name="precise">Precyzyjnie</string>
+    <string name="distance_during_navigation_description">Wybierz sposób wyświetlania informacji o odległości w widżetach nawigacji (odległość do punktu, następny zakręt, pasy ruchu).
+\n
+\nWybierz \"%1$s\" dla dokładnych liczb lub \"%2$s\" dla większej czytelności.</string>
+    <string name="speed_limit_warning">Ostrzeżenie o ograniczeniu prędkości</string>
+    <string name="shared_string_speedometer">Prędkościomierz</string>
+    <string name="lang_ta_in">Tamil (Indie)</string>
+    <string name="shared_string_limit">Ograniczenie</string>
+    <string name="when_exceeded">Po przekroczeniu</string>
+    <string name="speedometer_description">Pokazuje bieżącą prędkość zgłoszoną przez GPS</string>
+    <string name="avg_sensor_temperature">Temperatura, wartość średnia</string>
+    <string name="routing_type_a_star_2_phase">A* 2-fazowy</string>
+    <string name="routing_type_a_star_classic">A* klasyczny</string>
+    <string name="release_4_7">- Nowy widżet \"Prędkościomierz\" kompatybilny z Android Auto
+\n
+\n - Konfiguracja ekranu mapy poprzez dodanie wielu przycisków \"Szybka akcja\"
+\n
+\n - Poprawiona czytelność danych na wykresach
+\n
+\n - Dodano filtry według danych czujnika dla tras
+\n
+\n - Dodano obsługę dodatkowych tagów GPX
+\n
+\n - Dostosowanie \"Odległości podczas nawigacji\": wybór między liczbami dokładnymi lub zaokrąglonymi w górę
+\n
+\n - Ujednolicony interfejs użytkownika dla wyboru trasy
+\n
+\n - Logowanie OpenStreetMap przełączone na OAuth 2.0
+\n
+\n</string>
+    <string name="shared_sting_all_colors">Wszystkie kolory</string>
+    <string name="avg_sensor_heartrate">Średnie tętno</string>
+    <string name="unchanged_parameter_summary">Każda ścieżka zachowa swoje parametry.</string>
+    <string name="map_widget_map_scale">Skala mapy</string>
+    <string name="track_vertical_exaggeration_description">Zmieniając wartość skali, można zmienić wysokość ścieżki 3D.</string>
+    <string name="maps_that_also_be_used">Mapy, które również będą używane: %1$s</string>
+    <string name="getting_list_of_required_maps">Pobieranie listy wymaganych map…</string>
+    <string name="required_maps_calculate_online_summary">Lista brakujących map jest oparta na trasie w linii prostej. Aby uzyskać dokładną listę map, OsmAnd może wstępnie obliczyć trasę online.</string>
+    <string name="required_maps">Wymagane mapy</string>
+    <string name="missing_maps_description">Brakuje niektórych map offline wymaganych dla tej trasy lub nie są one aktualne. Prosimy o pobranie lub zaktualizowanie tych map.</string>
+    <string name="missing_maps_header">Brakujące lub nieaktualne mapy</string>
+    <string name="height_legend_description">Kolorowe mapy wysokości służą do wizualizacji rzeźby terenu.</string>
+    <string name="top_and_bottom">Góra i dół</string>
+    <string name="title_3d_track">Ścieżka 3D</string>
+    <string name="route_line_use_coloring_altitude">Linia trasy jest kolorowana według wysokości nad poziomem morza.</string>
+    <string name="disable_map_layers">Wyłącz warstwy mapy</string>
+    <string name="disable_map_layers_descr">Wyłączenie wszystkich warstw mapy powyżej mapy wektorowej (wymagany restart).</string>
+    <string name="visualized_by">Wizualizowane przez</string>
+    <string name="wall_color">Kolor ściany</string>
+    <string name="top">Góra</string>
+    <string name="release_4_8">- Być przygotowanym na 4.8</string>
+    <string name="allow_display_on_top">Zawsze wyświetl na wierzchu</string>
+    <string name="shared_string_changes">Zmiany</string>
+    <string name="auto_zoom">Przybliżenie automatyczne</string>
+    <string name="key_event_action_change_map_orientation">Zmień orientację mapy</string>
+    <string name="shared_string_copyright">Prawa autorskie</string>
+    <string name="bottom">Dół</string>
+    <string name="add_row">Dodaj rząd</string>
+    <string name="wall_height">Wysokość ściany</string>
+    <string name="topography_maps">Mapy topograficzne</string>
+    <string name="row_number">Rząd %1$s</string>
+    <string name="key_event_action_open_navigation_view">Otwórz widok nawigacji</string>
+    <string name="lang_zh_hans">Chiński uproszczony</string>
+    <string name="lang_zh_hant">Chiński tradycyjny</string>
+    <string name="shared_string_reassign">Przypisz ponownie</string>
+    <string name="shared_string_scale">Skala</string>
+    <string name="key_event_action_zoom_in">Przybliż</string>
+    <string name="change_default_appearance_confirmation">Zmienić domyślny wygląd %1$s?</string>
+    <string name="discard_changes_prompt">Odrzucić zmiany?</string>
+    <string name="use_3d_track_visualization">Wizualizacja 3D</string>
+    <string name="external_input_device_title">Zewnętrzne urządzenie wejściowe</string>
+    <string name="delete_trash_item_confirmation_desc">Usunąć \"%1$s\" na stałe?</string>
+    <string name="delete_actions_button">Przycisk usuwania</string>
+    <string name="round_up">Zaokrąglij w górę</string>
+    <string name="apply_only_to_new">Stosuj tylko do nowych</string>
+    <string name="shared_string_unchanged">Niezmienione</string>
+    <string name="map_text">Napisy na mapie</string>
+    <string name="allow_display_on_top_description">Zezwalaj na wyświetlanie tekstów map jeden na drugim</string>
+    <string name="routing_attr_avoid_cobblestone_description">Unikaj kocich łbów</string>
+    <string name="change_terrain_color_scheme">Zmień schemat kolorów terenu</string>
+    <string name="travel_topics">Tematyka podróży</string>
+    <string name="missing_maps_ignore">Skorzystaj z istniejących map</string>
+    <string name="play_weather_forecast">Odtwórz prognozę pogody</string>
+    <string name="rendering_value_dark_orange_name">Ciemnopomarańczowy</string>
+    <string name="clear_all_key_shortcuts_summary">Wszystkie przypisania klawiszy dla wybranego typu zostaną usunięte.</string>
+    <string name="clear_all_key_shortcuts">Wyczyść wszystkie skróty klawiszowe</string>
+    <string name="no_assigned_keys_desc">Wybierz akcję i przypisz klawisz, naciskając przycisk „Dodaj”.</string>
+    <string name="no_assigned_keys">Brak przypisanych klawiszy</string>
+    <string name="new_key_assignment">Nowe przypisanie klawisza</string>
+    <string name="key_name_pattern">Klawisz \"%1$s\"</string>
+    <string name="key_assignment_add_key">Dodaj klawisz</string>
+    <string name="shared_string_key">Klawisz</string>
+    <string name="backup_error_failed_to_transfer_file">Nie udało się przesłać pliku(ów) z chmury.</string>
+    <string name="contact_support_retry">Spróbuj ponownie lub skontaktuj się z pomocą techniczną</string>
+    <string name="shared_string_colors">Kolory</string>
+    <string name="action_icon">Ikona akcji</string>
+    <string name="assigned_keys">Przypisane klawisze</string>
+    <string name="clear_key_assignment_summary">Przypisanie klawisza do wybranej akcji zostanie usunięte.</string>
+    <string name="key_assignment_add_action">Dodaj akcję</string>
+    <string name="show_debug_info">Pokaż informacje do debugowania</string>
+    <string name="show_debug_info_description">Wyświetlaj graficzne informacje o rozmieszczeniu każdego tekstu mapy</string>
+    <string name="routing_attr_avoid_cobblestone_name">Unikaj kocich łbów</string>
+    <string name="user_palette">Paleta użytkownika</string>
+    <string name="track_line">Linia trasy</string>
+    <string name="fixed_height">Stała wysokość</string>
+    <string name="downward_gradient">Nachylenie w dół</string>
+    <string name="explore_3d_track_description">Przeglądaj tor w interaktywnym 3D! Wizualizuj wysokość, prędkość i inne parametry bezpośrednio na mapie.</string>
+    <string name="shared_string_osm_id">OSM ID</string>
+    <string name="steps_per_minute_unit">SPM</string>
+    <string name="use_terrain_maps">Użyj map terenu</string>
 </resources>

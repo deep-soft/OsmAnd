@@ -41,6 +41,7 @@ import net.osmand.plus.views.mapwidgets.WidgetInfoCreator;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.plus.views.mapwidgets.widgets.MapWidget;
+import net.osmand.plus.views.mapwidgets.widgetstates.ZoomLevelWidgetState;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
 import net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem;
 
@@ -68,11 +69,8 @@ public class OsmandDevelopmentPlugin extends OsmandPlugin {
 	public final OsmandPreference<Boolean> SAVE_HEADING_TO_GPX;
 	public final OsmandPreference<Boolean> SHOW_SYMBOLS_DEBUG_INFO;
 	public final OsmandPreference<Boolean> ALLOW_SYMBOLS_DISPLAY_ON_TOP;
-	public final OsmandPreference<Boolean> RAISE_ROUTES_ABOVE_RELIEF;
-	public final OsmandPreference<Boolean> SHOW_TRANSPARENT_TRACES;
 	private final StateChangedListener<Boolean> useRasterSQLiteDbListener;
 	private final StateChangedListener<Boolean> symbolsDebugInfoListener;
-	private final StateChangedListener<Boolean> routesAboveReliefListener;
 
 	public OsmandDevelopmentPlugin(@NonNull OsmandApplication app) {
 		super(app);
@@ -97,12 +95,10 @@ public class OsmandDevelopmentPlugin extends OsmandPlugin {
 		SAVE_HEADING_TO_GPX = registerBooleanPreference("save_heading_to_gpx", true).makeGlobal().makeShared().cache();
 		SHOW_SYMBOLS_DEBUG_INFO = registerBooleanPreference("show_symbols_debug_info", false).makeGlobal().makeShared().cache();
 		ALLOW_SYMBOLS_DISPLAY_ON_TOP = registerBooleanPreference("allow_symbols_display_on_top", false).makeGlobal().makeShared().cache();
-		RAISE_ROUTES_ABOVE_RELIEF = registerBooleanPreference("raise_routes_above_relief", false).makeGlobal().makeShared().cache();
-		SHOW_TRANSPARENT_TRACES = registerBooleanPreference("show_transparent_traces", false).makeGlobal().makeShared().cache();
 
 		useRasterSQLiteDbListener = change -> {
 			SRTMPlugin plugin = getSrtmPlugin();
-			if (plugin != null && plugin.isTerrainLayerEnabled() && (plugin.isHillshadeMode() || plugin.isSlopeMode())) {
+			if (plugin != null && plugin.isTerrainLayerEnabled()) {
 				plugin.updateLayers(app, null);
 			}
 		};
@@ -117,16 +113,6 @@ public class OsmandDevelopmentPlugin extends OsmandPlugin {
 		};
 		SHOW_SYMBOLS_DEBUG_INFO.addListener(symbolsDebugInfoListener);
 		ALLOW_SYMBOLS_DISPLAY_ON_TOP.addListener(symbolsDebugInfoListener);
-
-		routesAboveReliefListener = change -> {
-			OsmandMapTileView mapView = app.getOsmandMap().getMapView();
-			MapActivity mapActivity = mapView.getMapActivity();
-			if (mapActivity != null)
-				mapActivity.restart();
-		};
-		RAISE_ROUTES_ABOVE_RELIEF.addListener(routesAboveReliefListener);
-		SHOW_TRANSPARENT_TRACES.addListener(routesAboveReliefListener);
-
 	}
 
 	@Override
@@ -202,7 +188,8 @@ public class OsmandDevelopmentPlugin extends OsmandPlugin {
 			case DEV_CAMERA_DISTANCE:
 				return new CameraDistanceWidget(mapActivity, customId, widgetsPanel);
 			case DEV_ZOOM_LEVEL:
-				return new ZoomLevelWidget(mapActivity, customId, widgetsPanel);
+				ZoomLevelWidgetState zoomLevelWidgetState = new ZoomLevelWidgetState(app, customId);
+				return new ZoomLevelWidget(mapActivity, zoomLevelWidgetState, customId, widgetsPanel);
 			case DEV_TARGET_DISTANCE:
 				return new TargetDistanceWidget(mapActivity, customId, widgetsPanel);
 			case DEV_MEMORY:

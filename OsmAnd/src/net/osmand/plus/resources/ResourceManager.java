@@ -4,14 +4,14 @@ package net.osmand.plus.resources;
 import static net.osmand.IndexConstants.TTSVOICE_INDEX_EXT_JS;
 import static net.osmand.IndexConstants.VOICE_INDEX_DIR;
 import static net.osmand.IndexConstants.VOICE_PROVIDER_SUFFIX;
+import static net.osmand.plus.AppInitEvents.ASSETS_COPIED;
+import static net.osmand.plus.AppInitEvents.MAPS_INITIALIZED;
 
-import android.content.Context;
 import android.content.res.AssetManager;
 import android.database.sqlite.SQLiteException;
 import android.os.AsyncTask;
 import android.os.HandlerThread;
 import android.util.DisplayMetrics;
-import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,7 +39,6 @@ import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
 import net.osmand.osm.PoiType;
 import net.osmand.plus.AppInitializer;
-import net.osmand.plus.AppInitializer.InitEvents;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.Version;
@@ -104,7 +103,6 @@ import java.util.concurrent.Executors;
 public class ResourceManager {
 
 	private static final String INDEXES_CACHE = "ind.cache";
-	private static final String DEFAULT_WIKIVOYAGE_TRAVEL_OBF = "Default_wikivoyage.travel.obf";
 	private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm";
 
 	private static final Log log = PlatformUtil.getLog(ResourceManager.class);
@@ -288,9 +286,8 @@ public class ResourceManager {
 		tileDownloader = MapTileDownloader.getInstance(Version.getFullVersion(context));
 		resetStoreDirectory();
 
-		WindowManager mgr = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
 		DisplayMetrics dm = new DisplayMetrics();
-		mgr.getDefaultDisplay().getMetrics(dm);
+		AndroidUtils.getDisplay(context).getMetrics(dm);
 		// Only 8 MB (from 16 Mb whole mem) available for images : image 64K * 128 = 8 MB (8 bit), 64 - 16 bit, 32 - 32 bit
 		// at least 3*9?
 		float tiles = (dm.widthPixels / 256 + 2) * (dm.heightPixels / 256 + 2) * 3;
@@ -514,9 +511,9 @@ public class ResourceManager {
 		close();
 		// check we have some assets to copy to sdcard
 		warnings.addAll(checkAssets(progress, false, true));
-		progress.notifyEvent(InitEvents.ASSETS_COPIED);
+		progress.notifyEvent(ASSETS_COPIED);
 		reloadIndexes(progress, warnings);
-		progress.notifyEvent(InitEvents.MAPS_INITIALIZED);
+		progress.notifyEvent(MAPS_INITIALIZED);
 		indexesLoadedOnStart = true;
 		return warnings;
 	}
@@ -563,7 +560,6 @@ public class ResourceManager {
 			warnings.addAll(indexingMaps(progress));
 			warnings.addAll(indexVoiceFiles(progress));
 			warnings.addAll(indexFontFiles(progress));
-			warnings.addAll(indexWeatherFiles(progress));
 			warnings.addAll(PluginsHelper.onIndexingFiles(progress));
 			warnings.addAll(indexAdditionalMaps(progress));
 
@@ -581,9 +577,11 @@ public class ResourceManager {
 
 	public interface ReloadIndexesListener {
 
-		void reloadIndexesStarted();
+		default void reloadIndexesStarted() {
 
-		void reloadIndexesFinished(List<String> reloadIndexesWarnings);
+		}
+
+		void reloadIndexesFinished(@NonNull List<String> warnings);
 	}
 
 	public List<String> indexAdditionalMaps(@Nullable IProgress progress) {
@@ -631,12 +629,6 @@ public class ResourceManager {
 			}
 		}
 		return warnings;
-	}
-
-	public List<String> indexWeatherFiles(@Nullable IProgress progress) {
-		File file = context.getAppPath(IndexConstants.WEATHER_INDEX_DIR);
-		file.mkdirs();
-		return new ArrayList<>();
 	}
 
 	public boolean isReloadingIndexes() {
@@ -910,8 +902,6 @@ public class ResourceManager {
 		if (Version.isPaidVersion(context)) {
 			collectFiles(context.getAppPath(IndexConstants.WIKI_INDEX_DIR), IndexConstants.BINARY_MAP_INDEX_EXT, files);
 			collectFiles(context.getAppPath(IndexConstants.WIKIVOYAGE_INDEX_DIR), IndexConstants.BINARY_TRAVEL_GUIDE_MAP_INDEX_EXT, files);
-		} else {
-			collectFiles(context.getAppPath(IndexConstants.WIKIVOYAGE_INDEX_DIR), DEFAULT_WIKIVOYAGE_TRAVEL_OBF, files);
 		}
 		if (PluginsHelper.isActive(SRTMPlugin.class) || InAppPurchaseUtils.isContourLinesAvailable(context)) {
 			collectFiles(context.getAppPath(IndexConstants.SRTM_INDEX_DIR), IndexConstants.BINARY_MAP_INDEX_EXT, files);
@@ -982,7 +972,7 @@ public class ResourceManager {
 				}
 				boolean wikiMap = WikipediaPlugin.containsWikipediaExtension(fileName);
 				boolean srtmMap = SrtmDownloadItem.containsSrtmExtension(fileName);
-				if (mapReader == null || (!Version.isPaidVersion(context) && wikiMap && !fileName.equals(DEFAULT_WIKIVOYAGE_TRAVEL_OBF))) {
+				if (mapReader == null || (!Version.isPaidVersion(context) && wikiMap)) {
 					warnings.add(MessageFormat.format(context.getString(R.string.version_index_is_not_supported), fileName)); //$NON-NLS-1$
 				} else {
 					if (mapReader.isBasemap()) {
@@ -1126,13 +1116,8 @@ public class ResourceManager {
 		return res;
 	}
 
-	public boolean isOnlyDefaultTravelBookPresent() {
-		for (BinaryMapIndexReader reader : getTravelRepositories()) {
-			if (!reader.getFile().getName().equals(DEFAULT_WIKIVOYAGE_TRAVEL_OBF)) {
-				return false;
-			}
-		}
-		return true;
+	public boolean isTravelGuidesRepositoryEmpty() {
+		return getTravelRepositories().isEmpty();
 	}
 
 	public void initMapBoundariesCacheNative() {
