@@ -212,9 +212,11 @@ jobs:
       uses: deep-soft/setup-java@v4
       #  distribution: 'temurin'
       #  java-version: '17'
+      #  distribution: 'adopt'
+      #  java-version: '11'
       with:
         distribution: 'adopt'
-        java-version: '11'
+        java-version: '17'
         cache: gradle
 
     - name: Grant execute permission for gradlew
