@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 
@@ -112,7 +114,7 @@ public class BinaryMapPoiReaderAdapter {
 				tl = (id >> 1) & ((1 << 5) - 1);
 				sl = id >> 6;
 			} else {
-				tl = (id >> 1) & ((1 << 16) - 1);
+				tl = (id >> 1) & ((1 << 15) - 1);
 				sl = id >> 16;
 			}
 			if (subTypes.size() > tl) {
@@ -733,6 +735,7 @@ public class BinaryMapPoiReaderAdapter {
 		LinkedList<String> textTags = null;
 		boolean hasSubcategoriesField = false;
 		boolean topIndexAdditonalFound = false;
+		Map<String, PoiCategory> otherSubTypes = new HashMap<>();
 		while (true) {
 			int t = codedIS.readTag();
 			int tag = WireFormat.getTagFieldNumber(t);
@@ -775,6 +778,16 @@ public class BinaryMapPoiReaderAdapter {
 						am.setRoutePoint(arp);
 					}
 				}
+				if (req.poiTypeFilter != null) {
+					//multivalue amenity, add other subtypes
+					for (Map.Entry<String, PoiCategory> entry : otherSubTypes.entrySet()) {
+						PoiCategory cat = entry.getValue();
+						if (am.getType() == cat) {
+							String sub = entry.getKey();
+							am.setSubType(am.getSubType() + ";" + sub);
+						}
+					}
+				}
 				return am;
 			case OsmandOdb.OsmAndPoiBoxDataAtom.DX_FIELD_NUMBER:
 				x = (codedIS.readSInt32() + (px << (BASE_POI_ZOOM - zoom))) << BASE_POI_SHIFT;
@@ -796,12 +809,13 @@ public class BinaryMapPoiReaderAdapter {
 				retValue.setLength(0);
 				hasSubcategoriesField = true;
 				PoiSubType st = region.getSubtypeFromId(subtypev, retValue);
+				boolean topIndex = region.topIndexSubTypes.contains(st);
 				if (req.poiAdditionalFilter != null) {
 					if (st != null && req.poiAdditionalFilter.accept(st, retValue.toString())) {
 						topIndexAdditonalFound = true;
 					}
 				}
-				if (st != null) {
+				if (st != null && !topIndex) {
 					am.setAdditionalInfo(st.name, retValue.toString());
 				}
 				break;
@@ -845,6 +859,8 @@ public class BinaryMapPoiReaderAdapter {
 					} else {
 						am.setSubType(am.getSubType() + ";" + subtype);
 					}
+				} else {
+					otherSubTypes.put(subtype, type);
 				}
 				break;
 			case OsmandOdb.OsmAndPoiBoxDataAtom.ID_FIELD_NUMBER:

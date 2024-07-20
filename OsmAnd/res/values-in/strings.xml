@@ -424,7 +424,7 @@
     <string name="show_something_on_map">Tampilkan %1$s di peta</string>
     <string name="dist_away_from_my_location">Cari %1$s pergi</string>
     <string name="share_history_subject">Bagikan melalui OsmAnd</string>
-    <string name="search_categories">Kategori-kategori</string>
+    <string name="search_categories">Kategori</string>
     <string name="postcode">Kode Pos</string>
     <string name="shared_string_from">Dari</string>
     <string name="city_type_district">Distrik/Kabupaten</string>
@@ -1252,7 +1252,7 @@
     <string name="shared_string_search">Cari</string>
     <string name="confirmation_to_clear_history">Hapus riwayat\?</string>
     <string name="your_edits">Suntingan Anda</string>
-    <string name="shared_string_minute_lowercase">men</string>
+    <string name="shared_string_minute_lowercase">mnt</string>
     <string name="osmand_parking_hour">j</string>
     <string name="shared_string_deselect">Batalkan pemilihan</string>
     <string name="shared_string_select_all">Pilih semua</string>
@@ -1335,8 +1335,8 @@
     <string name="si_kmh">Kilometer per jam</string>
     <string name="km_h">km/j</string>
     <string name="m_s">m/d</string>
-    <string name="min_km">men/km</string>
-    <string name="min_mile">men/m</string>
+    <string name="min_km">mnt/km</string>
+    <string name="min_mile">mnt/m</string>
     <string name="yard">yd</string>
     <string name="shared_string_name">Nama</string>
     <string name="shared_string_hide">Sembunyikan</string>
@@ -1411,7 +1411,7 @@
     <string name="navigate_point_format_D">DDD.DDDDD</string>
     <string name="searching">Sdg mencari…</string>
     <string name="uploading">Mengunggah…</string>
-    <string name="int_min">men.</string>
+    <string name="int_min">mnt.</string>
     <string name="daynight_mode_auto">Matahari terbit/terbenam</string>
     <string name="si_km_m">Kilometer/meter</string>
     <string name="filename_input">Nama berkas:</string>
@@ -5710,4 +5710,27 @@
     <string name="map_text">Teks peta</string>
     <string name="routing_attr_avoid_cobblestone_name">Hindari batu bulat</string>
     <string name="routing_attr_avoid_cobblestone_description">Hindari batu bulat</string>
+    <string name="quick_action_map_style">Gaya peta</string>
+    <string name="shared_string_simulate">Simulasikan</string>
+    <string name="quick_action_destination">Tujuan</string>
+    <string name="travel_topics">Topik jalan-jalan</string>
+    <string name="rendering_value_dark_orange_name">Oranye gelap</string>
+    <string name="wall_height">Ketinggian tembok</string>
+    <string name="shared_string_set">Atur</string>
+    <string name="shared_string_create">Buat</string>
+    <string name="shared_string_replace">Ganti</string>
+    <string name="key_name_pattern">Tombol \"%1$s\"</string>
+    <string name="steps_per_minute_unit">SPM</string>
+    <string name="shared_string_colors">Warna</string>
+    <string name="tomorrow">Besok</string>
+    <string name="quick_action_map_overlay">Hamparan</string>
+    <string name="quick_action_map_underlay">Dasaran</string>
+    <string name="shared_string_key">Tembok</string>
+    <string name="key_assignment_add_key">Tambahkan tombol</string>
+    <string name="key_assignment_add_action">Tambahkan tindakan</string>
+    <string name="action_icon">Ikon tindakan</string>
+    <string name="assigned_keys">Tombol yang Ditetapkan</string>
+    <string name="shared_string_modify">Ubah</string>
+    <string name="weather_source_ecmwf_title">ECMWF</string>
+    <string name="weather_source_GFS_title">GPS</string>
 </resources>

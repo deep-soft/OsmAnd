@@ -2,6 +2,7 @@ package net.osmand.search.core;
 
 import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiSubType;
+import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 
 public class TopIndexFilter implements BinaryMapIndexReader.SearchPoiAdditionalFilter {
@@ -29,9 +30,17 @@ public class TopIndexFilter implements BinaryMapIndexReader.SearchPoiAdditionalF
 		return tag;
 	}
 
+	public String getFilterId() {
+		return MapPoiTypes.TOP_INDEX_ADDITIONAL_PREFIX + tag + "_" + getValueKey(value);
+	}
+
 	@Override
 	public String getName() {
 		// type of object: brand, operator
+		AbstractPoiType pt = types.getAnyPoiAdditionalTypeByKey(tag);
+		if (pt != null) {
+			return pt.getTranslation();
+		}
 		return types.getPoiTranslation(tag);
 	}
 
@@ -43,5 +52,9 @@ public class TopIndexFilter implements BinaryMapIndexReader.SearchPoiAdditionalF
 
 	public static String getValueKey(String value) {
 		return value.toLowerCase().replace(':', '_').replaceAll("\'", "").replace(' ', '_').replaceAll("\"", "");
+	}
+
+	public String getValue() {
+		return value;
 	}
 }
