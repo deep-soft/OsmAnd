@@ -1,4 +1,4 @@
-# 2024-02-03 12:30
+# 2024-07-23 16:00
 #
 name: act-release
 
@@ -72,6 +72,8 @@ env:
   #  alias:               '${{ secrets.ANDROID_ALIAS }}'
   #  keyStorePassword:    '${{ secrets.ANDROID_KEY_STORE_PASSWORD }}'
   #  keyPassword:         '${{ secrets.ANDROID_KEY_PASSWORD }}'
+  JAVA_DIST:    "adopt"
+  JAVA_VERS:    "17"
 
 permissions:
   contents: write
@@ -215,8 +217,8 @@ jobs:
       #  distribution: 'adopt'
       #  java-version: '11'
       with:
-        distribution: 'adopt'
-        java-version: '17'
+        distribution: ${{ env.JAVA_DIST }}
+        java-version: ${{ env.JAVA_VERS }}
         cache: gradle
 
     - name: Grant execute permission for gradlew
