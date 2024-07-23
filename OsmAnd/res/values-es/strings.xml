@@ -1041,7 +1041,6 @@
     <string name="driving_region_us">Estados Unidos</string>
     <string name="driving_region_canada">Canadá</string>
     <string name="driving_region_europe_asia">Europa, Asia, Latinoamérica y similares</string>
-    <string name="driving_region_uk">Reino Unido, India y similares</string>
     <string name="driving_region_descr">Región de conducción: EEUU, Europa, Reino Unido, Asia u otras.</string>
     <string name="driving_region">Región de conducción</string>
     <string name="edit_tilesource_minzoom">Zum mínimo</string>
@@ -5845,4 +5844,8 @@
     <string name="auto_25_chars_route_tr">Gire a la derecha</string>
     <string name="auto_25_chars_route_tslr">Gire ligeramente a la derecha</string>
     <string name="auto_25_chars_route_kr">Mantengase a la derecha</string>
+    <string name="driving_region_uk">Reino Unido y similares</string>
+    <string name="driving_region_india">India</string>
+    <string name="hugerock_promo_description">Acceso gratuito a funciones que incluyen descargas ilimitadas de mapas, relieves en 3D, etc. Durante %1$s mes(es)</string>
+    <string name="hugerock_promo">Promoción de Hugerock para %1$s meses</string>
 </resources>

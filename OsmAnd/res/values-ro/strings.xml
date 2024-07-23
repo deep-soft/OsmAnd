@@ -975,7 +975,6 @@
     <string name="driving_region_us">Statele Unite</string>
     <string name="driving_region_canada">Canada</string>
     <string name="driving_region_europe_asia">Europa, Asia, America Latină și similare</string>
-    <string name="driving_region_uk">Marea Britanie, India și similare</string>
     <string name="speak_title">Anunță…</string>
     <string name="speak_street_names">Nume străzi (TTS)</string>
     <string name="speak_speed_limit">Limită de viteză</string>
@@ -4968,7 +4967,7 @@
     <string name="deleted_file">Fișier șters</string>
     <string name="sync_now">Sincronizează acum</string>
     <string name="cloud_conflicts">Conflicte</string>
-    <string name="cloud_conflict">Conflictul</string>
+    <string name="cloud_conflict">Conflict</string>
     <string name="upload_all">Încarcă tot</string>
     <string name="cloud_recent_changes">Modificări</string>
     <string name="cloud_all_changes_uploaded">S-au încărcat toate modificările</string>
