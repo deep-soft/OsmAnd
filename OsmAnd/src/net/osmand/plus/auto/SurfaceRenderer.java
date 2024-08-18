@@ -358,7 +358,9 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 							getApp().getOsmandMap().getMapLayers().updateMapSource(mapView, null);
 							PluginsHelper.refreshLayers(getApp(), null);
 							offscreenMapRendererView.addListener(this);
+							mapView.getAnimatedDraggingThread().toggleAnimations();
 						}
+						mapView.applyBatterySavingModeSetting(offscreenMapRendererView);
 					}
 				}
 			}
@@ -368,12 +370,17 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 	public void stopOffscreenRenderer() {
 		Log.i(TAG, "stopOffscreenRenderer");
 		if (offscreenMapRendererView != null) {
-			if (mapView != null && mapView.getMapRenderer() == offscreenMapRendererView)
-				mapView.setMapRenderer(null);
+			AtlasMapRendererView offscreenMapRendererView = this.offscreenMapRendererView;
+			this.offscreenMapRendererView = null;
+			if (mapView != null) {
+				mapView.getAnimatedDraggingThread().toggleAnimations();
+				if (mapView.getMapRenderer() == offscreenMapRendererView) {
+					mapView.setMapRenderer(null);
+				}
+			}
 			MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
 			if (mapRendererContext != null && mapRendererContext.getMapRendererView() == offscreenMapRendererView)
 				offscreenMapRendererView.stopRenderer();
-			offscreenMapRendererView = null;
 		}
 	}
 
