@@ -22,7 +22,8 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import net.osmand.PlatformUtil;
-import net.osmand.SharedUtil;
+import net.osmand.core.android.MapRendererContext;
+import net.osmand.plus.shared.SharedUtil;
 import net.osmand.core.android.MapRendererView;
 import net.osmand.core.jni.*;
 import net.osmand.core.jni.GpxAdditionalIconsProvider.SplitLabel;
@@ -47,7 +48,6 @@ import net.osmand.plus.render.OsmandRenderer;
 import net.osmand.plus.render.OsmandRenderer.RenderingContext;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
-import net.osmand.plus.settings.backend.preferences.OsmandPreference;
 import net.osmand.plus.track.CachedTrack;
 import net.osmand.plus.track.CachedTrackParams;
 import net.osmand.plus.track.Gpx3DLinePositionType;
@@ -58,11 +58,11 @@ import net.osmand.plus.track.fragments.GpsFilterFragment;
 import net.osmand.plus.track.fragments.TrackAppearanceFragment;
 import net.osmand.plus.track.fragments.TrackMenuFragment;
 import net.osmand.plus.track.helpers.GpxAppearanceHelper;
-import net.osmand.plus.track.helpers.GpxDbHelper;
+import net.osmand.plus.views.corenative.NativeCoreContext;
+import net.osmand.shared.gpx.GpxDbHelper;
 import net.osmand.plus.track.helpers.GpxDisplayGroup;
 import net.osmand.plus.track.helpers.GpxDisplayItem;
 import net.osmand.plus.track.helpers.GpxSelectionHelper;
-import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.GpxUtils;
 import net.osmand.plus.track.helpers.ParseGpxRouteTask;
 import net.osmand.plus.track.helpers.ParseGpxRouteTask.ParseGpxRouteListener;
@@ -97,8 +97,10 @@ import net.osmand.shared.gpx.GpxDataItem;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.GpxUtilities;
 import net.osmand.shared.gpx.GradientScaleType;
+import net.osmand.shared.gpx.GpxHelper;
 import net.osmand.shared.gpx.primitives.TrkSegment;
 import net.osmand.shared.gpx.primitives.WptPt;
+import net.osmand.shared.io.KFile;
 import net.osmand.shared.routing.ColoringType;
 import net.osmand.shared.routing.Gpx3DWallColorType;
 import net.osmand.util.Algorithms;
@@ -520,6 +522,14 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 		return Arrays.hashCode(o);
 	}
 
+	private boolean isHeightmapsActive() {
+		MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
+		if (mapRendererContext != null) {
+			return mapRendererContext.isHeightmapsActive();
+		}
+		return false;
+	}
+
 	private void drawSelectedFilesSplits(@NonNull Canvas canvas, @NonNull RotatedTileBox tileBox,
 	                                     @NonNull List<SelectedGpxFile> selectedGPXFiles) {
 		if (tileBox.getZoom() >= START_ZOOM) {
@@ -546,6 +556,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 	                                           @NonNull List<SelectedGpxFile> selectedGPXFiles, boolean forceUpdate) {
 		if (tileBox.getZoom() >= START_ZOOM) {
 			boolean changed = forceUpdate;
+			boolean heightmapsActive = isHeightmapsActive();
 			int startFinishPointsCount = 0;
 			int splitLabelsCount = 0;
 			for (SelectedGpxFile selectedGpxFile : selectedGPXFiles) {
@@ -618,8 +629,8 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 							WptPt start = segment.getPoints().get(0);
 							WptPt finish = segment.getPoints().get(segment.getPoints().size() - 1);
 							if (visualizationType != Gpx3DVisualizationType.NONE && trackLinePosition == Gpx3DLinePositionType.TOP) {
-								startFinishHeights.add((float) Gpx3DVisualizationType.getPointElevation(start, track3DStyle));
-								startFinishHeights.add((float) Gpx3DVisualizationType.getPointElevation(finish, track3DStyle));
+								startFinishHeights.add((float) Gpx3DVisualizationType.getPointElevation(start, track3DStyle, heightmapsActive));
+								startFinishHeights.add((float) Gpx3DVisualizationType.getPointElevation(finish, track3DStyle, heightmapsActive));
 							}
 							startFinishPoints.add(new PointI(Utilities.get31TileNumberX(start.getLon()), Utilities.get31TileNumberY(start.getLat())));
 							startFinishPoints.add(new PointI(Utilities.get31TileNumberX(finish.getLon()), Utilities.get31TileNumberY(finish.getLat())));
@@ -643,7 +654,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 							if (visualizationType == Gpx3DVisualizationType.NONE || trackLinePosition != Gpx3DLinePositionType.TOP) {
 								splitLabel = new SplitLabel(point31, name, NativeUtilities.createColorARGB(color, 179));
 							} else {
-								float labelHeight = (float) Gpx3DVisualizationType.getPointElevation(point, track3DStyle);
+								float labelHeight = (float) Gpx3DVisualizationType.getPointElevation(point, track3DStyle, heightmapsActive);
 								splitLabel = new SplitLabel(point31, name, NativeUtilities.createColorARGB(color, 179), labelHeight);
 							}
 							splitLabels.add(splitLabel);
@@ -1306,7 +1317,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 			coloringType = settings.CURRENT_TRACK_COLORING_TYPE.get();
 			routeInfoAttribute = settings.CURRENT_TRACK_ROUTE_INFO_ATTRIBUTE.get();
 		} else {
-			dataItem = gpxDbHelper.getItem(new File(gpxFile.getPath()));
+			dataItem = gpxDbHelper.getItem(new KFile(gpxFile.getPath()));
 			if (dataItem != null) {
 				coloringType = ColoringType.Companion.requireValueOf(ColoringPurpose.TRACK, dataItem.getParameter(COLORING_TYPE));
 				routeInfoAttribute = ColoringType.Companion.getRouteInfoAttribute(dataItem.getParameter(COLORING_TYPE));
@@ -1321,8 +1332,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 			return coloringType.getName(routeInfoAttribute);
 		} else {
 			if (!isCurrentTrack) {
-				dataItem.setParameter(COLORING_TYPE, defaultColoringType);
-				gpxDbHelper.updateDataItem(dataItem);
+				gpxDbHelper.updateDataItemParameter(dataItem, COLORING_TYPE, defaultColoringType);
 			}
 			return defaultColoringType;
 		}
@@ -1548,7 +1558,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 			} else if (!Algorithms.isEmpty(gpxFile.getArticleTitle())) {
 				name = gpxFile.getArticleTitle();
 			} else {
-				name = GpxUiHelper.getGpxTitle(Algorithms.getFileWithoutDirs(gpxFile.getPath()));
+				name = GpxHelper.INSTANCE.getGpxTitle(Algorithms.getFileWithoutDirs(gpxFile.getPath()));
 			}
 			return new PointDescription(PointDescription.POINT_TYPE_GPX, name);
 		}

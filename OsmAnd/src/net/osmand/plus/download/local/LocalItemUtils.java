@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.PlatformUtil;
+import net.osmand.plus.shared.SharedUtil;
 import net.osmand.map.ITileSource;
 import net.osmand.map.OsmandRegions;
 import net.osmand.map.TileSourceManager;
@@ -38,11 +39,11 @@ import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.enums.LocalSortMode;
-import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.voice.JsMediaCommandPlayer;
 import net.osmand.plus.voice.JsTtsCommandPlayer;
+import net.osmand.shared.gpx.GpxHelper;
 import net.osmand.util.Algorithms;
 import net.osmand.util.CollectionUtils;
 
@@ -79,7 +80,7 @@ public class LocalItemUtils {
 		if (type == MULTIMEDIA_NOTES) {
 			item.setAttachedObject(new Recording(file));
 		} else if (type == TRACKS) {
-			item.setAttachedObject(app.getGpxDbHelper().getItem(file, item::setAttachedObject));
+			item.setAttachedObject(app.getGpxDbHelper().getItem(SharedUtil.kFile(file), item::setAttachedObject));
 		} else if (type == TILES_DATA) {
 			ITileSource template = null;
 			if (file.isDirectory() && TileSourceManager.isTileSourceMetaInfoExist(file)) {
@@ -248,7 +249,7 @@ public class LocalItemUtils {
 				return ((Recording) attachedObject).getName(context, true);
 			}
 		} else if (type == TRACKS) {
-			return GpxUiHelper.getGpxTitle(fileName);
+			return GpxHelper.INSTANCE.getGpxTitle(fileName);
 		} else if (type == PROFILES) {
 			String key = Algorithms.getFileNameWithoutExtension(fileName);
 			if (CollectionUtils.equalsToAny(key, SHARED_PREFERENCES_NAME, CUSTOM_SHARED_PREFERENCES_PREFIX)) {

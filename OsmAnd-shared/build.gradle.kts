@@ -10,13 +10,13 @@ plugins {
 }
 
 group = "net.osmand.shared"
-version = "master-snapshot"
 
 kotlin {
 	jvm {
 		@OptIn(ExperimentalKotlinGradlePluginApi::class)
 		compilerOptions {
 			jvmTarget.set(JvmTarget.JVM_17)
+			freeCompilerArgs.add("-Xjvm-default=all")
 		}
 	}
 
@@ -24,6 +24,7 @@ kotlin {
 		@OptIn(ExperimentalKotlinGradlePluginApi::class)
 		compilerOptions {
 			jvmTarget.set(JvmTarget.JVM_17)
+			freeCompilerArgs.add("-Xjvm-default=all")
 		}
 		publishLibraryVariants("release", "debug")
 	}
@@ -42,12 +43,14 @@ kotlin {
 	val sqliteVersion = "2.3.1"
 	val serializationVersion = "1.6.3"
 	val coroutinesCoreVersion = "1.8.1"
-	val datetimeVersion = "0.6.0"
+	val datetimeVersion = "0.6.1"
 	val okioVersion = "3.9.0"
 	val kxml2Version = "2.3.0"
 	val sqliterVersion = "1.3.1"
 	val sqliteJDBCVersion = "3.34.0"
 	val commonLoggingVersion = "1.2"
+	val coroutinesVersion = "1.8.1"
+	val statelyVersion = "2.1.0"
 
 	sourceSets {
 		commonMain.dependencies {
@@ -57,6 +60,8 @@ kotlin {
 			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesCoreVersion")
 			implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetimeVersion")
 			implementation("com.squareup.okio:okio:$okioVersion")
+			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+			implementation("co.touchlab:stately-concurrent-collections:$statelyVersion")
 		}
 		jvmMain.dependencies {
 			//implementation(kotlin("stdlib-jdk8"))
@@ -72,6 +77,10 @@ kotlin {
 		iosMain.dependencies {
 			implementation("co.touchlab:sqliter-driver:$sqliterVersion")
 		}
+
+		commonTest.dependencies {
+			implementation("org.jetbrains.kotlin:kotlin-test:2.0.0")
+		}
 	}
 }
 
@@ -85,4 +94,32 @@ android {
 	defaultConfig {
 		minSdk = 24
 	}
+}
+
+version = System.getenv("OSMAND_SHARED_ANDROID_BINARIES_IVY_REVISION") ?: "master-snapshot"
+publishing {
+	repositories {
+		ivy {
+			url = uri(System.getenv("OSMAND_BINARIES_IVY_ROOT") ?: "./")
+		}
+	}
+	publications {
+		create<IvyPublication>("ivyOsmAndSharedAndroid") {
+			organisation = "net.osmand.shared"
+			module = "OsmAnd-shared-android"
+			revision = "$version"
+			artifact(file("build/outputs/aar/OsmAnd-shared-debug.aar")) {
+				type = "aar"
+				classifier = "debug"
+			}
+			artifact(file("build/outputs/aar/OsmAnd-shared-release.aar")) {
+				type = "aar"
+				classifier = "release"
+			}
+		}
+	}
+}
+
+tasks.named("publishIvyOsmAndSharedAndroidPublicationToIvyRepository") {
+	dependsOn("bundleDebugAar", "bundleReleaseAar")
 }

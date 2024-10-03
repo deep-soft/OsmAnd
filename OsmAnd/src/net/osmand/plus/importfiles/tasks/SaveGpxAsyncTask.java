@@ -8,10 +8,10 @@ import android.os.AsyncTask;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import net.osmand.SharedUtil;
+import net.osmand.plus.shared.SharedUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
-import net.osmand.plus.configmap.tracks.TrackItem;
+import net.osmand.shared.gpx.TrackItem;
 import net.osmand.plus.importfiles.ImportHelper;
 import net.osmand.plus.importfiles.SaveImportedGpxListener;
 import net.osmand.plus.myplaces.tracks.tasks.DeletePointsTask;
@@ -112,7 +112,7 @@ public class SaveGpxAsyncTask extends AsyncTask<Void, Void, String> {
 	private void processSavedFile(@NonNull File file) {
 		gpxFile.setPath(file.getAbsolutePath());
 		if (overwrite) {
-			app.getGpxDbHelper().remove(file);
+			app.getGpxDbHelper().remove(SharedUtil.kFile(file));
 
 			GpxSelectionHelper helper = app.getSelectedGpxHelper();
 			SelectedGpxFile selected = helper.getSelectedFileByPath(file.getAbsolutePath());
@@ -124,7 +124,7 @@ public class SaveGpxAsyncTask extends AsyncTask<Void, Void, String> {
 		GpxDataItem item = new GpxDataItem(SharedUtil.kFile(file));
 		item.readGpxParams(gpxFile);
 		app.getGpxDbHelper().add(item);
-		app.getSmartFolderHelper().addTrackItemToSmartFolder(new TrackItem(file));
+		app.getSmartFolderHelper().addTrackItemToSmartFolder(new TrackItem(SharedUtil.kFile(file)));
 	}
 
 	@NonNull

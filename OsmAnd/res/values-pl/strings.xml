@@ -2284,7 +2284,7 @@
     <string name="map_widget_ruler_control">Cyrkiel</string>
     <string name="shared_string_reload">Załaduj ponownie</string>
     <string name="mapillary_menu_title_username">Nazwa użytkownika</string>
-    <string name="mapillary_menu_title_dates">Data</string>
+    <string name="shared_string_date">Data</string>
     <string name="shared_string_to">Do</string>
     <string name="mapillary_menu_date_from">Od</string>
     <string name="wrong_user_name">Nieprawidłowa nazwa użytkownika</string>
@@ -3627,7 +3627,6 @@
     <string name="item_deleted">Usunięto %1$s</string>
     <string name="speed_cameras_restart_descr">Uruchom ponownie aplikację, aby usunąć wszystkie dane o fotoradarach.</string>
     <string name="shared_string_uninstall_and_restart">Odinstaluj i zrestartuj</string>
-    <string name="tracker_item">OsmAnd Tracker</string>
     <string name="lenght_limit_description">Podaj długość pojazdu, niektóre ograniczenia tras mogą być stosowane dla długich pojazdów.</string>
     <string name="speed_cameras_removed_descr">To urządzenie nie ma fotoradarów.</string>
     <string name="use_volume_buttons_as_zoom_descr">Steruj poziomem powiększenia mapy za pomocą przycisków głośności na urządzeniu.</string>
@@ -3772,7 +3771,6 @@
     <string name="clear_osm_token">Wyczyść token OpenStreetMap OAuth</string>
     <string name="osm_edit_logout_success">Wylogowano</string>
     <string name="file_already_imported">Plik jest już zaimportowany do OsmAnd</string>
-    <string name="ltr_or_rtl_combine_via_dash">%1$s — %2$s</string>
     <string name="navigate_point_mgrs">MGRS</string>
     <string name="navigate_point_format_mgrs">MGRS</string>
     <string name="use_two_phase_routing">Użyj 2-fazowego algorytmu routingu A *</string>
@@ -5688,4 +5686,18 @@
     <string name="use_nearby_roads_summary">Korzysta z mapy offline, aby znaleźć pobliskie drogi i dane wysokościowe. Może dostosować geometrię toru.</string>
     <string name="retrieve_elevation_data_summary">OsmAnd może pobierać dane o wysokości z pobliskich dróg lub map terenu.</string>
     <string name="relief_3d_download_description">Do wyświetlania terenu na mapie wymagane są dodatkowe mapy.</string>
+    <string name="compass_click_north_is_up">Aby zmienić tryb orientacji, kliknij i przytrzymaj</string>
+    <string name="detailed_track_guidance_description">OsmAnd dopasuje trasę do pobliskich dróg, zapewniając lepsze prowadzenie zakręt po zakręcie.</string>
+    <string name="shared_string_automatically">Automatycznie</string>
+    <string name="ask_every_time">Pytaj za każdym razem</string>
+    <string name="delete_widget">Usunąć widżet?</string>
+    <string name="delete_widget_description">Ten widżet zostanie usunięty. Można go później przywrócić na ekranie konfiguracji.</string>
+    <string name="graph_axis">Oś wykresu</string>
+    <string name="y_axis_description">Wybierz maksymalnie dwie opcje dla osi Y.</string>
+    <string name="quick_action_previous_screen_desc">Przełącznik umożliwiający przejście do poprzedniego ekranu.</string>
+    <string name="quick_action_previous_screen_title">Poprzedni ekran</string>
+    <string name="quick_action_verb_navigate">Nawigacja</string>
+    <string name="quick_action_drawer_desc">Przełącznik do pokazywania lub ukrywania menu bocznego.</string>
+    <string name="quick_action_drawer_title">Menu boczne</string>
+    <string name="shared_string_interface">Interfejs</string>
 </resources>

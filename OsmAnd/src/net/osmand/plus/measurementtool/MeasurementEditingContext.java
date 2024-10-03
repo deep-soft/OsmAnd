@@ -10,9 +10,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.Location;
-import net.osmand.LocationsHolder;
 import net.osmand.PlatformUtil;
-import net.osmand.SharedUtil;
+import net.osmand.plus.shared.SharedUtil;
 import net.osmand.binary.BinaryMapRouteReaderAdapter.RouteRegion;
 import net.osmand.data.LatLon;
 import net.osmand.gpx.GPXUtilities;
@@ -1142,8 +1141,12 @@ public class MeasurementEditingContext implements IRouteSettingsListener {
 				if (pts.size() >= 2 && insertIntermediates) {
 					pts = insertIntermediatePoints(pts);
 				}
+				List<LatLon> latLonList = new ArrayList<>(pts.size());
+				for (WptPt pt : pts) {
+					latLonList.add(new LatLon(pt.getLatitude(), pt.getLongitude()));
+				}
 				originalRoute = Collections.singletonList(RoutePlannerFrontEnd.generateStraightLineSegment(
-						DEFAULT_APP_MODE.getDefaultSpeed(), new LocationsHolder(pts).getLatLonList()));
+						DEFAULT_APP_MODE.getDefaultSpeed(), latLonList));
 			}
 			roadSegmentData.put(currentPair, new RoadSegmentData(route.getAppMode(), currentPair.first, currentPair.second, pts, originalRoute));
 			application.runInUIThread(() -> {

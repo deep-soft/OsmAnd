@@ -164,7 +164,7 @@
     <string name="poi_fire_water_pond">Tuletõrjetiik</string>
     <string name="poi_grit_bin">Liivatuskast</string>
     <string name="poi_ambulance_station">Kiirabijaam</string>
-    <string name="poi_ses_station">SES jaam</string>
+    <string name="poi_disaster_response">SES jaam</string>
     <string name="poi_emergency_access_point">Asukohatuvastuspunkt hädaolukorras</string>
     <string name="poi_ford">Koolmekoht</string>
     <string name="poi_bed">Voodipesu pood</string>
@@ -4811,4 +4811,9 @@
     <string name="poi_cemt_iii">III</string>
     <string name="poi_mcdonalds">McDonald\'s</string>
     <string name="poi_engineer">Inseneribüroo</string>
+    <string name="poi_cash_in">Sularaha sissemakse</string>
+    <string name="poi_diet_pescetarian_no">Mereandide-põhine toiduvalik: ei</string>
+    <string name="poi_cash_in_no">Sularaha sissemaksevõimalus puudub</string>
+    <string name="poi_cash_in_yes">Sularaha sissemaksevõimalus olemas</string>
+    <string name="poi_cash_in_customers">Sularaha sissemaksevõimalus vaid klientidele</string>
 </resources>

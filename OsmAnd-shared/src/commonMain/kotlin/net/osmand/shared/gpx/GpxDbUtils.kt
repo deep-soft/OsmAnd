@@ -27,8 +27,16 @@ object GpxDbUtils {
 		return getSelectQuery(GpxParameter.entries, GPX_TABLE_NAME)
 	}
 
+	fun getSelectGpxQuery(parameter: GpxParameter): String {
+		return getSelectQuery(listOf(parameter), GPX_TABLE_NAME)
+	}
+
 	fun getSelectGpxDirQuery(): String {
 		return getSelectQuery(GpxParameter.getGpxDirParameters(), GPX_DIR_TABLE_NAME)
+	}
+
+	fun getSelectGpxDirQuery(parameter: GpxParameter): String {
+		return getSelectQuery(listOf(parameter), GPX_DIR_TABLE_NAME)
 	}
 
 	fun getCreateTableQuery(parameters: List<GpxParameter>, tableName: String): String {
@@ -130,6 +138,7 @@ object GpxDbUtils {
 			addIfMissingGpxTableColumn(columnNames, db, START_LAT);
 			addIfMissingGpxTableColumn(columnNames, db, START_LON);
 			addIfMissingGpxTableColumn(columnNames, db, NEAREST_CITY_NAME);
+			addIfMissingGpxTableColumn(columnNames, db, ACTIVITY_TYPE)
 			addIfMissingGpxTableColumn(columnNames, db, MAX_SENSOR_TEMPERATURE);
 			addIfMissingGpxTableColumn(columnNames, db, AVG_SENSOR_TEMPERATURE);
 			addIfMissingGpxTableColumn(columnNames, db, MAX_SENSOR_SPEED);
@@ -192,56 +201,28 @@ object GpxDbUtils {
 			return !item.hasData() || item.getAnalysis() == null
 					|| item.getAnalysis()!!.wptCategoryNames == null
 					|| (item.getAnalysis()!!.getLatLonStart() == null && item.getAnalysis()!!.points > 0)
-					|| item.requireParameter(GpxParameter.FILE_LAST_MODIFIED_TIME) as Long != item.file.lastModified()
-					|| item.requireParameter(GpxParameter.FILE_CREATION_TIME) as Long <= 0
-					|| createDataVersion(ANALYSIS_VERSION) > item.requireParameter(GpxParameter.DATA_VERSION) as Int
+					|| item.requireParameter(FILE_LAST_MODIFIED_TIME) as Long != item.file.lastModified()
+					|| item.requireParameter(FILE_CREATION_TIME) as Long <= 0
+					|| createDataVersion(ANALYSIS_VERSION) > item.requireParameter(DATA_VERSION) as Int
 		}
 		return true
 	}
 
 	fun getGpxFileDir(file: KFile): String {
 		file.parent()?.let {
-			val gpxDir = PlatformUtil.getGpxDir()
-			if (file == gpxDir) {
-				return@let ""
+			val gpxDir = PlatformUtil.getOsmAndContext().getGpxDir()
+			if (it == gpxDir.path) {
+				return ""
 			}
 			val relativePath = KFile(file.path().replace("${gpxDir.path}/", ""))
 			val fileDir = if (file.isDirectory()) relativePath.path else relativePath.parent()
 			val res = fileDir.toString()
-			return@let if (res == ".") "" else res
+			return if (res == ".") "" else res
 		}
 		return ""
 	}
 
-	fun getItemParameters(item: DataItem): Map<GpxParameter, Any?> {
-		return when (item) {
-			is GpxDataItem -> getItemParameters(item)
-			is GpxDirItem -> getItemParameters(item)
-			else -> emptyMap()
-		}
-	}
-
-	fun getItemParameters(item: GpxDataItem): Map<GpxParameter, Any?> {
-		val map = LinkedHashMap<GpxParameter, Any?>()
-		val analysis = item.getAnalysis()
-		val hasAnalysis = analysis != null
-		GpxParameter.entries.forEach { parameter ->
-			map[parameter] = if (parameter.analysisParameter) {
-				if (hasAnalysis) analysis!!.getGpxParameter(parameter) else null
-			} else {
-				item.getParameter(parameter)
-			}
-		}
-		return map
-	}
-
-	fun getItemParameters(item: GpxDirItem): Map<GpxParameter, Any?> {
-		val map = LinkedHashMap<GpxParameter, Any?>()
-		GpxParameter.getGpxDirParameters().forEach { parameter ->
-			map[parameter] = item.getParameter(parameter)
-		}
-		return map
-	}
+	fun getItemParameters(item: DataItem): Map<GpxParameter, Any?> = item.getParameters()
 
 	fun convertGpxParameters(parameters: Map<GpxParameter, Any?>): Map<String, Any?> {
 		val map = LinkedHashMap<String, Any?>()

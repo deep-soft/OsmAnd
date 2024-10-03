@@ -3,23 +3,22 @@ package net.osmand.plus.track.helpers;
 import static net.osmand.shared.gpx.GpxParameter.SPLIT_TYPE;
 
 import android.os.AsyncTask;
-import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.PlatformUtil;
-import net.osmand.SharedUtil;
+import net.osmand.plus.shared.SharedUtil;
 import net.osmand.plus.OsmandApplication;
-import net.osmand.plus.configmap.tracks.TrackItem;
 import net.osmand.plus.track.helpers.GpxReaderTask.GpxDbReaderCallback;
 import net.osmand.shared.gpx.DataItem;
 import net.osmand.shared.gpx.GpxDataItem;
 import net.osmand.shared.gpx.GpxDatabase;
-import net.osmand.shared.gpx.GpxDatabase.StringIntPair;
+import net.osmand.shared.data.StringIntPair;
 import net.osmand.shared.gpx.GpxDbUtils;
 import net.osmand.shared.gpx.GpxDirItem;
 import net.osmand.shared.gpx.GpxParameter;
+import net.osmand.shared.gpx.TrackItem;
 import net.osmand.shared.io.KFile;
 import net.osmand.util.Algorithms;
 
@@ -33,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
+@Deprecated
 public class GpxDbHelper implements GpxDbReaderCallback {
 	private static final Log LOG = PlatformUtil.getLog(GpxDbHelper.class);
 	private final OsmandApplication app;
@@ -141,6 +141,15 @@ public class GpxDbHelper implements GpxDbReaderCallback {
 		return res;
 	}
 
+	public boolean updateDataItemParameter(@NonNull DataItem item,
+	                                       @NonNull GpxParameter parameter,
+	                                       @Nullable Object value) {
+		item.setParameter(parameter, value);
+		boolean res = database.updateDataItemParameter(item, parameter, value);
+		putToCache(item);
+		return res;
+	}
+
 	public boolean remove(@NonNull File file) {
 		return remove(SharedUtil.kFile(file));
 	}
@@ -173,7 +182,7 @@ public class GpxDbHelper implements GpxDbReaderCallback {
 
 	@NonNull
 	public List<GpxDataItem> getItems() {
-		return database.getGpxDataItems();
+		return database.getGpxDataItemsBlocking();
 	}
 
 	@NonNull
@@ -182,18 +191,14 @@ public class GpxDbHelper implements GpxDbReaderCallback {
 	}
 
 	@NonNull
-	public List<Pair<String, Integer>> getStringIntItemsCollection(@NonNull String columnName,
+	public List<StringIntPair> getStringIntItemsCollection(@NonNull String columnName,
 	                                                               boolean includeEmptyValues,
 	                                                               boolean sortByName,
 	                                                               boolean sortDescending) {
-		List<Pair<String, Integer>> res = new ArrayList<>();
-		for (StringIntPair item : database.getStringIntItemsCollection(columnName,
+		return database.getStringIntItemsCollection(columnName,
 				includeEmptyValues,
 				sortByName,
-				sortDescending)) {
-			res.add(new Pair<>(item.getString(), item.getInteger()));
-		}
-		return res;
+				sortDescending);
 	}
 
 	public long getTracksMinCreateDate() {
@@ -328,7 +333,7 @@ public class GpxDbHelper implements GpxDbReaderCallback {
 	}
 
 	private void putGpxDataItemToSmartFolder(@NonNull GpxDataItem item) {
-		TrackItem trackItem = new TrackItem(SharedUtil.jFile(item.getFile()));
+		TrackItem trackItem = new TrackItem(item.getFile());
 		trackItem.setDataItem(item);
 		app.getSmartFolderHelper().addTrackItemToSmartFolder(trackItem);
 	}

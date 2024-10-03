@@ -5,6 +5,7 @@ import net.osmand.shared.util.KAlgorithms
 
 open class GpxExtensions {
 	var extensions: MutableMap<String, String>? = null
+	var deferredExtensions: MutableMap<String, String>? = null
 	var extensionsWriters: MutableMap<String, GpxUtilities.GpxExtensionsWriter>? = null
 
 	fun getExtensionsToRead(): Map<String, String> {
@@ -16,6 +17,17 @@ open class GpxExtensions {
 			extensions = LinkedHashMap()
 		}
 		return extensions!!
+	}
+
+	fun getDeferredExtensionsToRead(): Map<String, String> {
+		return deferredExtensions ?: emptyMap()
+	}
+
+	fun getDeferredExtensionsToWrite(): MutableMap<String, String> {
+		if (deferredExtensions == null) {
+			deferredExtensions = LinkedHashMap()
+		}
+		return deferredExtensions!!
 	}
 
 	fun getExtensionsWritersToWrite(): MutableMap<String, GpxUtilities.GpxExtensionsWriter> {
@@ -74,5 +86,9 @@ open class GpxExtensions {
 
 	fun removeColor() {
 		getExtensionsToWrite().remove(GpxUtilities.COLOR_NAME_EXTENSION)
+	}
+
+	companion object {
+		const val OBF_GPX_EXTENSION_TAG_PREFIX = "gpx_" // enlisted in poi_types.xml under name="route_track"
 	}
 }

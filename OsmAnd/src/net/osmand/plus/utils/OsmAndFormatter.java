@@ -32,8 +32,8 @@ import net.osmand.plus.SwissGridApproximation;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.AngularConstants;
-import net.osmand.plus.settings.enums.MetricsConstants;
-import net.osmand.plus.settings.enums.SpeedConstants;
+import net.osmand.shared.settings.enums.MetricsConstants;
+import net.osmand.shared.settings.enums.SpeedConstants;
 import net.osmand.util.Algorithms;
 
 import java.text.DateFormat;
@@ -92,6 +92,9 @@ public class OsmAndFormatter {
 	private static final char SOUTH = 'S';
 	private static final char WEST = 'W';
 	private static final char EAST = 'E';
+
+	public static final String LTR_MARK = "\u200e";
+	public static final String RTL_MARK = "\u200f";
 
 	static {
 		setTwelveHoursFormatting(false, Locale.getDefault());
@@ -559,7 +562,7 @@ public class OsmAndFormatter {
 
 	@NonNull
 	public static FormattedValue getFormattedSpeedValue(float metersPerSeconds, @NonNull OsmandApplication app, boolean hasFastSpeed, SpeedConstants mc) {
-		String unit = mc.toShortString(app);
+		String unit = mc.toShortString();
 		float kmh = metersPerSeconds * 3.6f;
 		if (mc == SpeedConstants.KILOMETERS_PER_HOUR) {
 			// e.g. car case and for high-speeds: Display rounded to 1 km/h (5% precision at 20 km/h)
@@ -608,7 +611,7 @@ public class OsmAndFormatter {
 				return getFormattedLowSpeed(mph10 / 10f, unit, app);
 			}
 		} else {
-			String metersPerSecond = SpeedConstants.METERS_PER_SECOND.toShortString(app);
+			String metersPerSecond = SpeedConstants.METERS_PER_SECOND.toShortString();
 			if (metersPerSeconds >= 10) {
 				return getFormattedSpeed(Math.round(metersPerSeconds), metersPerSecond, app);
 			}
@@ -851,18 +854,13 @@ public class OsmAndFormatter {
 	}
 
 	public static String getFormattedCoordinates(double lat, double lon, int outputFormat) {
-		StringBuilder result = new StringBuilder();
+		StringBuilder result = new StringBuilder(LTR_MARK);
 		if (outputFormat == FORMAT_DEGREES_SHORT) {
 			result.append(formatCoordinate(lat, outputFormat)).append(" ").append(formatCoordinate(lon, outputFormat));
 		} else if (outputFormat == FORMAT_DEGREES || outputFormat == FORMAT_MINUTES || outputFormat == FORMAT_SECONDS) {
-			boolean isLeftToRight = TextUtilsCompat.getLayoutDirectionFromLocale(Locale.getDefault()) == ViewCompat.LAYOUT_DIRECTION_LTR;
-			String rtlCoordinates = isLeftToRight ? "" : "\u200f";
-			String rtlCoordinatesPunctuation = isLeftToRight ? ", " : " ,";
-			result
-					.append(rtlCoordinates)
-					.append(formatCoordinate(lat, outputFormat)).append(rtlCoordinates).append(" ").append(rtlCoordinates)
-					.append(lat > 0 ? NORTH : SOUTH).append(rtlCoordinates).append(rtlCoordinatesPunctuation).append(rtlCoordinates)
-					.append(formatCoordinate(lon, outputFormat)).append(rtlCoordinates).append(" ").append(rtlCoordinates)
+			result.append(formatCoordinate(lat, outputFormat)).append(" ")
+					.append(lat > 0 ? NORTH : SOUTH).append(", ")
+					.append(formatCoordinate(lon, outputFormat)).append(" ")
 					.append(lon > 0 ? EAST : WEST);
 		} else if (outputFormat == UTM_FORMAT) {
 			ZonedUTMPoint utmPoint = new ZonedUTMPoint(new LatLonPoint(lat, lon));
@@ -888,14 +886,14 @@ public class OsmAndFormatter {
 			formatSymbols.setDecimalSeparator('.');
 			formatSymbols.setGroupingSeparator(' ');
 			DecimalFormat swissGridFormat = new DecimalFormat("###,###.##", formatSymbols);
-			result.append(swissGridFormat.format(swissGrid[0]) + ", " + swissGridFormat.format(swissGrid[1]));
+			result.append(swissGridFormat.format(swissGrid[0])).append(", ").append(swissGridFormat.format(swissGrid[1]));
 		} else if (outputFormat == SWISS_GRID_PLUS_FORMAT) {
 			double[] swissGrid = SwissGridApproximation.convertWGS84ToLV95(new LatLon(lat, lon));
 			DecimalFormatSymbols formatSymbols = new DecimalFormatSymbols(Locale.US);
 			formatSymbols.setDecimalSeparator('.');
 			formatSymbols.setGroupingSeparator(' ');
 			DecimalFormat swissGridFormat = new DecimalFormat("###,###.##", formatSymbols);
-			result.append(swissGridFormat.format(swissGrid[0]) + ", " + swissGridFormat.format(swissGrid[1]));
+			result.append(swissGridFormat.format(swissGrid[0])).append(", ").append(swissGridFormat.format(swissGrid[1]));
 		}
 		return result.toString();
 	}
@@ -937,6 +935,10 @@ public class OsmAndFormatter {
 					.append(DELIMITER_SECONDS);
 		}
 		return sb.toString();
+	}
+
+	public static String markLTR(String text) {
+		return LTR_MARK + text;
 	}
 
 	private static double formatCoordinate(double coordinate, StringBuilder sb, char delimiter) {

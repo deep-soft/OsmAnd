@@ -1,6 +1,6 @@
 package net.osmand.shared.io
 
-import okio.FileMetadata
+import net.osmand.shared.util.KAlgorithms.isEmpty
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -14,16 +14,23 @@ import okio.use
 class KFile {
 	val path: Path
 
+	private var nativeFile: NativeFile
+	private var directory: Boolean? = null
+	private var absolutePath: String? = null
+
 	constructor(filePath: String) {
 		this.path = filePath.toPath()
+		nativeFile = NativeFile(this)
 	}
 
 	constructor(path: Path) {
 		this.path = path
+		nativeFile = NativeFile(this)
 	}
 
 	constructor(file: KFile, fileName: String) {
 		this.path = file.path.resolve(fileName)
+		nativeFile = NativeFile(this)
 	}
 
 	fun name(): String = path.name
@@ -35,26 +42,36 @@ class KFile {
 		return if (parent != null) KFile(parent) else null
 	}
 
-	fun exists(): Boolean = FileSystem.SYSTEM.exists(path)
+	fun isPathEmpty():Boolean {
+		val path = path()
+		return path.isEmpty() || path == "." || path == Path.DIRECTORY_SEPARATOR
+	}
+
+	fun exists(): Boolean = nativeFile.exists()
 
 	fun isAbsolute(): Boolean = path.isAbsolute
 
-	fun isDirectory(): Boolean =
-		FileSystem.SYSTEM.metadataOrNull(path)?.isDirectory == true
-
-	fun lastModified(): Long {
-		return try {
-			val metadata: FileMetadata? = FileSystem.SYSTEM.metadataOrNull(path)
-			metadata?.lastModifiedAtMillis ?: 0
-		} catch (e: IOException) {
-			0
+	fun isDirectory(): Boolean {
+		var directory = this.directory
+		if (directory == null) {
+			directory = nativeFile.isDirectory()
+			this.directory = directory
 		}
+		return directory
 	}
+
+	fun lastModified(): Long = nativeFile.lastModified()
 
 	fun path(): String = path.toString()
 
-	fun absolutePath(): String =
-		if (exists()) FileSystem.SYSTEM.canonicalize(path).toString() else path.toString()
+	fun absolutePath(): String {
+		var absolutePath = this.absolutePath
+		if (absolutePath == null) {
+			absolutePath = nativeFile.absolutePath()
+			this.absolutePath = absolutePath
+		}
+		return absolutePath
+	}
 
 	@Throws(IOException::class)
 	fun source(): Source = FileSystem.SYSTEM.source(path)
@@ -79,23 +96,17 @@ class KFile {
 		}
 	}
 
-	fun listFiles():Array<KFile> {
-		val pathList = FileSystem.SYSTEM.list(path)
-		return pathList.map{KFile(it)}.toTypedArray()
-	}
+	fun listFiles(): List<KFile>? = nativeFile.listFiles()
 
-	fun delete():Boolean {
-		val existed = exists()
-		if (!existed) {
+	fun delete(): Boolean {
+		if (!exists()) {
 			return false
 		}
 		FileSystem.SYSTEM.delete(path, false)
 		return !exists()
 	}
 
-	override fun hashCode(): Int {
-		return path.hashCode()
-	}
+	override fun hashCode(): Int = path.hashCode()
 
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
@@ -103,7 +114,35 @@ class KFile {
 		return path == other.path
 	}
 
-	override fun toString(): String {
-		return path.toString()
+	override fun toString(): String = path.toString()
+
+	fun length(): Long = nativeFile.length()
+
+	fun renameTo(toFile: KFile): Boolean = nativeFile.renameTo(toFile)
+
+	fun renameTo(toFilePath: String): Boolean = nativeFile.renameTo(toFilePath)
+
+	fun getFileNameWithoutExtension(): String? {
+		return Companion.getFileNameWithoutExtension(this.name())
+	}
+
+	companion object {
+		fun getFileNameWithoutExtension(name: String?): String? {
+			return name?.substringBeforeLast(".");
+		}
+
+		fun removeAllFiles(file: KFile): Boolean {
+			return if (file.isDirectory()) {
+				val files = file.listFiles()
+				if (!isEmpty(files)) {
+					for (f in files!!) {
+						removeAllFiles(f)
+					}
+				}
+				file.delete()
+			} else {
+				file.delete()
+			}
+		}
 	}
 }

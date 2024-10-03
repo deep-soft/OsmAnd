@@ -16,24 +16,24 @@ import androidx.car.app.navigation.model.PlaceListNavigationTemplate
 import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import net.osmand.SharedUtil
+import net.osmand.plus.shared.SharedUtil
 import net.osmand.plus.R
 import net.osmand.plus.auto.TripHelper
-import net.osmand.plus.configmap.tracks.TrackItem
 import net.osmand.plus.configmap.tracks.TrackTab
 import net.osmand.plus.configmap.tracks.TrackTabType
 import net.osmand.plus.settings.enums.CompassMode
 import net.osmand.plus.track.data.GPXInfo
-import net.osmand.plus.track.helpers.GpxDbHelper
+import net.osmand.shared.gpx.GpxDbHelper
 import net.osmand.plus.track.helpers.SelectedGpxFile
 import net.osmand.plus.views.layers.base.OsmandMapLayer.CustomMapObjects
 import net.osmand.search.core.ObjectType
 import net.osmand.search.core.SearchResult
 import net.osmand.shared.data.KQuadRect
-import net.osmand.shared.extensions.cFile
+import net.osmand.shared.extensions.jFile
 import net.osmand.shared.gpx.GpxDataItem
 import net.osmand.shared.gpx.GpxParameter.NEAREST_CITY_NAME
 import net.osmand.shared.gpx.GpxUtilities
+import net.osmand.shared.gpx.TrackItem
 import net.osmand.shared.util.KAlgorithms
 import net.osmand.shared.util.KMapUtils
 import net.osmand.util.Algorithms
@@ -106,12 +106,12 @@ class TracksScreen(
     private fun prepareTrackItems() {
         val newMap = HashMap<TrackItem, SelectedGpxFile>()
         for (track in trackTab.trackItems) {
-            track.file?.let { file ->
+            track.getFile()?.let { file ->
                 val item = gpxDbHelper.getItem(file) { updateTrack(track, it) }
                 if (item != null) {
                     track.dataItem = item
                 }
-                val gpxFile = GpxUtilities.loadGpxFile(file.cFile())
+                val gpxFile = GpxUtilities.loadGpxFile(file)
                 val selectedGpxFile = SelectedGpxFile()
                 selectedGpxFile.setGpxFile(gpxFile, app)
                 newMap[track] = selectedGpxFile
@@ -181,7 +181,8 @@ class TracksScreen(
         val result = SearchResult()
         result.objectType = ObjectType.GPX_TRACK
         result.`object` = trackItem
-        result.relatedObject = GPXInfo(trackItem.name, trackItem.file)
+	    val file = trackItem.getFile()
+	    result.relatedObject = GPXInfo(trackItem.name, file?.jFile())
         openRoutePreview(settingsAction, result)
     }
 }

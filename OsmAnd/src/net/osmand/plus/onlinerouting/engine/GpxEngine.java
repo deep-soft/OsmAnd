@@ -5,7 +5,7 @@ import static net.osmand.plus.onlinerouting.engine.EngineType.GPX_TYPE;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import net.osmand.SharedUtil;
+import net.osmand.plus.shared.SharedUtil;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.LocationsHolder;
@@ -153,7 +153,7 @@ public class GpxEngine extends OnlineRoutingEngine {
 				appMode.setDerivedProfile(getApproximationDerivedProfile());
 			}
 			List<WptPt> points = gpxFile.getAllSegmentsPoints();
-			LocationsHolder holder = new LocationsHolder(points);
+			LocationsHolder holder = new LocationsHolder(SharedUtil.jWptPtList(points));
 			if (holder.getSize() > 1) {
 				LatLon start = holder.getLatLon(0);
 				LatLon end = holder.getLatLon(holder.getSize() - 1);

@@ -376,7 +376,7 @@
 	<string name="poi_fire_water_pond">Fire water pond</string>
 	<string name="poi_grit_bin">Grit bin</string>
 	<string name="poi_ambulance_station">Ambulance station</string>
-	<string name="poi_ses_station">SES station</string>
+	<string name="poi_disaster_response">SES station</string>
 	<string name="poi_emergency_access_point">Emergency access point</string>
 
 	<string name="poi_ford">Ford</string>
@@ -2494,7 +2494,7 @@
 
 	<string name="poi_cairn">Cairn</string>
 
-	<string name="poi_defibrillator">Defibrillator</string>
+	<string name="poi_defibrillator">Defibrillator;AED</string>
 	<string name="poi_defibrillator_yes">Defibrillator: yes</string>
 
 	<string name="poi_tomb_war_grave">Type: war grave</string>

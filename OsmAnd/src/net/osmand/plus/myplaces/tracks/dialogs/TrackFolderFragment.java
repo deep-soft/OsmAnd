@@ -22,16 +22,16 @@ import androidx.fragment.app.FragmentManager;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import net.osmand.plus.R;
-import net.osmand.plus.configmap.tracks.TrackItem;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.myplaces.tracks.DialogClosedListener;
 import net.osmand.plus.myplaces.tracks.ItemsSelectionHelper;
 import net.osmand.plus.myplaces.tracks.SearchMyPlacesTracksFragment;
 import net.osmand.plus.myplaces.tracks.TrackFoldersHelper;
-import net.osmand.plus.track.data.TrackFolder;
-import net.osmand.plus.track.data.TracksGroup;
 import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.shared.gpx.TrackItem;
+import net.osmand.shared.gpx.data.TrackFolder;
+import net.osmand.shared.gpx.data.TracksGroup;
 import net.osmand.util.Algorithms;
 
 import java.util.Collections;
@@ -101,7 +101,7 @@ public class TrackFolderFragment extends BaseTrackFolderFragment {
 		SwipeRefreshLayout swipeRefresh = view.findViewById(R.id.swipe_refresh);
 		swipeRefresh.setColorSchemeColors(ContextCompat.getColor(app, nightMode ? R.color.osmand_orange_dark : R.color.osmand_orange));
 		swipeRefresh.setOnRefreshListener(() -> {
-			reloadTracks();
+			reloadTracks(true);
 			swipeRefresh.setRefreshing(false);
 		});
 	}
@@ -165,7 +165,7 @@ public class TrackFolderFragment extends BaseTrackFolderFragment {
 	}
 
 	private boolean isRootFolder() {
-		return rootFolder.equals(selectedFolder);
+		return Algorithms.objectEquals(rootFolder, selectedFolder);
 	}
 
 	@Override
@@ -179,7 +179,7 @@ public class TrackFolderFragment extends BaseTrackFolderFragment {
 		MyPlacesActivity activity = getMyActivity();
 		ActionBar actionBar = activity != null ? activity.getSupportActionBar() : null;
 		if (actionBar != null && group != null) {
-			actionBar.setTitle(group.getName(app));
+			actionBar.setTitle(group.getName());
 		}
 	}
 
