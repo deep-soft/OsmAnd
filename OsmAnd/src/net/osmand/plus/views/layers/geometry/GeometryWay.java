@@ -237,7 +237,7 @@ public abstract class GeometryWay<T extends GeometryWayContext, D extends Geomet
 		int previousVisibleIdx = -1;
 		boolean ignorePrevious = false;
 
-		for (int i = startLocationIndex - (startLocationIndex > 0 ? 1 : 0); i < locationProvider.getSize(); i++) {
+		for (int i = startLocationIndex - (hasMapRenderer  && startLocationIndex > 0 ? 1 : 0); i < locationProvider.getSize(); i++) {
 			style = getStyle(i, defaultWayStyle);
 			if (shouldSkipLocation(simplification, styleMap, i)) {
 				continue;
@@ -422,13 +422,13 @@ public abstract class GeometryWay<T extends GeometryWayContext, D extends Geomet
 								heights.add(pathData.heights.get(i));
 							}
 							if (firstX31 == -1) {
-								if (index >= startLocationIndexCached) {
+								if (index >= startLocationIndexCached && index > 0) {
 									passedDist += pathData.distances.get(i);
 								}
 								firstX31 = pathData.tx.get(i);
 								firstY31 = pathData.ty.get(i);
 							}
-						} else if (!update && index >= startLocationIndexCached) {
+						} else if (!update && index >= startLocationIndexCached && index > 0) {
 							if (pathData.distances.get(i) == 0 && i > 0) {
 								passedDist += (float) MapUtils.measuredDist31(
 										pathData.tx.get(i - 1), pathData.ty.get(i - 1), pathData.tx.get(i), pathData.ty.get(i));

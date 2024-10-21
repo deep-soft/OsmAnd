@@ -4873,4 +4873,11 @@
     <string name="poi_cash_in_no">Nein</string>
     <string name="poi_cash_in_customers">Kunden</string>
     <string name="poi_diet_pescetarian_no">Pescetarische Ernährung: nein</string>
+    <string name="poi_osmand_access_main_tag">Zugang</string>
+    <string name="poi_payment_parco_yes">Parco</string>
+    <string name="poi_payment_parco_no">Parco nicht akzeptiert</string>
+    <string name="poi_payment_parkster_yes">Parkster</string>
+    <string name="poi_payment_parkster_no">Parkster nicht akzeptiert</string>
+    <string name="poi_osmand_foot_tunnel_no">Tunnel für Fußgänger verboten</string>
+    <string name="poi_osmand_bicycle_tunnel_no">Tunnel für Radfahrer verboten</string>
 </resources>
