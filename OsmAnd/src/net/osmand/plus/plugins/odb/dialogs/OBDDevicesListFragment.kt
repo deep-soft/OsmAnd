@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.RecyclerView
@@ -80,7 +81,8 @@ class OBDDevicesListFragment : OBDDevicesBaseFragment(),
 		connectedList?.adapter = connectedListAdapter
 		disconnectedList?.adapter = disconnectedListAdapter
 		val connectInstructions = view.findViewById<TextView>(R.id.connect_instructions)
-		connectInstructions.text = String.format(app.getString(R.string.connect_obd_instructions_step),
+		connectInstructions.text = String.format(
+			app.getString(R.string.connect_obd_instructions_step),
 			app.getString(R.string.external_device_details_connect))
 	}
 
@@ -158,8 +160,13 @@ class OBDDevicesListFragment : OBDDevicesBaseFragment(),
 				val connectedDevice = plugin.getConnectedDeviceInfo()
 				val connectedDevices: List<BTDeviceInfo> =
 					if (connectedDevice == null) emptyList() else arrayListOf(connectedDevice)
+				val usedDevices = plugin.getUsedOBDDevicesList().toMutableList()
+				if (settings.SIMULATE_OBD_DATA.get()) {
+					usedDevices.add(BTDeviceInfo("Simulation Device", ""))
+				}
 				val disconnectedDevices =
-					plugin.getUsedOBDDevicesList().filter { it.address != connectedDevice?.address }
+					usedDevices.filter { it.address != connectedDevice?.address }
+						.toMutableList()
 				if (Algorithms.isEmpty(disconnectedDevices) && Algorithms.isEmpty(connectedDevices)) {
 					emptyView?.visibility = View.VISIBLE
 					contentView?.visibility = View.GONE
@@ -205,7 +212,10 @@ class OBDDevicesListFragment : OBDDevicesBaseFragment(),
 	}
 
 	override fun onForget(device: BTDeviceInfo) {
-		ForgetOBDDeviceDialog.showInstance(requireActivity().supportFragmentManager, this, device.address)
+		ForgetOBDDeviceDialog.showInstance(
+			requireActivity().supportFragmentManager,
+			this,
+			device.address)
 	}
 
 	override fun onForgetSensorConfirmed(deviceId: String) {
@@ -235,7 +245,20 @@ class OBDDevicesListFragment : OBDDevicesBaseFragment(),
 		}
 	}
 
-	override fun onStateChanged(state: VehicleMetricsPlugin.OBDConnectionState) {
-		app.runInUIThread { updatePairedSensorsList() }
+	override fun onStateChanged(
+		state: VehicleMetricsPlugin.OBDConnectionState,
+		deviceInfo: BTDeviceInfo) {
+		app.runInUIThread {
+			activity?.let {
+				val textId = when (state) {
+					VehicleMetricsPlugin.OBDConnectionState.CONNECTED -> R.string.obd_connected_to_device
+					VehicleMetricsPlugin.OBDConnectionState.CONNECTING -> R.string.obd_connecting_to_device
+					VehicleMetricsPlugin.OBDConnectionState.DISCONNECTED -> R.string.obd_not_connected_to_device
+				}
+				Toast.makeText(app, app.getString(textId, deviceInfo.name), Toast.LENGTH_SHORT)
+					.show()
+			}
+			updatePairedSensorsList()
+		}
 	}
 }
