@@ -1502,7 +1502,7 @@
     <string name="local_osm_changes_upload_all_confirm">%1$d Änderung(en) zu OSM hochladen\?</string>
     <string name="confirmation_to_clear_history">Verlauf löschen?</string>
     <string name="osmand_parking_hour">h</string>
-    <string name="shared_string_minute_lowercase">min</string>
+    <string name="shared_string_minute_lowercase">Min</string>
     <string name="osmand_parking_time_left">verbleibend</string>
     <string name="osm_changes_added_to_local_edits">Die Änderungen an den OSM-Daten wurden dem lokalen Änderungssatz hinzugefügt</string>
     <string name="shared_string_go">Los</string>
@@ -2383,7 +2383,7 @@
     <string name="mapillary_menu_descr_tile_cache">Kacheln neu laden, um nach Datumswerten zu suchen.</string>
     <string name="mapillary_menu_title_tile_cache">Kachelzwischenspeicher</string>
     <string name="wrong_user_name">Falscher Benutzername</string>
-    <string name="shared_string_to">Bis</string>
+    <string name="shared_string_to">Zu</string>
     <string name="mapillary_menu_date_from">Von</string>
     <string name="mapillary_menu_descr_dates">Nur hinzugefügte Bilder betrachten</string>
     <string name="shared_string_date">Datum</string>
@@ -5186,7 +5186,7 @@
     <string name="tracks_empty_folder">Leerer Ordner</string>
     <string name="track_not_recorded">Nicht aufgezeichnet</string>
     <string name="shared_string_new_track">Neuer Track</string>
-    <string name="shared_string_visible_on_map">Sichtbar auf der Karte</string>
+    <string name="shared_string_visible_on_map">Sichtbar auf Karte</string>
     <string name="delete_track_folder_dialog_message">Dies löscht den Ordner „%1$s“ und alle %2$s darin enthaltenen Tracks.</string>
     <string name="delete_folder">Ordner löschen</string>
     <string name="show_all_tracks_on_the_map">Alle Tracks auf der Karte anzeigen</string>
@@ -5199,7 +5199,7 @@
     <string name="error_calculate">Berechnungsergebnis ist leer</string>
     <string name="calculate_offline_altitude_descr">Höhe offline berechnen, basierend auf (3D) Daten der Höhenkarte. Unterschiede zur vom Gerät aufgezeichneten Höhe können als Höhenkorrektur verwendet werden.</string>
     <string name="power_watts_unit">Watt</string>
-    <string name="revolutions_per_minute_unit">U/min</string>
+    <string name="revolutions_per_minute_unit">Drehzahl</string>
     <string name="shared_string_close_the_dialog">Dialogfeld schließen</string>
     <string name="rendering_attr_lightDetail_description">Standard: Seezeichenname (Leuchtfeuer.Gruppe.Periode), Auswahl zusätzlicher Informationen zu den Sektoren 1 bis 3 oder Sektor 1,2,3,4,5 Leuchtfeuer</string>
     <string name="terrain_map">Geländekarte (3D)</string>
@@ -5430,7 +5430,7 @@
     <string name="all_folders">Alle Verzeichnisse</string>
     <string name="shared_string_show_less">Weniger anzeigen</string>
     <string name="folder">Verzeichnis</string>
-    <string name="not_specified">Nicht angegeben</string>
+    <string name="not_specified">Nicht spezifiziert</string>
     <string name="key_event_action_zoom_in">Hineinzoomen</string>
     <string name="key_event_action_change_map_orientation">Kartenorientierung ändern</string>
     <string name="press_button_to_link_with_action">Drücken Sie die Schaltfläche auf Ihrem Gerät, um sie der Aktion zuzuweisen: %1$s</string>
@@ -5564,7 +5564,7 @@
 \nWählen Sie „%1$s“ für exakte Zahlen oder „%2$s“ für eine leichtere Lesbarkeit.</string>
     <string name="download_cloud_versions">Cloud-Versionen herunterladen</string>
     <string name="upload_local_versions">Lokale Versionen hochladen</string>
-    <string name="map_widget_map_scale">Kartenmaßstab</string>
+    <string name="map_widget_map_scale">Maßstab</string>
     <string name="shared_string_unchanged">Unverändert</string>
     <string name="unchanged_parameter_summary">Jede Spur behält ihre eigenen Parameter.</string>
     <string name="gpx_approximation_cpp">Routingbasiert (C++)</string>
@@ -5814,7 +5814,6 @@
     <string name="percent_unit">%</string>
     <string name="obd_rpm">Drehzahl</string>
     <string name="rpm_unit">U/min</string>
-    <string name="obd_speed_desc">Geschwindigkeitsanzeige über OBD-Sensor</string>
     <string name="unit_volt">V</string>
     <string name="obd_fuel_type_bifuel_lpg">Bifuel mit LPG</string>
     <string name="obd_fuel_type_bifuel_cng">Bifuel mit CNG</string>
@@ -5838,10 +5837,6 @@
     <string name="obd_support">OBD-Unterstützung</string>
     <string name="obd_battery_voltage">Batteriespannung</string>
     <string name="obd_rpm_desc">Zeigt mithilfe des OBD-Sensors die Drehzahl des Fahrzeugtachos an</string>
-    <string name="obd_air_intake_temp_desc">Zeigt mithilfe des OBD-Sensors die Ansauglufttemperatur des Fahrzeugs an</string>
-    <string name="obd_ambient_air_temp_desc">Zeigt mithilfe des OBD-Sensors die Umgebungslufttemperatur an</string>
-    <string name="obd_engine_coolant_temp_desc">Zeigt mithilfe des OBD-Sensors die Motorkühlmitteltemperatur an</string>
-    <string name="obd_battery_voltage_desc">Zeigt mithilfe des OBD-Sensors die Batteriespannung an</string>
     <string name="obd_fuel_left_distance_desc">Zeigt mithilfe des OBD-Sensors an, wie weit das Fahrzeug mit dem verbliebenen Kraftstoffstand noch fahren kann</string>
     <string name="obd_fuel_level_desc">Zeigt mithilfe des OBD-Sensors den Kraftstoffstand des Fahrzeugs an</string>
     <string name="obd_fuel_type_desc">Zeigt mithilfe des OBD-Sensors die Kraftstoffart des Fahrzeugs an</string>
@@ -5918,23 +5913,26 @@
     <string name="obd_fuel_consumption_rate_l_km">Kraftstoffverbrauch (l/km)</string>
     <string name="obd_fuel_consumption_rate_l_km_desc">Zeigt den rechnerischen Kraftstoffverbrauch des Fahrzeugs an (l/km)</string>
     <string name="simulate_obd">OBD-Daten simulieren</string>
-    <string name="obd_engine_runtime">Motorlaufzeit</string>
-    <string name="obd_engine_runtime_desc">Zeigt die Laufzeit des Fahrzeugmotors an, die vom OBD-Scanner ermittelt wurde</string>
-    <string name="obd_throttle_position">Drosselklappenstellung</string>
-    <string name="obd_throttle_position_desc">Zeigt den Kraftstoffdruck des Fahrzeugs (Überdruck) an, der vom OBD-Scanner ermittelt wurde</string>
     <string name="obd_fuel_pressure">Kraftstoffdruck</string>
-    <string name="obd_fuel_pressure_desc">Zeigt den Kraftstoffdruck des Fahrzeugs (Überdruck) an, der vom OBD-Scanner ermittelt wurde</string>
-    <string name="obd_calculated_engine_load">Berechnete Motorlast</string>
-    <string name="obd_engine_oil_temperature">Motoröltemperatur</string>
-    <string name="obd_engine_oil_temperature_desc">Zeigt die Motoröltemperatur des Fahrzeugs an, die vom OBD-Scanner ermittelt wurde</string>
     <string name="l_100km">l/100 km</string>
     <string name="obd_fuel_consumption_rate_percent_hour_desc">Zeigt den rechnerischen Kraftstoffverbrauch des Fahrzeugs an (%/h)</string>
     <string name="kpa_unit">kPa</string>
-    <string name="obd_calculated_engine_load_desc">Zeigt die vom Sensor berechnete Motorlast des Fahrzeugs an</string>
     <string name="bt_start_pair_failed">Kopplung mit Gerät kann nicht gestartet werden</string>
     <string name="shared_string_dynamic">Dynamisch</string>
     <string name="obd_connecting_to_device">Verbindung zu %s herstellen</string>
     <string name="obd_connected_to_device">Verbunden mit %s</string>
     <string name="obd_not_connected_to_device">Getrennt von %s</string>
     <string name="dynamic_icon_type_summary">Symbol ändert sich je nach Aktionsstatus.</string>
+    <string name="fuel_tank_capacity_description">Tankinhalt eingeben, um Kraftstoffstand und -verbrauch genau zu verfolgen</string>
+    <string name="shared_strings_dimensions">Abmessungen</string>
+    <string name="fuel_tank_capacity">Volumen des Kraftstofftanks</string>
+    <string name="litres">Liter</string>
+    <string name="imperial_gallons_unit">imp gal</string>
+    <string name="us_gallons_unit">gal</string>
+    <string name="imperial_gallons">Imperial gallons</string>
+    <string name="us_gallons">US gallons</string>
+    <string name="unit_of_volume_description">Ausgewählte Einheiten werden auf alle volumenbezogenen Daten im aktuellen Profil angewendet.</string>
+    <string name="unit_of_volume">Volumeneinheit</string>
+    <string name="record_obd_data">Fahrzeugmetriken aufzeichnen</string>
+    <string name="wunderlinq_datagrid">WunderLINQ Datagrid</string>
 </resources>
