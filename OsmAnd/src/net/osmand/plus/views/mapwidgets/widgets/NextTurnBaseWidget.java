@@ -5,6 +5,7 @@ import static net.osmand.plus.views.mapwidgets.widgets.StreetNameWidget.setShiel
 import static java.lang.Math.min;
 
 import android.graphics.drawable.Drawable;
+import android.text.TextPaint;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -51,6 +52,7 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	protected boolean horizontalMini;
 	protected int deviatedPath;
 	protected int nextTurnDistance;
+	private final TextPaint textPaint = new TextPaint();
 	private TurnDrawable turnDrawable;
 
 	private ImageView topImageView;
@@ -207,18 +209,13 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			AndroidUiHelper.updateVisibility(shieldImagesContainer, false);
 			return;
 		}
+		if (!Algorithms.isEmpty(streetName.text)) {
+			streetName.text = removeSymbol(streetName.text);
+		}
 		List<RoadShield> shields = streetName.shields;
 		if (!shields.isEmpty() && app.getRendererRegistry().getCurrentSelectedRenderer() != null) {
 			if (!shields.equals(cachedRoadShields) || (shields.equals(cachedRoadShields) && shieldImagesContainer.getChildCount() == 0)) {
-				if (setRoadShield(shields)) {
-					AndroidUiHelper.updateVisibility(shieldImagesContainer, true);
-					int indexOf = streetName.text.indexOf("»");
-					if (indexOf > 0) {
-						streetName.text = streetName.text.substring(indexOf);
-					}
-				} else {
-					AndroidUiHelper.updateVisibility(shieldImagesContainer, false);
-				}
+				AndroidUiHelper.updateVisibility(shieldImagesContainer, setRoadShield(shields));
 			} else {
 				AndroidUiHelper.updateVisibility(shieldImagesContainer, shields.equals(cachedRoadShields));
 			}
@@ -231,7 +228,9 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 		if (Algorithms.isEmpty(streetName.exitRef)) {
 			AndroidUiHelper.updateVisibility(exitView, false);
 		} else {
-			exitView.setText(streetName.exitRef);
+			String exit = app.getString(R.string.shared_string_exit);
+			String exitViewText = app.getString(R.string.ltr_or_rtl_combine_via_space, exit, streetName.exitRef);
+			exitView.setText(exitViewText);
 			AndroidUiHelper.updateVisibility(exitView, true);
 		}
 
@@ -240,6 +239,13 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 		} else if (!streetName.text.equals(streetView.getText().toString())) {
 			streetView.setText(streetName.text);
 		}
+	}
+
+	public static String removeSymbol(String input) {
+		if (input.startsWith("» ")) {
+			return input.replace("» ", "");
+		}
+		return input;
 	}
 
 	public void setVerticalImage(@Nullable TurnDrawable imageDrawable) {
@@ -336,8 +342,13 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			updateVerticalWidgetColors(textState);
 		} else {
 			super.updateColors(textState);
-			updateTextColor(topTextView, null, textState.textColor, textState.textShadowColor, textState.textBold,
-					textState.textShadowRadius);
+			updateTextColor(topTextView, null, textState.textColor, textState.textShadowColor,
+					textState.textBold, textState.textShadowRadius);
+
+			textPaint.set(topTextView.getPaint());
+			textPaint.setColor(textState.textColor);
+			turnDrawable.setTextPaint(textPaint);
+			turnDrawable.invalidateSelf();
 		}
 	}
 

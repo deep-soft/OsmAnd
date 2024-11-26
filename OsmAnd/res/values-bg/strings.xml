@@ -3912,7 +3912,7 @@
     <string name="collected_data_descr">Определете каква информация да споделяте с OsmAnd.</string>
     <string name="sorted_sufolders_toast">Папките в „%1$s“ са сортирани по: „%2$s“</string>
     <string name="shared_string_activity">Дейност</string>
-    <string name="sort_subfolders">Сортиране на подпапки</string>
+    <string name="sort_subfolders">Сортиране на вложени папки</string>
     <string name="shared_string_additional">Допълнителни</string>
     <string name="settings_privacy_and_security">Поверителност и защита</string>
     <string name="privacy_and_security_change_descr">Докоснете „Разрешаване“ ако сте съгласни с нашата %1$s</string>
@@ -4365,7 +4365,7 @@
     <string name="track_does_not_contain_data_to_save">Трасето не съдържа информация, която да бъде запазена.</string>
     <string name="quick_action_finish_trip_recording_summary">Бутон за запзване на трасето в GPX и приключване на записа на пътуването.</string>
     <string name="new_segment_started_m">Започнат запис на нов сегмент от трасето.</string>
-    <string name="lock_screen_description">Включва или изключва сензорния екран, за да предотврати случайни докосвания</string>
+    <string name="lock_screen_description">Включване или изключване на екрана, за да бъдат предотвратени нежелани докосвания</string>
     <string name="quick_action_save_recorded_trip_and_continue_summary">Бутон за запазване на текущото записано пътуване като GPX файл и продължаване на записа на нова следа без прекъсване.</string>
     <string name="obd_fuel_type_methanol">Метанол</string>
     <string name="obd_fuel_type_gasoline">Бензин</string>
@@ -4401,7 +4401,7 @@
     <string name="obd_fuel_type">Вид на горивото</string>
     <string name="obd_support">Поддръжка на OBD</string>
     <string name="shared_string_bluetooth">Bluetooth</string>
-    <string name="connect_obd_instructions_step1">1. Включете скенера към куплунга за OBD-II.</string>
+    <string name="connect_obd_instructions_step1">Включете скенера към куплунга за OBD-II.</string>
     <string name="obd_fuel_type_not_provided">Вида гориво не е посочен</string>
     <string name="obd_fuel_type_propane">Пропан</string>
     <string name="obd_fuel_type_cng">Природен газ</string>
@@ -4413,9 +4413,9 @@
     <string name="obd_vehicle_info">Информация за превозното средство</string>
     <string name="connect_obd_instructions_title">OsmAnd поддържа връзка със скенери на OBD-II през Blurtooth.</string>
     <string name="obd_how_to_connect">Как да свържете:</string>
-    <string name="connect_obd_instructions_step2">2. Включете двигателя.</string>
-    <string name="connect_obd_instructions_step3">3. Включете Bluetooth на устройството.</string>
-    <string name="connect_obd_instructions_step4">4. Докоснете „Свързване“ и изберете скенера от списъка.</string>
+    <string name="connect_obd_instructions_step2">Включете двигателя.</string>
+    <string name="connect_obd_instructions_step3">Включете Bluetooth на устройството.</string>
+    <string name="connect_obd_instructions_step4">Докоснете „Свързване“ и изберете скенера от списъка.</string>
     <string name="learn_more_about_obd_sensors">Научете повече за сензорите.</string>
     <string name="obd_fuel_left_liters">Оставащо гориво (литри)</string>
     <string name="obd_fuel_type_electric">Електричество</string>
@@ -4458,4 +4458,21 @@
     <string name="current_temperature">Текуща температура</string>
     <string name="obd_battery_voltage_desc">Показва напрежението в акумулатора</string>
     <string name="obd_air_intake_temp_desc">Показва температурата на постъпвщия през въздушната клапа въздух.</string>
+    <string name="preview_next_turn">Преглед следващ завой</string>
+    <string name="connect_new_scanner">Свързване на нов скенер</string>
+    <string name="av_audio_sample_rate">Честота на аудио дискретизация</string>
+    <string name="av_audio_sample_rate_descr">Избор на честота на аудио дискретизация.</string>
+    <string name="auto_zoom_3d_angle">Ъгъл при триизмерно увеличаване</string>
+    <string name="lock_screen">Заключване на екрана</string>
+    <string name="screen_is_locked_by_action_button">Екранът е заключен. Докоснете бутона, за да го отключите.</string>
+    <string name="screen_is_unlocked">Екранът е отключен.</string>
+    <string name="help_article_map_tracks_name">Трасета</string>
+    <string name="help_article_personal_color_palette_schemes_name">Цветови теми</string>
+    <string name="vehicle_metrics_obd_ii">Показатели за превозно средство (OBD-II)</string>
+    <string name="ltr_or_rtl_combine_via_per">%1$s за %2$s</string>
+    <string name="shared_string_volume">Обем</string>
+    <string name="shared_string_hour">Час</string>
+    <string name="purchase_feature_desc_vehicle_metrics_obd_ii">Проследявайте жизненоважни данни за превозното средство с помощта на протокола OBD-II. Наблюдавайте ключови показатели като скорост, обороти на двигателя, разход на гориво и др.</string>
+    <string name="shared_string_engine">Двигател</string>
+    <string name="vehicle_metrics_recording_description">Изберете параметрите, които да бъдат записани в GPX файл.</string>
 </resources>

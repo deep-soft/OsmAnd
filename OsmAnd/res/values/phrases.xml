@@ -192,6 +192,7 @@
 	<string name="poi_us_maps_recreation_area_facility">Recreation area facility</string>
 	<string name="poi_live_music">Live music</string>
 	<string name="poi_cash_in">Cash deposit</string>
+	<string name="poi_camp_site_type">Camp site type</string>
 
 
 <!--  categories -->
@@ -5466,4 +5467,15 @@
 	<string name="poi_activities_fitness">Fitness trails</string>
 	<string name="poi_activities_inline_skates">Inline skates</string>
 	<string name="poi_activities_mountain_bike">Mountain biking</string>
+
+	<string name="poi_name_etymology">Name etymology</string>
+	<string name="poi_name_left">Name of the left side</string>
+	<string name="poi_name_right">Name of the right side</string>
+
+	<string name="poi_climbing_boulder">Climbing boulder</string>
+	<string name="poi_camp_site_basic">Basic</string>
+	<string name="poi_camp_site_standard">Standard</string>
+	<string name="poi_camp_site_serviced">Serviced</string>
+	<string name="poi_camp_site_deluxe">Deluxe</string>
+
 </resources>

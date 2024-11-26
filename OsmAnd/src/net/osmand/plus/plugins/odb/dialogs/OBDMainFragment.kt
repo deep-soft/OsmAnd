@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import net.osmand.plus.R
 import net.osmand.plus.helpers.AndroidUiHelper
 import net.osmand.plus.plugins.odb.VehicleMetricsPlugin
+import net.osmand.plus.plugins.odb.VehicleMetricsPlugin.OBDConnectionState
 import net.osmand.plus.plugins.odb.adapters.OBDMainFragmentAdapter
 import net.osmand.plus.utils.AndroidUtils
 import net.osmand.plus.utils.ColorUtilities
@@ -23,7 +24,27 @@ import net.osmand.shared.obd.OBDDataComputer.OBDComputerWidget
 import net.osmand.shared.obd.OBDDataComputer.OBDTypeWidget
 import net.osmand.util.Algorithms
 
-class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.ConnectionStateListener {
+class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.ConnectionStateListener,
+	RenameOBDDialog.OnDeviceNameChangedCallback, ForgetOBDDeviceDialog.ForgetDeviceListener {
+
+	enum class OBDDataType (var widgetType: OBDTypeWidget, val icon: Int?) {
+		VIN(OBDTypeWidget.VIN, null),
+		FUEL_TYPE(OBDTypeWidget.FUEL_TYPE, R.drawable.ic_action_fuel_tank),
+		TEMPERATURE_INTAKE(OBDTypeWidget.TEMPERATURE_INTAKE, R.drawable.ic_action_obd_temperature_intake),
+		TEMPERATURE_AMBIENT(OBDTypeWidget.TEMPERATURE_AMBIENT, R.drawable.ic_action_obd_temperature_outside),
+		TEMPERATURE_COOLANT(OBDTypeWidget.TEMPERATURE_COOLANT, R.drawable.ic_action_obd_temperature_coolant),
+		ENGINE_OIL_TEMPERATURE(OBDTypeWidget.ENGINE_OIL_TEMPERATURE, R.drawable.ic_action_obd_temperature_engine_oil),
+		RPM(OBDTypeWidget.RPM, R.drawable.ic_action_obd_engine_speed),
+		SPEED(OBDTypeWidget.SPEED, R.drawable.ic_action_obd_speed),
+		FUEL_CONSUMPTION_RATE_LITER_HOUR(OBDTypeWidget.FUEL_CONSUMPTION_RATE_LITER_HOUR, R.drawable.ic_action_obd_fuel_consumption),
+		FUEL_LEFT_LITER(OBDTypeWidget.FUEL_LEFT_LITER, R.drawable.ic_action_obd_fuel_remaining),
+		CALCULATED_ENGINE_LOAD(OBDTypeWidget.CALCULATED_ENGINE_LOAD, R.drawable.ic_action_car_info),
+		FUEL_PRESSURE(OBDTypeWidget.FUEL_PRESSURE, R.drawable.ic_action_obd_fuel_pressure),
+		THROTTLE_POSITION(OBDTypeWidget.THROTTLE_POSITION, R.drawable.ic_action_obd_throttle_position),
+		BATTERY_VOLTAGE(OBDTypeWidget.BATTERY_VOLTAGE, R.drawable.ic_action_obd_battery_voltage)
+	}
+
+	data class OBDDataItem(val dataType: OBDDataType, val widget: OBDComputerWidget)
 
 	private val handler = Handler(Looper.getMainLooper())
 	private val items = mutableListOf<Any>()
@@ -34,21 +55,21 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 	private lateinit var device: BTDeviceInfo
 
 	private var updateEnable = false
-	private var currentConnectedState: VehicleMetricsPlugin.OBDConnectionState =
-		VehicleMetricsPlugin.OBDConnectionState.DISCONNECTED
+	private var deviceConnectionState: OBDConnectionState = OBDConnectionState.DISCONNECTED
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		arguments?.let {
-			val connectedDevice = vehicleMetricsPlugin?.getConnectedDeviceInfo()
-			val deviceName = it.getString(DEVICE_NAME_KEY) ?: ""
-			val deviceAddress = it.getString(DEVICE_ADDRESS_KEY) ?: ""
+		arguments?.apply {
+			val connectedDevice = vehicleMetricsPlugin.getConnectedDeviceInfo()
+			val deviceName = getString(DEVICE_NAME_KEY) ?: ""
+			val deviceAddress = getString(DEVICE_ADDRESS_KEY) ?: ""
 			device = if (connectedDevice != null &&
-				(deviceAddress == connectedDevice.address || Algorithms.isEmpty(deviceAddress))) {
-				currentConnectedState = VehicleMetricsPlugin.OBDConnectionState.CONNECTED
+				(deviceAddress == connectedDevice.address ||
+						(Algorithms.isEmpty(deviceAddress) && Algorithms.isEmpty(deviceName)))) {
+				deviceConnectionState = OBDConnectionState.CONNECTED
 				connectedDevice
 			} else {
-				currentConnectedState = VehicleMetricsPlugin.OBDConnectionState.DISCONNECTED
+				deviceConnectionState = OBDConnectionState.DISCONNECTED
 				BTDeviceInfo(deviceName, deviceAddress)
 			}
 		}
@@ -74,21 +95,23 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 
 	override fun setupUI(view: View) {
 		progress = view.findViewById(R.id.progress_bar)
+		items.clear()
 		setupConnectionState(view)
 		updateButtonState(view)
 		setupVehicleInfo()
 		setupReceivedData()
+		setupSettingsCard()
 		setupList(view)
 	}
 
 	private fun setupList(view: View) {
-		adapter = OBDMainFragmentAdapter(app, nightMode, requireMapActivity())
+		adapter = OBDMainFragmentAdapter(app, nightMode, requireMapActivity(), device, this)
 		view.findViewById<RecyclerView>(R.id.recycler_view)?.adapter = adapter
 		adapter.items = ArrayList(items)
 	}
 
 	private fun setupConnectionState(view: View) {
-		val connected = currentConnectedState == VehicleMetricsPlugin.OBDConnectionState.CONNECTED
+		val connected = deviceConnectionState == OBDConnectionState.CONNECTED
 
 		val connectedText = app.getString(
 			if (connected) R.string.external_device_connected else R.string.external_device_disconnected
@@ -138,20 +161,18 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 		var pairBtnTextColorId = 0
 		var pairBtnTextId = 0
 		var isConnecting = false
-		when (currentConnectedState) {
-			VehicleMetricsPlugin.OBDConnectionState.CONNECTED -> {
+		when (deviceConnectionState) {
+			OBDConnectionState.CONNECTED -> {
 				lightResId = connectedStateBtnBgColorLight
 				darkResId = connectedStateBtnBgColorDark
 				pairBtnTextColorId = connectedStateBtnTextColor
 				pairBtnTextId = R.string.external_device_details_disconnect
 				pairButton.setOnClickListener {
-					Thread {
-						vehicleMetricsPlugin?.disconnect()
-					}.start()
+					vehicleMetricsPlugin.disconnect(true)
 				}
 			}
 
-			VehicleMetricsPlugin.OBDConnectionState.CONNECTING -> {
+			OBDConnectionState.CONNECTING -> {
 				lightResId = connectingStateBtnBgColorLight
 				darkResId = connectingStateBtnBgColorDark
 				pairButton.setOnClickListener(null)
@@ -164,9 +185,7 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 				pairBtnTextColorId = disconnectedStateBtnTextColor
 				pairBtnTextId = R.string.external_device_details_connect
 				pairButton.setOnClickListener {
-					Thread {
-						vehicleMetricsPlugin?.connectToObd(requireActivity(), device)
-					}.start()
+					vehicleMetricsPlugin.connectToObd(requireActivity(), device)
 				}
 			}
 		}
@@ -198,35 +217,38 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 	}
 
 	override fun onStateChanged(
-		state: VehicleMetricsPlugin.OBDConnectionState,
+		state: OBDConnectionState,
 		deviceInfo: BTDeviceInfo) {
 		if (device.address == deviceInfo.address) {
-			currentConnectedState = state
+			deviceConnectionState = state
 		}
-		app.runInUIThread {
-			view?.let {
-				setupConnectionState(it)
-				updateButtonState(it)
-			}
+		view?.let {
+			setupConnectionState(it)
+			updateButtonState(it)
 		}
 	}
 
 	private fun setupVehicleInfo() {
 		items.add(OBDMainFragmentAdapter.ITEM_DIVIDER)
 		items.add(OBDMainFragmentAdapter.TITLE_VEHICLE_TYPE)
-		val widget = OBDDataComputer.registerWidget(OBDTypeWidget.VIN, 0)
-		items.add(widget)
+		items.add(OBDDataItem(OBDDataType.VIN, OBDDataComputer.registerWidget(OBDTypeWidget.VIN, 0)))
 	}
 
 	private fun setupReceivedData() {
 		items.add(OBDMainFragmentAdapter.ITEM_DIVIDER)
 		items.add(OBDMainFragmentAdapter.TITLE_RECEIVED_TYPE)
-		OBDTypeWidget.entries.forEach {
-			if (it != OBDTypeWidget.VIN) {
-				val widget = OBDDataComputer.registerWidget(it, 0)
-				items.add(widget)
+		OBDDataType.entries.forEach {
+			if (it.widgetType != OBDTypeWidget.VIN) {
+				items.add(OBDDataItem(it, OBDDataComputer.registerWidget(it.widgetType, 0)))
 			}
 		}
+	}
+
+	private fun setupSettingsCard() {
+		items.add(OBDMainFragmentAdapter.ITEM_DIVIDER)
+		items.add(OBDMainFragmentAdapter.TITLE_SETTINGS_TYPE)
+		items.add(OBDMainFragmentAdapter.NAME_ITEM_TYPE)
+		items.add(OBDMainFragmentAdapter.FORGET_SENSOR_TYPE)
 	}
 
 	override fun onStart() {
@@ -236,15 +258,18 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 
 	private fun updateWidgets() {
 		items.forEach {
-			if (it is OBDComputerWidget) {
-				val value = vehicleMetricsPlugin?.getWidgetValue(it)
-				val unit = vehicleMetricsPlugin?.getWidgetUnit(it)
-				val widget = adapter.lastSavedValueMap[it]
-				if (!widget?.first.equals(value) or !widget?.second.equals(unit)) {
-					adapter.notifyItemChanged(
-						items.indexOf(it),
-						OBDMainFragmentAdapter.UPDATE_VALUE_PAYLOAD_TYPE
-					)
+			if (it is OBDDataItem) {
+				val widget = it.widget
+				val value = vehicleMetricsPlugin.getWidgetValue(widget)
+				val unit = vehicleMetricsPlugin.getWidgetUnit(widget)
+				adapter.let { obdAdapter ->
+					val savedValue = obdAdapter.lastSavedValueMap[widget]
+					if (!savedValue?.first.equals(value) or !savedValue?.second.equals(unit)) {
+						obdAdapter.notifyItemChanged(
+							items.indexOf(it),
+							OBDMainFragmentAdapter.UPDATE_VALUE_PAYLOAD_TYPE
+						)
+					}
 				}
 			}
 		}
@@ -254,7 +279,7 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 		super.onResume()
 		updateEnable = true
 		startHandler()
-		vehicleMetricsPlugin?.setConnectionStateListener(this)
+		vehicleMetricsPlugin.setConnectionStateListener(this)
 	}
 
 	private fun startHandler() {
@@ -269,7 +294,7 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 	override fun onPause() {
 		super.onPause()
 		updateEnable = false
-		vehicleMetricsPlugin?.setConnectionStateListener(null)
+		vehicleMetricsPlugin.setConnectionStateListener(null)
 	}
 
 	companion object {
@@ -292,5 +317,15 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 					.commitAllowingStateLoss()
 			}
 		}
+	}
+
+	override fun onNameChanged() {
+		view?.findViewById<TextView>(R.id.device_name)?.text = device.name
+		adapter.notifyDataSetChanged()
+	}
+
+	override fun onForgetSensorConfirmed(deviceId: String) {
+		vehicleMetricsPlugin?.removeDeviceToUsedOBDDevicesList(deviceId)
+		view?.let { setupUI(it) }
 	}
 }
