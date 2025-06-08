@@ -87,7 +87,11 @@ public class MyLocationButton extends MapButton {
 			if (showLocationMenu) {
 				showContextMenuForMyLocation();
 			} else if (!mapActivity.getContextMenu().isVisible()) {
-				app.getMapViewTrackingUtilities().backToLocationImpl();
+				if (app.accessibilityEnabled()) {
+					mapActivity.getMapActions().whereAmIDialog();
+				} else {
+					mapActivity.getMapViewTrackingUtilities().backToLocationImpl();
+				}
 			}
 		} else {
 			ActivityCompat.requestPermissions(mapActivity,
@@ -111,11 +115,11 @@ public class MyLocationButton extends MapButton {
 
 	protected void updateBackground() {
 		Context context = getContext();
-		int cornerRadius = AndroidUtils.dpToPx(context, appearanceParams.getCornerRadius());
+		int cornerRadius = AndroidUtils.dpToPx(context, getCornerRadius());
 
 		GradientDrawable normal = new GradientDrawable();
 		normal.setShape(RECTANGLE);
-		normal.setColor(ColorUtilities.getColorWithAlpha(backgroundColor, appearanceParams.getOpacity()));
+		normal.setColor(ColorUtilities.getColorWithAlpha(backgroundColor, getOpacity()));
 		normal.setCornerRadius(cornerRadius);
 
 		GradientDrawable pressed = new GradientDrawable();

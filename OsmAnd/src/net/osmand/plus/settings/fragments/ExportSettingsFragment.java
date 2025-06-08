@@ -1,12 +1,10 @@
 package net.osmand.plus.settings.fragments;
 
 import static net.osmand.plus.settings.backend.backup.exporttype.ExportType.MAP_SOURCES;
-import static net.osmand.plus.settings.fragments.BaseSettingsFragment.APP_MODE_KEY;
 
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +24,7 @@ import net.osmand.map.ITileSource;
 import net.osmand.map.TileSourceManager;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.mapcontextmenu.other.ShareMenu.NativeShareDialogBuilder;
 import net.osmand.plus.resources.SQLiteTileSource;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.ApplicationModeBean;
@@ -65,7 +64,6 @@ public class ExportSettingsFragment extends BaseSettingsListFragment {
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
 	private ProgressDialog progress;
-	private ApplicationMode appMode;
 	private SettingsExportListener exportListener;
 
 	private int progressMax;
@@ -78,7 +76,6 @@ public class ExportSettingsFragment extends BaseSettingsListFragment {
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		if (savedInstanceState != null) {
-			appMode = ApplicationMode.valueOfStringKey(savedInstanceState.getString(APP_MODE_KEY), null);
 			globalExport = savedInstanceState.getBoolean(GLOBAL_EXPORT_KEY);
 			exportingStarted = savedInstanceState.getBoolean(EXPORTING_STARTED_KEY);
 			exportStartTime = savedInstanceState.getLong(EXPORT_START_TIME_KEY);
@@ -163,17 +160,10 @@ public class ExportSettingsFragment extends BaseSettingsListFragment {
 		outState.putBoolean(GLOBAL_EXPORT_KEY, globalExport);
 		outState.putBoolean(EXPORTING_STARTED_KEY, exportingStarted);
 		outState.putLong(EXPORT_START_TIME_KEY, exportStartTime);
-		outState.putString(APP_MODE_KEY, appMode.getStringKey());
 		if (progress != null) {
 			outState.putInt(PROGRESS_MAX_KEY, progress.getMax());
 			outState.putInt(PROGRESS_VALUE_KEY, progress.getProgress());
 		}
-	}
-
-	@Override
-	public void onResume() {
-		super.onResume();
-		checkExportingFile();
 	}
 
 	@Override
@@ -322,22 +312,19 @@ public class ExportSettingsFragment extends BaseSettingsListFragment {
 	}
 
 	private void shareProfile(@NonNull File file) {
-		Intent sendIntent = new Intent();
-		sendIntent.setAction(Intent.ACTION_SEND);
-		sendIntent.putExtra(Intent.EXTRA_SUBJECT, file.getName());
-		sendIntent.putExtra(Intent.EXTRA_STREAM, AndroidUtils.getUriForFile(app, file));
-		sendIntent.setType("*/*");
-		sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-		Intent chooserIntent = Intent.createChooser(sendIntent, getString(R.string.shared_string_share));
-		AndroidUtils.startActivityIfSafe(app, chooserIntent);
+		new NativeShareDialogBuilder()
+				.addFileWithSaveAction(file, app, requireActivity(), false)
+				.setChooserTitle(getString(R.string.shared_string_share))
+				.setExtraStream(AndroidUtils.getUriForFile(app, file))
+				.setExtraSubject(file.getName())
+				.build(app);
 	}
 
 	public static void showInstance(@NonNull FragmentManager manager, @NonNull ApplicationMode appMode,
 	                                @Nullable HashMap<ExportType, List<?>> selectedTypes, boolean globalExport) {
 		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
 			ExportSettingsFragment fragment = new ExportSettingsFragment();
-			fragment.appMode = appMode;
+			fragment.setAppMode(appMode);
 			fragment.globalExport = globalExport;
 
 			if (!Algorithms.isEmpty(selectedTypes)) {

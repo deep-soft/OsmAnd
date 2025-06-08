@@ -30,6 +30,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.graphics.drawable.*;
 import android.hardware.display.DisplayManager;
 import android.net.Uri;
@@ -55,7 +56,6 @@ import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.*;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -75,8 +75,11 @@ import net.osmand.osm.OsmRouteType;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
 import net.osmand.plus.render.RenderingIcons;
+import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.views.OsmandMap;
+import net.osmand.render.RenderingRuleProperty;
 import net.osmand.shared.gpx.primitives.RouteActivity;
 import net.osmand.util.Algorithms;
 
@@ -88,6 +91,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -260,18 +264,19 @@ public class AndroidUtils {
 			return true;
 		} catch (ActivityNotFoundException e) {
 			LOG.error(e);
-			Toast.makeText(context, R.string.no_activity_for_intent, Toast.LENGTH_LONG).show();
+			getApp(context).showToastMessage(R.string.no_activity_for_intent);
 			return false;
 		}
 	}
 
-	public static boolean startActivityForResultIfSafe(@NonNull Activity activity, @NonNull Intent intent, int requestCode) {
+	public static boolean startActivityForResultIfSafe(@NonNull Activity activity,
+			@NonNull Intent intent, int requestCode) {
 		try {
 			activity.startActivityForResult(intent, requestCode);
 			return true;
 		} catch (ActivityNotFoundException e) {
 			LOG.error(e);
-			Toast.makeText(activity, R.string.no_activity_for_intent, Toast.LENGTH_LONG).show();
+			getApp(activity).showToastMessage(R.string.no_activity_for_intent);
 			return false;
 		}
 	}
@@ -283,7 +288,7 @@ public class AndroidUtils {
 			LOG.error(e);
 			Context context = fragment.getContext();
 			if (context != null) {
-				Toast.makeText(context, R.string.no_activity_for_intent, Toast.LENGTH_LONG).show();
+				getApp(context).showToastMessage(R.string.no_activity_for_intent);
 			}
 		}
 	}
@@ -571,11 +576,7 @@ public class AndroidUtils {
 	}
 
 	public static void setForeground(Context ctx, View view, boolean night, int lightResId, int darkResId) {
-		if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-			view.setForeground(AppCompatResources.getDrawable(ctx, night ? darkResId : lightResId));
-		} else if (view instanceof FrameLayout) {
-			view.setForeground(AppCompatResources.getDrawable(ctx, night ? darkResId : lightResId));
-		}
+		view.setForeground(AppCompatResources.getDrawable(ctx, night ? darkResId : lightResId));
 	}
 
 	public static void setDashButtonBackground(Context ctx, View view, boolean night) {
@@ -617,7 +618,7 @@ public class AndroidUtils {
 		return width;
 	}
 
-	public static void setTruncatedText(TextView textView, String text) {
+	public static void setTruncatedText(OutlinedTextContainer textView, String text) {
 		Paint paint = new Paint();
 		paint.setTextSize(textView.getTextSize());
 		float textWidth = paint.measureText(text);
@@ -629,9 +630,42 @@ public class AndroidUtils {
 		textView.setText(text);
 	}
 
-	public static int getTextWidth(float textSize, String text) {
+	public static int getMaxPossibleTextSize(@NonNull String text, @Nullable Typeface typeface,
+	                                         int viewWidthPx, int minSizePx, int maxSizePx) {
+		int textWidthAtMax = getTextWidth(typeface, maxSizePx, text);
+		if (textWidthAtMax <= viewWidthPx) {
+			return maxSizePx;
+		}
+
+		float scale = (float) viewWidthPx / textWidthAtMax;
+		int scaledSize = (int) Math.floor(maxSizePx * scale);
+
+		int candidateSize = Math.min(maxSizePx, Math.max(minSizePx, scaledSize));
+		int candidateWidth = getTextWidth(typeface, candidateSize, text);
+		if (candidateWidth <= viewWidthPx) {
+			return candidateSize;
+		}
+
+		while (candidateSize > minSizePx) {
+			candidateSize--;
+			candidateWidth = getTextWidth(typeface, candidateSize, text);
+			if (candidateWidth <= viewWidthPx) {
+				return candidateSize;
+			}
+		}
+		return minSizePx;
+	}
+
+	public static int getTextWidth(float textSize, @NonNull String text) {
+		return getTextWidth(null, textSize, text);
+	}
+
+	public static int getTextWidth(@Nullable Typeface typeface, float textSize, @NonNull String text) {
 		Paint paint = new Paint();
 		paint.setTextSize(textSize);
+		if (typeface != null) {
+			paint.setTypeface(typeface);
+		}
 		return (int) paint.measureText(text);
 	}
 
@@ -686,31 +720,31 @@ public class AndroidUtils {
 		return typedValue.data;
 	}
 
-	public static int resolveAttribute(Context ctx, int attribute) {
+	public static int resolveAttribute(@NonNull Context ctx, int attribute) {
 		TypedValue outValue = new TypedValue();
 		ctx.getTheme().resolveAttribute(attribute, outValue, true);
 		return outValue.resourceId;
 	}
 
-	public static float getFloatValueFromRes(Context ctx, int resId) {
+	public static float getFloatValueFromRes(@NonNull Context ctx, int resId) {
 		TypedValue outValue = new TypedValue();
 		ctx.getResources().getValue(resId, outValue, true);
 		return outValue.getFloat();
 	}
 
 	@DrawableRes
-	public static int getActivityIconId(@NonNull OsmandApplication app, @Nullable RouteActivity activity) {
+	public static int getActivityIconId(@NonNull Context app, @Nullable RouteActivity activity) {
 		return activity != null
 				? getDrawableId(app, activity.getIconName(), R.drawable.ic_action_info_dark)
 				: R.drawable.ic_action_activity;
 	}
 
-	public static boolean hasDrawableId(@NonNull OsmandApplication app, @NonNull String iconName) {
+	public static boolean hasDrawableId(@NonNull Context app, @NonNull String iconName) {
 		return getDrawableId(app, iconName, 0) != 0;
 	}
 
 	@DrawableRes
-	public static int getDrawableId(@NonNull OsmandApplication app, @NonNull String iconName, @DrawableRes int defRes) {
+	public static int getDrawableId(@NonNull Context app, @NonNull String iconName, @DrawableRes int defRes) {
 		int iconId = getDrawableId(app, iconName);
 		if (iconId <= 0) {
 			iconId = RenderingIcons.getBigIconResourceId(iconName);
@@ -718,14 +752,14 @@ public class AndroidUtils {
 		return iconId > 0 ? iconId : defRes;
 	}
 
-	public static int getDrawableId(OsmandApplication app, String id) {
+	public static int getDrawableId(@NonNull Context context, String id) {
 		if (!Algorithms.isEmpty(id)) {
-			return app.getResources().getIdentifier(id, "drawable", app.getPackageName());
+			return context.getResources().getIdentifier(id, "drawable", context.getPackageName());
 		}
 		return 0;
 	}
 
-	public static int getStatusBarHeight(Context ctx) {
+	public static int getStatusBarHeight(@NonNull Context ctx) {
 		int result = 0;
 		int resourceId = ctx.getResources().getIdentifier("status_bar_height", "dimen", "android");
 		if (resourceId > 0) {
@@ -734,7 +768,7 @@ public class AndroidUtils {
 		return result;
 	}
 
-	public static int getCutoutHeight(Activity activity) {
+	public static int getCutoutHeight(@NonNull Activity activity) {
 		int cutoutHeight = 0;
 
 		if (activity != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -748,7 +782,7 @@ public class AndroidUtils {
 		return cutoutHeight;
 	}
 
-	public static void addStatusBarPadding21v(@NonNull Activity activity, View view) {
+	public static void addStatusBarPadding21v(@NonNull Activity activity, @NonNull View view) {
 		if (isInFullScreenMode(activity)) {
 			int paddingLeft = view.getPaddingLeft();
 			int paddingTop = view.getPaddingTop();
@@ -924,11 +958,7 @@ public class AndroidUtils {
 
 	public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
 		List<Map.Entry<K, V>> list = new LinkedList<>(map.entrySet());
-		Collections.sort(list, new Comparator<Map.Entry<K, V>>() {
-			public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
-				return (o1.getValue()).compareTo(o2.getValue());
-			}
-		});
+		list.sort(Entry.comparingByValue());
 
 		Map<K, V> result = new LinkedHashMap<>();
 		for (Map.Entry<K, V> entry : list) {
@@ -938,34 +968,25 @@ public class AndroidUtils {
 	}
 
 	public static void setCompoundDrawablesWithIntrinsicBounds(@NonNull TextView tv, Drawable start, Drawable top, Drawable end, Drawable bottom) {
-		if (isSupportRTL()) {
 			tv.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom);
-		} else {
-			tv.setCompoundDrawablesWithIntrinsicBounds(start, top, end, bottom);
-		}
 	}
 
 	public static Drawable[] getCompoundDrawables(@NonNull TextView tv) {
-		if (isSupportRTL()) {
 			return tv.getCompoundDrawablesRelative();
-		}
-		return tv.getCompoundDrawables();
 	}
 
 	public static void setPadding(View view, int start, int top, int end, int bottom) {
-		if (isSupportRTL()) {
-			view.setPaddingRelative(start, top, end, bottom);
-		} else {
-			view.setPadding(start, top, end, bottom);
-		}
+		view.setPaddingRelative(start, top, end, bottom);
+	}
+
+	public static void setMargins(ViewGroup.MarginLayoutParams layoutParams, int vertical, int horizontal) {
+		setMargins(layoutParams, horizontal, vertical, horizontal, vertical);
 	}
 
 	public static void setMargins(ViewGroup.MarginLayoutParams layoutParams, int start, int top, int end, int bottom) {
 		layoutParams.setMargins(start, top, end, bottom);
-		if (isSupportRTL()) {
 			layoutParams.setMarginStart(start);
 			layoutParams.setMarginEnd(end);
-		}
 	}
 
 	public static int getLayoutDirection(@NonNull Context ctx) {
@@ -977,31 +998,43 @@ public class AndroidUtils {
 		return isLayoutRtl(ctx) ? R.drawable.ic_arrow_forward : R.drawable.ic_arrow_back;
 	}
 
+	@NonNull
 	public static Drawable getDrawableForDirection(@NonNull Context ctx, @NonNull Drawable drawable) {
 		return isLayoutRtl(ctx) ? getMirroredDrawable(drawable) : drawable;
 	}
 
+	@NonNull
 	public static Drawable getMirroredDrawable(@NonNull Drawable drawable) {
 		drawable.setAutoMirrored(true);
 		return drawable;
 	}
 
-	public static Bitmap drawableToBitmap(Drawable drawable) {
+	@NonNull
+	public static Bitmap drawableToBitmap(@NonNull Drawable drawable) {
 		return drawableToBitmap(drawable, false);
 	}
 
-	public static Bitmap drawableToBitmap(Drawable drawable, boolean noOptimization) {
-		if (drawable instanceof BitmapDrawable && !noOptimization) {
-			BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
-			if (bitmapDrawable.getBitmap() != null) {
-				return bitmapDrawable.getBitmap();
-			}
+	@NonNull
+	public static Bitmap drawableToBitmap(@NonNull Drawable drawable, boolean noOptimization) {
+		int width = drawable.getIntrinsicWidth() <= 0 ? 1 : drawable.getIntrinsicWidth();
+		int height = drawable.getIntrinsicHeight() <= 0 ? 1 : drawable.getIntrinsicHeight();
+		return drawableToBitmap(drawable, width, height, noOptimization);
+	}
+
+	@NonNull
+	public static Bitmap drawableToBitmap(@NonNull Drawable drawable, float scale, boolean noOptimization) {
+		int width = (int) (drawable.getIntrinsicWidth() * scale);
+		int height = (int) (drawable.getIntrinsicHeight() * scale);
+		return drawableToBitmap(drawable, width, height, noOptimization);
+	}
+
+	@NonNull
+	public static Bitmap drawableToBitmap(@NonNull Drawable drawable, int width, int height,
+			boolean noOptimization) {
+		if (!noOptimization && drawable instanceof BitmapDrawable bitmap && bitmap.getBitmap() != null) {
+			return bitmap.getBitmap();
 		}
-
-		Bitmap bitmap = drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0
-				? Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-				: Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-
+		Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 		Canvas canvas = new Canvas(bitmap);
 		drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
 		drawable.draw(canvas);
@@ -1026,16 +1059,13 @@ public class AndroidUtils {
 		}
 	}
 
-	public static boolean isSupportRTL() {
-		return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
-	}
-
 	public static boolean isLayoutMirrored(@NonNull View view) {
 		return ViewCompat.getLayoutDirection(view) == ViewCompat.LAYOUT_DIRECTION_RTL;
 	}
 
 	public static boolean isLayoutRtl(Context ctx) {
-		return isSupportRTL() && getLayoutDirection(ctx) == ViewCompat.LAYOUT_DIRECTION_RTL;
+		Configuration config = ctx.getResources().getConfiguration();
+		return config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
 	}
 
 	public static List<View> getChildrenViews(ViewGroup vg) {
@@ -1175,13 +1205,35 @@ public class AndroidUtils {
 		return value != null ? value : defValue;
 	}
 
-	public static String getIconStringPropertyName(Context ctx, String propertyName) {
+	public static String getIconStringPropertyName(@NonNull Context ctx, @NonNull String propertyName) {
 		String value = getStringByProperty(ctx, "icon_group_" + propertyName);
 		return value != null ? value : propertyName;
 	}
 
+	public static int getRenderPropertySelectedValueIndex(@NonNull OsmandApplication app,
+	                                                      @NonNull RenderingRuleProperty property) {
+		OsmandSettings settings = app.getSettings();
+		String value = settings.getRenderPropertyValue(property);
+		int index = List.of(property.getPossibleValues()).indexOf(value);
+		if (index >= 0) {
+			return ++index;
+		} else if (Algorithms.isEmpty(value)) {
+			return 0;
+		}
+		return index;
+	}
+
 	@NonNull
-	public static String getRenderingStringPropertyValue(Context ctx, String propertyValue) {
+	public static String getRenderingStringPropertyValue(@NonNull OsmandApplication app,
+	                                                     @NonNull RenderingRuleProperty property) {
+		OsmandSettings settings = app.getSettings();
+		String value = settings.getRenderPropertyValue(property);
+		String key = !Algorithms.isEmpty(value) ? value : property.getDefaultValueDescription();
+		return AndroidUtils.getRenderingStringPropertyValue(app, key);
+	}
+
+	@NonNull
+	public static String getRenderingStringPropertyValue(@NonNull Context ctx, @Nullable String propertyValue) {
 		if (propertyValue == null) {
 			return "";
 		}
@@ -1251,7 +1303,7 @@ public class AndroidUtils {
 			Field field = R.string.class.getField(property);
 			return getStringForField(ctx, field);
 		} catch (Exception e) {
-			System.err.println(e.getMessage());
+			LOG.warn("String not found: " + e.getMessage());
 		}
 		return null;
 	}
@@ -1281,7 +1333,7 @@ public class AndroidUtils {
 		try {
 			customTabsIntent.launchUrl(context, uri);
 		} catch (ActivityNotFoundException e) {
-			Toast.makeText(context, R.string.no_activity_for_intent, Toast.LENGTH_LONG).show();
+			getApp(context).showToastMessage(R.string.no_activity_for_intent);
 		}
 	}
 
@@ -1437,5 +1489,10 @@ public class AndroidUtils {
 		} else {
 			return new int[] {leftMargin, topMargin, rightMargin, bottomMargin};
 		}
+	}
+
+	@NonNull
+	public static OsmandApplication getApp(@NonNull Context context) {
+		return ((OsmandApplication) context.getApplicationContext());
 	}
 }

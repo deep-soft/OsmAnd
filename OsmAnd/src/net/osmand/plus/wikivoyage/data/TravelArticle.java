@@ -1,7 +1,9 @@
 package net.osmand.plus.wikivoyage.data;
 
+import net.osmand.data.QuadRect;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.GpxTrackAnalysis;
+import net.osmand.shared.gpx.primitives.Link;
 import net.osmand.shared.gpx.primitives.WptPt;
 import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE;
 import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE_POINT;
@@ -23,6 +25,7 @@ import net.osmand.osm.PoiCategory;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.card.color.palette.main.data.DefaultColors;
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 import net.osmand.wiki.WikivoyageOSMTags;
 
 import org.apache.commons.codec.binary.Hex;
@@ -52,7 +55,6 @@ public class TravelArticle {
 	String imageTitle;
 	GpxFile gpxFile;
 	String routeId;
-	int routeRadius = -1;
 	public String ref;
 	String routeSource = "";
 	long originalId;
@@ -64,6 +66,30 @@ public class TravelArticle {
 	long lastModified;
 	boolean gpxFileReading;
 	boolean gpxFileRead;
+
+	int routeRadius = -1;
+	private QuadRect bbox31;
+	public final static int TRAVEL_GPX_DEFAULT_SEARCH_RADIUS = 50 * 1000;
+
+	public void initShortLinkTiles(@NonNull String shortLinkTiles) {
+		this.bbox31 = new QuadRect();
+		for (String shortLink : shortLinkTiles.split(",")) {
+			QuadRect bbox = MapUtils.decodeShortLinkToQuadRect(shortLink);
+			int left = MapUtils.get31TileNumberX(bbox.left);
+			int top = MapUtils.get31TileNumberY(bbox.top);
+			int right = MapUtils.get31TileNumberX(bbox.right);
+			int bottom = MapUtils.get31TileNumberY(bbox.bottom);
+			this.bbox31.expand(left, top, right, bottom);
+		}
+	}
+
+	public QuadRect getBbox31() {
+		return bbox31;
+	}
+
+	public boolean hasBbox31() {
+		return bbox31 != null && !bbox31.hasInitialState();
+	}
 
 	@NonNull
 	public TravelArticleIdentifier generateIdentifier() {
@@ -125,6 +151,24 @@ public class TravelArticle {
 
 	public String getRouteId() {
 		return routeId;
+	}
+
+	public boolean hasOsmRouteId() {
+		String routeId = getRouteId();
+		return routeId != null &&
+				(routeId.startsWith(Amenity.ROUTE_ID_OSM_PREFIX_LEGACY)
+						|| routeId.startsWith(Amenity.ROUTE_ID_OSM_PREFIX));
+	}
+
+	@NonNull
+	public String getGpxFileName() {
+		String gpxFileName = !Algorithms.isEmpty(title) ? title : routeId;
+		if (gpxFileName != null) {
+			return Algorithms.sanitizeFileName(gpxFileName);
+		} else {
+			LOG.error("Empty travel article in " + this.file);
+			return "Travel Article File"; // @NonNull
+		}
 	}
 
 	public String getRouteSource() {
@@ -202,7 +246,7 @@ public class TravelArticle {
 		wptPt.setLat(amenity.getLocation().getLatitude());
 		wptPt.setLon(amenity.getLocation().getLongitude());
 		wptPt.setDesc(amenity.getDescription(lang));
-		wptPt.setLink(amenity.getSite());
+		wptPt.setLink(new Link(amenity.getSite()));
 		String colorId = amenity.getColor();
 		if (colorId != null) {
 			wptPt.setColor(DefaultColors.valueOf(colorId));
@@ -299,12 +343,17 @@ public class TravelArticle {
 		}
 
 		private TravelArticleIdentifier(@NonNull TravelArticle article) {
-			file = article.file;
-			lat = article.lat;
-			lon = article.lon;
-			title = article.title;
-			routeId = article.routeId;
-			routeSource = article.routeSource;
+			this(article.file, article.lat, article.lon, article.title, article.routeId, article.routeSource);
+		}
+
+		public TravelArticleIdentifier(@Nullable File file, double lat, double lon,
+				@Nullable String title, @Nullable String routeId, @Nullable String routeSource) {
+			this.file = file;
+			this.lat = lat;
+			this.lon = lon;
+			this.title = title;
+			this.routeId = routeId;
+			this.routeSource = routeSource;
 		}
 
 		@Override

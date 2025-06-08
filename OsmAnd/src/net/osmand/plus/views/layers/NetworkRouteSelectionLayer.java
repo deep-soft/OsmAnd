@@ -5,7 +5,6 @@ import static net.osmand.data.PointDescription.POINT_TYPE_ROUTE;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.PointF;
 import android.os.AsyncTask;
 import android.util.Pair;
 
@@ -39,7 +38,6 @@ import net.osmand.util.MapUtils;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -154,7 +152,7 @@ public class NetworkRouteSelectionLayer extends OsmandMapLayer implements IConte
 			String name = getObjectName(pair).getName();
 			String fileName = Algorithms.convertToPermittedFileName(name.endsWith(GPX_FILE_EXT) ? name : name + GPX_FILE_EXT);
 			File file = new File(FileUtils.getTempDir(app), fileName);
-			GpxUiHelper.saveAndOpenGpx(activity, file, gpxFile, wptPt, null, pair.first);
+			GpxUiHelper.saveAndOpenGpx(activity, file, gpxFile, wptPt, null, pair.first, false);
 		}
 	}
 
@@ -188,12 +186,34 @@ public class NetworkRouteSelectionLayer extends OsmandMapLayer implements IConte
 	}
 
 	@Override
-	public void collectObjectsFromPoint(PointF point, RotatedTileBox tileBox, List<Object> o, boolean unknownLocation, boolean excludeUntouchableObjects) {
+	public void collectObjectsFromPoint(@NonNull MapSelectionResult result, boolean unknownLocation, boolean excludeUntouchableObjects) {
 
 	}
 
 	@Override
 	public boolean drawInScreenPixels() {
 		return false;
+	}
+
+	public void clearCachedGpx(@NonNull GpxFile gpxFile) {
+		RouteKey routeKey = RouteKey.fromGpxFile(gpxFile);
+
+		if (!routesCache.containsKey(routeKey)) {
+			routeKey = findKeyByValue(gpxFile);
+		}
+
+		if (routeKey != null) {
+			routesCache.remove(routeKey);
+		}
+	}
+
+	private RouteKey findKeyByValue(@NonNull GpxFile gpxFile) {
+		for (Map.Entry<RouteKey, GpxFile> entry : routesCache.entrySet()) {
+			if (entry.getValue() == gpxFile ||
+					Algorithms.stringsEqual(entry.getValue().getPath(), gpxFile.getPath())) {
+				return entry.getKey();
+			}
+		}
+		return null;
 	}
 }

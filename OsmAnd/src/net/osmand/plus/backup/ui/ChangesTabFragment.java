@@ -30,6 +30,7 @@ import net.osmand.plus.backup.RemoteFile;
 import net.osmand.plus.backup.SyncBackupTask.OnBackupSyncListener;
 import net.osmand.plus.backup.ui.ChangesFragment.RecentChangesType;
 import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.settings.backend.backup.items.FileSettingsItem;
 import net.osmand.plus.settings.backend.backup.items.SettingsItem;
 
 import java.util.ArrayList;
@@ -151,7 +152,7 @@ public abstract class ChangesTabFragment extends BaseOsmAndFragment implements O
 	private void updateAdapter() {
 		if (adapter != null) {
 			items = generateData();
-			Collections.sort(items, (o1, o2) -> -Long.compare(o1.time, o2.time));
+			Collections.sort(items, (o1, o2) -> o1.name.compareTo(o2.name));
 			adapter.setCloudChangeItems(items);
 		}
 	}
@@ -178,6 +179,7 @@ public abstract class ChangesTabFragment extends BaseOsmAndFragment implements O
 
 	public static class CloudChangeItem {
 
+		public String name;
 		public String title;
 		public String fileName;
 		public String description;
@@ -203,18 +205,25 @@ public abstract class ChangesTabFragment extends BaseOsmAndFragment implements O
 		boolean local = tabType == RECENT_CHANGES_LOCAL;
 		SettingsItem settingsItem = getSettingsItem(local, localFile, remoteFile);
 		if (settingsItem != null) {
-
 			CloudChangeItem item = new CloudChangeItem();
 			item.title = BackupUiUtils.getItemName(app, settingsItem);
 			item.summary = localizedSummaryForOperation(operationType, localFile, remoteFile);
 			item.time = getTime(operationType, localFile, remoteFile);
 			item.description = BackupUiUtils.generateTimeString(app, item.summary, item.time);
-			item.iconId = BackupUiUtils.getIconId(settingsItem);
+			item.iconId = BackupUiUtils.getIconId(app, settingsItem);
 			item.settingsItem = settingsItem;
 			item.operation = operationType;
 			item.localFile = localFile;
 			item.remoteFile = remoteFile;
 			item.fileName = BackupUtils.getItemFileName(settingsItem);
+
+			String type;
+			if (settingsItem instanceof FileSettingsItem fileItem) {
+				type = fileItem.getSubtype().name();
+			} else {
+				type = settingsItem.getType().name();
+			}
+			item.name = type + "/" + item.title;
 
 			return item;
 		}

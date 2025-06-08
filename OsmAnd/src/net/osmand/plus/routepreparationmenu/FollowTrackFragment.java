@@ -272,7 +272,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 				rect.bottom = Math.min(rect.bottom, gpxRect.getBottom());
 			}
 
-			RotatedTileBox tb = mapActivity.getMapView().getCurrentRotatedTileBox().copy();
+			RotatedTileBox tb = mapActivity.getMapView().getRotatedTileBox();
 			int tileBoxWidthPx = 0;
 			int tileBoxHeightPx = 0;
 
@@ -554,7 +554,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 				if (!mapActivity.isChangingConfigurations()) {
 					mapActivity.getMapRouteInfoMenu().cancelSelectionFromTracks();
 				}
-				mapActivity.getMapLayers().getMapActionsHelper().showRouteInfoControlDialog();
+				mapActivity.getMapActions().showRouteInfoControlDialog();
 			}
 		} catch (Exception e) {
 			log.error(e);

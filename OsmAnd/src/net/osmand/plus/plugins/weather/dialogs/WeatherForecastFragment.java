@@ -40,7 +40,7 @@ import net.osmand.plus.plugins.weather.widgets.WeatherWidgetsPanel;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
-import net.osmand.plus.utils.OsmAndFormatter.TimeFormatter;
+import net.osmand.plus.utils.TimeFormatter;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.MapLayers;
 import net.osmand.plus.views.OsmandMapTileView;
@@ -345,15 +345,15 @@ public class WeatherForecastFragment extends BaseOsmAndFragment implements Weath
 
 		ZoomInButton zoomInBtn = view.findViewById(R.id.map_zoom_in_button);
 		if (zoomInBtn != null) {
-			layer.addCustomMapButton(zoomInBtn);
+			layer.addCustomizedDefaultMapButton(zoomInBtn);
 		}
 		ZoomOutButton zoomOutBtn = view.findViewById(R.id.map_zoom_out_button);
 		if (zoomOutBtn != null) {
-			layer.addCustomMapButton(zoomOutBtn);
+			layer.addCustomizedDefaultMapButton(zoomOutBtn);
 		}
 		MyLocationButton myLocationBtn = view.findViewById(R.id.map_my_location_button);
 		if (myLocationBtn != null) {
-			layer.addCustomMapButton(myLocationBtn);
+			layer.addCustomizedDefaultMapButton(myLocationBtn);
 		}
 		AndroidUiHelper.updateVisibility(zoomButtonsView, true);
 

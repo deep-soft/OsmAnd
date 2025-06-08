@@ -16,6 +16,7 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.MenuBottomSheetDialogFragment;
 import net.osmand.plus.base.bottomsheetmenu.BaseBottomSheetItem;
+import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.utils.FontCache;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
@@ -25,9 +26,12 @@ public class SpeedCamerasBottomSheet extends MenuBottomSheetDialogFragment {
 	public static final String TAG = SpeedCamerasBottomSheet.class.getName();
 	private OsmandApplication app;
 
-	public static void showInstance(@NonNull FragmentManager fm, @Nullable Fragment targetFragment) {
+	public static void showInstance(@NonNull FragmentManager fm, @Nullable Fragment targetFragment,
+	                                @Nullable ApplicationMode appMode, boolean usedOnMap) {
 		if (!fm.isStateSaved()) {
 			SpeedCamerasBottomSheet bottomSheet = new SpeedCamerasBottomSheet();
+			bottomSheet.setAppMode(appMode);
+			bottomSheet.setUsedOnMap(usedOnMap);
 			bottomSheet.setTargetFragment(targetFragment, 0);
 			bottomSheet.show(fm, TAG);
 		}
@@ -41,7 +45,7 @@ public class SpeedCamerasBottomSheet extends MenuBottomSheetDialogFragment {
 
 	@Override
 	public void createMenuItems(Bundle savedInstanceState) {
-		View root = UiUtilities.getInflater(app, nightMode).inflate(R.layout.bottom_sheet_icon_title_description, null);
+		View root = UiUtilities.getInflater(requireContext(), nightMode).inflate(R.layout.bottom_sheet_icon_title_description, null);
 		((ImageView) root.findViewById(R.id.icon)).setImageDrawable(app.getUIUtilities().getIcon(R.drawable.img_speed_camera_warning));
 		((TextView) root.findViewById(R.id.title)).setText(R.string.speed_camera_pois);
 		((TextView) root.findViewById(R.id.description)).setText(getDescriptionText());

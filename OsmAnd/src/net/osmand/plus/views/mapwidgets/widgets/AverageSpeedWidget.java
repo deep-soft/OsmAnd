@@ -11,7 +11,7 @@ import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
-import net.osmand.plus.utils.OsmAndFormatter.FormattedValue;
+import net.osmand.plus.utils.FormattedValue;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
@@ -35,10 +35,13 @@ public class AverageSpeedWidget extends SimpleWidget {
 	private final CommonPreference<Boolean> skipStopsPref;
 
 	private long lastUpdateTime;
+	private long resetTimestamp; // Timestamp when the widget was last reset
+
 
 	public AverageSpeedWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
 		super(mapActivity, AVERAGE_SPEED, customId, widgetsPanel);
 		averageSpeedComputer = app.getAverageSpeedComputer();
+		resetTimestamp = System.currentTimeMillis();
 		setIcons(AVERAGE_SPEED);
 		measuredIntervalPref = registerMeasuredIntervalPref(customId);
 		skipStopsPref = registerSkipStopsPref(customId);
@@ -74,7 +77,10 @@ public class AverageSpeedWidget extends SimpleWidget {
 	private void updateAverageSpeed() {
 		long measuredInterval = measuredIntervalPref.get();
 		boolean skipLowSpeed = skipStopsPref.get();
-		float averageSpeed = averageSpeedComputer.getAverageSpeed(measuredInterval, skipLowSpeed);
+
+		// Calculate average speed only for locations after the reset timestamp
+		float averageSpeed = averageSpeedComputer.getAverageSpeed(resetTimestamp, measuredInterval, skipLowSpeed);
+
 		if (Float.isNaN(averageSpeed)) {
 			setText(NO_VALUE, null);
 		} else {
@@ -100,7 +106,7 @@ public class AverageSpeedWidget extends SimpleWidget {
 	}
 
 	public void resetAverageSpeed() {
-		averageSpeedComputer.resetLocations();
+		resetTimestamp = System.currentTimeMillis(); // Update reset timestamp
 		setText(NO_VALUE, null);
 	}
 

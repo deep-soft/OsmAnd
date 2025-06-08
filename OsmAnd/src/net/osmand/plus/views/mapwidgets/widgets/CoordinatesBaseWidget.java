@@ -5,7 +5,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,6 +22,7 @@ import net.osmand.plus.R;
 import net.osmand.plus.SwissGridApproximation;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
 import net.osmand.plus.mapcontextmenu.other.ShareMenu;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
@@ -49,8 +49,8 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 	protected View firstContainer;
 	protected View secondContainer;
 
-	protected TextView firstCoordinate;
-	protected TextView secondCoordinate;
+	protected OutlinedTextContainer firstCoordinate;
+	protected OutlinedTextContainer secondCoordinate;
 
 	private String firstCoordinateText = "";
 	private String secondCoordinateText = "";
@@ -64,8 +64,9 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 		return R.layout.coordinates_widget;
 	}
 
-	public CoordinatesBaseWidget(@NonNull MapActivity mapActivity, WidgetType widgetType) {
-		super(mapActivity, widgetType);
+	public CoordinatesBaseWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType,
+			@Nullable String customId, @Nullable WidgetsPanel panel) {
+		super(mapActivity, widgetType, customId, panel);
 
 		divider = view.findViewById(R.id.divider);
 		updateViewIds(isLayoutRtl());
@@ -148,9 +149,9 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 			showMgrsCoordinates(lat, lon);
 		} else if (format == PointDescription.OLC_FORMAT) {
 			showOlcCoordinates(lat, lon);
-		} else if(format == PointDescription.SWISS_GRID_FORMAT){
+		} else if (format == PointDescription.SWISS_GRID_FORMAT) {
 			showSwissGrid(lat, lon, false);
-		} else if (format == PointDescription.SWISS_GRID_PLUS_FORMAT){
+		} else if (format == PointDescription.SWISS_GRID_PLUS_FORMAT) {
 			showSwissGrid(lat, lon, true);
 		} else {
 			showStandardCoordinates(lat, lon, format);
@@ -182,7 +183,7 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 		setFirstCoordinateText(olcCoordinates);
 	}
 
-	private void showSwissGrid(double lat, double lon, boolean swissGridPlus){
+	private void showSwissGrid(double lat, double lon, boolean swissGridPlus) {
 		LatLon latLon = new LatLon(lat, lon);
 		double[] swissGrid = swissGridPlus
 				? SwissGridApproximation.convertWGS84ToLV95(latLon)
@@ -240,7 +241,7 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 		setCoordinateText(secondCoordinate, text);
 	}
 
-	private void setCoordinateText(@NonNull TextView textView, @NonNull String text) {
+	private void setCoordinateText(@NonNull OutlinedTextContainer textView, @NonNull String text) {
 		AndroidUtils.setTruncatedText(textView, TextDirectionUtil.markAsLTR(text));
 	}
 
@@ -249,7 +250,7 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 	}
 
 	@NonNull
-	protected Drawable getUtmIcon(){
+	protected Drawable getUtmIcon() {
 		int utmIconId = isNightMode()
 				? R.drawable.widget_coordinates_utm_night
 				: R.drawable.widget_coordinates_utm_day;
@@ -286,7 +287,7 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 		if (updatedVisibility && widgetType.getPanel(settings) == WidgetsPanel.TOP) {
 			MapInfoLayer mapInfoLayer = mapActivity.getMapLayers().getMapInfoLayer();
 			if (mapInfoLayer != null) {
-				mapInfoLayer.recreateTopWidgetsPanel();
+				mapInfoLayer.updateVerticalPanels();
 			}
 			mapActivity.updateStatusBarColor();
 		}
@@ -305,6 +306,9 @@ public abstract class CoordinatesBaseWidget extends MapWidget {
 		int typefaceStyle = textState.textBold ? Typeface.BOLD : Typeface.NORMAL;
 		firstCoordinate.setTypeface(Typeface.DEFAULT, typefaceStyle);
 		secondCoordinate.setTypeface(Typeface.DEFAULT, typefaceStyle);
+
+		updateTextOutline(firstCoordinate, textState);
+		updateTextOutline(secondCoordinate, textState);
 
 		view.setBackgroundResource(textState.widgetBackgroundId);
 		updateInfo(null);

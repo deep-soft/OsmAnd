@@ -29,10 +29,10 @@ import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.views.mapwidgets.configure.dialogs.DistanceByTapFragment;
 import net.osmand.plus.wikipedia.WikiAlgorithms;
 import net.osmand.plus.wikipedia.WikiImageCard;
+import net.osmand.shared.wiki.WikiMetadata;
 import net.osmand.util.Algorithms;
-import net.osmand.wiki.Metadata;
 
-import org.jetbrains.annotations.NotNull;
+import java.util.Set;
 
 public class GalleryDetailsFragment extends BaseOsmAndFragment implements DownloadMetadataListener {
 
@@ -44,23 +44,14 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 
 	@Override
 	public int getStatusBarColorId() {
-		AndroidUiHelper.setStatusBarContentColor(getView(), !nightMode);
+		AndroidUiHelper.setStatusBarContentColor(getView(), true);
 		return ColorUtilities.getAppBarColorId(nightMode);
-	}
-
-	@Override
-	public boolean getContentStatusBarNightMode() {
-		return !nightMode;
 	}
 
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
 		controller = (GalleryController) app.getDialogManager().findController(GalleryController.PROCESS_ID);
-		if (controller != null) {
-			controller.addMetaDataListener(this);
-		}
 
 		Bundle args = getArguments();
 		if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_POSITION_KEY)) {
@@ -82,6 +73,14 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 		updateContent(view);
 
 		return view;
+	}
+
+	@Override
+	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+		super.onViewCreated(view, savedInstanceState);
+		if (controller != null) {
+			controller.addMetaDataListener(this);
+		}
 	}
 
 	private void setupToolbar(@NonNull View view) {
@@ -107,7 +106,7 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 		container.removeAllViews();
 
 		ImageCard card = getSelectedCard();
-		Metadata metadata = card instanceof WikiImageCard ? ((WikiImageCard) card).getWikiImage().getMetadata() : null;
+		WikiMetadata.Metadata metadata = card instanceof WikiImageCard ? ((WikiImageCard) card).getWikiImage().getMetadata() : null;
 
 		String author = metadata != null ? metadata.getAuthor() : null;
 		if (!Algorithms.isEmpty(author)) {
@@ -124,7 +123,10 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 		}
 
 		int iconId = card.getTopIconId();
-		buildItem(container, getString(R.string.shared_string_source), getSourceTypeName(card), iconId, false, false);
+		String source = getSourceTypeName(card);
+		if (!Algorithms.isEmpty(source) || iconId != 0) {
+			buildItem(container, getString(R.string.shared_string_source), source, iconId, false, false);
+		}
 
 		String license = metadata != null ? metadata.getLicense() : null;
 		if (!Algorithms.isEmpty(license)) {
@@ -151,7 +153,7 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 
 		int defaultIconColor = ColorUtilities.getDefaultIconColor(app, nightMode);
 		ImageView iconView = view.findViewById(R.id.icon);
-		Drawable drawable = !defaultColor ? app.getUIUtilities().getIcon(iconId) : app.getUIUtilities().getPaintedIcon(iconId, defaultIconColor);
+		Drawable drawable = !defaultColor ? uiUtilities.getIcon(iconId) : uiUtilities.getPaintedIcon(iconId, defaultIconColor);
 		iconView.setImageDrawable(drawable);
 
 		TextView titleView = view.findViewById(R.id.title);
@@ -165,7 +167,7 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 		descriptionView.setText(description);
 
 		view.setOnLongClickListener(v -> {
-			ShareMenu.copyToClipboardWithToast(app, description, Toast.LENGTH_SHORT);
+			ShareMenu.copyToClipboardWithToast(app, description, false);
 			return true;
 		});
 		if (isUrl) {
@@ -181,9 +183,10 @@ public class GalleryDetailsFragment extends BaseOsmAndFragment implements Downlo
 	}
 
 	@Override
-	public void onMetadataDownloaded(@NonNull @NotNull WikiImageCard imageCard) {
+	public void onMetadataUpdated(@NonNull Set<String> updatedMediaTagImages) {
+		ImageCard imageCard = getSelectedCard();
 		View view = getView();
-		if (view != null && Algorithms.stringsEqual(imageCard.getImageUrl(), getSelectedCard().getImageUrl())) {
+		if (view != null && imageCard instanceof WikiImageCard wikiImageCard && updatedMediaTagImages.contains(wikiImageCard.getWikiImage().getWikiMediaTag())) {
 			updateContent(view);
 		}
 	}

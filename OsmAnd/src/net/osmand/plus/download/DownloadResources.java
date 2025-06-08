@@ -19,7 +19,7 @@ import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.custom.CustomRegion;
 import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
 import net.osmand.plus.resources.ResourceManager;
-import net.osmand.plus.resources.ResourceManager.BinaryMapReaderResource;
+import net.osmand.plus.resources.BinaryMapReaderResource;
 import net.osmand.plus.wikivoyage.data.TravelDbHelper;
 import net.osmand.util.Algorithms;
 import net.osmand.util.CollectionUtils;
@@ -136,6 +136,24 @@ public class DownloadResources extends DownloadResourceGroup {
 			}
 		}
 		return res;
+	}
+
+	@NonNull
+	public List<IndexItem> getIndexItems(@Nullable List<DownloadActivityType> types) {
+		if (rawResources == null) {
+			return Collections.emptyList();
+		}
+		List<IndexItem> items = new ArrayList<>();
+		if (Algorithms.isEmpty(types)) {
+			items.addAll(rawResources);
+		} else {
+			for (IndexItem item : rawResources) {
+				if (types.contains(item.getType())) {
+					items.add(item);
+				}
+			}
+		}
+		return items;
 	}
 
 	@NonNull

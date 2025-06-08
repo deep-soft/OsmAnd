@@ -47,23 +47,26 @@ public class EditorIconController extends BaseDialogController {
 	public static final String SPECIAL_KEY = "special";
 	public static final String SYMBOLS_KEY = "symbols";
 	public static final String ACTIVITIES_KEY = "activities";
+	public static final String TRAVEL_KEY = "travel";
 
 	protected final List<IconsCategory> categories = new ArrayList<>();
 	protected IconsCategory selectedCategory;
 	protected List<String> lastUsedIcons;
 	private String selectedIconKey;
 
-	private EditorIconCardController cardController;
+	protected EditorIconCardController cardController;
 	private EditorIconScreenController screenController;
 	private IconsPaletteElements<String> paletteElements;
 	private Fragment targetFragment;
+	@Nullable
+	protected OnIconsPaletteListener<String> iconsPaletteListener;
 	private int controlsAccentColor;
 
 	public EditorIconController(@NonNull OsmandApplication app) {
 		super(app);
 	}
 
-	protected void init() {
+	public void init() {
 		initIconCategories();
 		this.selectedCategory = findInitialIconCategory();
 		this.cardController = createCardController();
@@ -87,7 +90,7 @@ public class EditorIconController extends BaseDialogController {
 
 	protected void initAssetsCategories() {
 		try {
-			categories.addAll(readCategoriesFromAssets(Arrays.asList(SPECIAL_KEY, SYMBOLS_KEY)));
+			categories.addAll(readCategoriesFromAssets(Arrays.asList(SPECIAL_KEY, SYMBOLS_KEY, TRAVEL_KEY)));
 		} catch (JSONException e) {
 			LOG.error(e.getMessage());
 		}
@@ -191,12 +194,12 @@ public class EditorIconController extends BaseDialogController {
 		for (PoiCategory poiCategory : poiCategories) {
 			List<PoiType> poiTypeList = new ArrayList<>(poiCategory.getPoiTypes());
 			poiTypeList.sort(Comparator.comparing(AbstractPoiType::getTranslation));
-			List<String> iconKeys = new ArrayList<>();
+			Set<String> iconKeys = new LinkedHashSet<>();
 			for (PoiType poiType : poiTypeList) {
 				EditorIconUtils.retrieveIconKey(poiType, iconKeys::add);
 			}
 			if (!Algorithms.isEmpty(iconKeys)) {
-				categories.add(new IconsCategory(poiCategory.getKeyName(), poiCategory.getTranslation(), iconKeys));
+				categories.add(new IconsCategory(poiCategory.getKeyName(), poiCategory.getTranslation(), new ArrayList<>(iconKeys)));
 			}
 		}
 		return categories;
@@ -215,6 +218,10 @@ public class EditorIconController extends BaseDialogController {
 
 	public void setTargetFragment(@NonNull Fragment targetFragment) {
 		this.targetFragment = targetFragment;
+	}
+
+	public void setIconsPaletteListener(@Nullable OnIconsPaletteListener<String> iconsPaletteListener) {
+		this.iconsPaletteListener = iconsPaletteListener;
 	}
 
 	@Nullable
@@ -292,6 +299,8 @@ public class EditorIconController extends BaseDialogController {
 		}
 		if (targetFragment instanceof OnIconsPaletteListener<?>) {
 			((OnIconsPaletteListener<String>) targetFragment).onIconSelectedFromPalette(iconKey);
+		} else if (iconsPaletteListener != null) {
+			iconsPaletteListener.onIconSelectedFromPalette(iconKey);
 		}
 	}
 

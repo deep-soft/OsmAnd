@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.util.Log;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -130,6 +129,7 @@ public final class NavigationScreen extends BaseAndroidAutoScreen implements Sur
 
 	@Override
 	public void onDestroy(@NonNull LifecycleOwner owner) {
+		super.onDestroy(owner);
 		adjustMapPosition(false);
 		getApp().getRoutingHelper().removeListener(this);
 		getLifecycle().removeObserver(this);
@@ -341,9 +341,7 @@ public final class NavigationScreen extends BaseAndroidAutoScreen implements Sur
 		// pressing the select button again.
 		builder.setPanModeListener(isInPanMode -> {
 			if (isInPanMode) {
-				CarToast.makeText(getCarContext(),
-						R.string.exit_pan_mode_descr,
-						CarToast.LENGTH_LONG).show();
+				getApp().getToastHelper().showCarToast(getApp().getString(R.string.exit_pan_mode_descr), true);
 			}
 			panMode = isInPanMode;
 			invalidate();
@@ -397,11 +395,6 @@ public final class NavigationScreen extends BaseAndroidAutoScreen implements Sur
 			}
 		}
 		return builder.build();
-	}
-
-	@Override
-	protected void restoreMapState() {
-		//no automatic map adjust
 	}
 
 	private void updateCompass() {

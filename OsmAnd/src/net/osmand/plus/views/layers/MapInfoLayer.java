@@ -102,6 +102,9 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 			bottomWidgetsPanel = mapActivity.findViewById(R.id.map_bottom_widgets_panel);
 			androidAutoMapPlaceholderView = mapActivity.findViewById(R.id.AndroidAutoPlaceholder);
 
+			leftWidgetsPanel.setScreenWidth(mapActivity);
+			rightWidgetsPanel.setScreenWidth(mapActivity);
+
 			LayoutInflater inflater = mapActivity.getLayoutInflater();
 			rulerWidget = (RulerWidget) inflater.inflate(R.layout.map_ruler, mapHudLayout, false);
 			mapHudLayout.addWidget(rulerWidget);
@@ -145,6 +148,11 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 			additionalWidgets = null;
 			topToolbarView = null;
 		}
+	}
+
+	@Nullable
+	public TopToolbarView getTopToolbarView() {
+		return topToolbarView;
 	}
 
 	private void resetCashedTheme() {
@@ -246,7 +254,7 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 		}
 	}
 
-	public void recreateTopWidgetsPanel() {
+	public void updateVerticalPanels() {
 		ApplicationMode appMode = settings.getApplicationMode();
 		widgetRegistry.updateWidgetsInfo(appMode, drawSettings);
 
@@ -258,15 +266,15 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 		}
 	}
 
-	private void clearCustomContainers(MapActivity mapActivity) {
-		ViewGroup lanesCustomContainer = mapActivity.findViewById(R.id.lanes_widget_special_position);
-		if (lanesCustomContainer != null) {
-			lanesCustomContainer.removeAllViews();
+	private void clearCustomContainers(@NonNull MapActivity activity) {
+		ViewGroup container = activity.findViewById(R.id.lanes_widget_special_position);
+		if (container != null) {
+			container.removeAllViews();
 		}
 	}
 
-	public void updateRow(MapWidget widget) {
-		if (getMapActivity() != null || !getMapActivity().isActivityDestroyed()) {
+	public void updateRow(@NonNull MapWidget widget) {
+		if (AndroidUtils.isActivityNotDestroyed(getMapActivity())) {
 			topWidgetsPanel.updateRow(widget);
 			bottomWidgetsPanel.updateRow(widget);
 		}
@@ -379,6 +387,10 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 		}
 	}
 
+	public void updateTopToolbar() {
+		updateTopToolbar(topToolbarView.isNightMode());
+	}
+
 	private void updateTopToolbar(boolean nightMode) {
 		topToolbarView.updateColors(nightMode);
 	}
@@ -394,8 +406,8 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 		if (verticalWidget) {
 			ts.textColor = ColorUtilities.getPrimaryTextColor(getContext(), nightMode);
 		} else {
-			ts.textColor = nightMode ? ContextCompat.getColor(getContext(), R.color.widgettext_night) :
-					ContextCompat.getColor(getContext(), R.color.widgettext_day);
+			int textColorId = nightMode ? R.color.widgettext_night : R.color.widgettext_day;
+			ts.textColor = ColorUtilities.getColor(getContext(), textColorId);
 		}
 		ts.secondaryTextColor = ColorUtilities.getSecondaryTextColor(getContext(), nightMode);
 
@@ -415,7 +427,7 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 			ts.panelBorderColorId = R.color.widget_panel_border_transparent;
 		} else if (nightMode) {
 			ts.boxTop = R.drawable.btn_flat_night;
-			ts.widgetBackgroundId = verticalWidget ? R.color.widget_background_color_dark : R.drawable.bs_side_widget_night;
+			ts.widgetBackgroundId = verticalWidget ? R.drawable.bs_vertical_widget_night : R.drawable.bs_side_widget_night;
 			ts.boxFree = R.drawable.btn_round_night;
 			ts.widgetDividerColorId = R.color.divider_color_dark;
 			ts.panelBorderColorId = R.color.icon_color_secondary_dark;
@@ -437,6 +449,8 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 			widgetRegistry.updateWidgetsInfo(settings.getApplicationMode(), drawSettings);
 			leftWidgetsPanel.update(drawSettings);
 			rightWidgetsPanel.update(drawSettings);
+			topWidgetsPanel.update(drawSettings);
+			bottomWidgetsPanel.update(drawSettings);
 			topToolbarView.updateInfo();
 			alarmWidget.updateInfo(drawSettings, false);
 			speedometerWidget.updateInfo(drawSettings);

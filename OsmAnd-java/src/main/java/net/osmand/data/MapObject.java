@@ -27,7 +27,7 @@ public abstract class MapObject implements Comparable<MapObject> {
 	protected String name = null;
 	protected String enName = null;
 	/**
-	 * Looks like: {ru=Москва, dz=མོསི་ཀོ...} and does not contain values of OSM tags "name" and "name:en",
+	 * Looks like: {dz=མོསི་ཀོ...} and does not contain values of OSM tags "name" and "name:en",
 	 * see {@link name} and {@link enName} respectively.
 	 */
 	protected Map<String, String> names = null;
@@ -80,7 +80,7 @@ public abstract class MapObject implements Comparable<MapObject> {
 			names.putAll(name);
 		}
 	}
-	
+
 	public Map<String, String> getNamesMap(boolean includeEn) {
 		if ((!includeEn || Algorithms.isEmpty(enName)) && names == null) {
 			return Collections.emptyMap();

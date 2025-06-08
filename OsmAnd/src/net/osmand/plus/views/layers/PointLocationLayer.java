@@ -27,7 +27,15 @@ import androidx.core.graphics.drawable.DrawableCompat;
 
 import net.osmand.Location;
 import net.osmand.core.android.MapRendererView;
-import net.osmand.core.jni.*;
+import net.osmand.core.jni.AnimatedValue;
+import net.osmand.core.jni.FColorRGB;
+import net.osmand.core.jni.MapMarker;
+import net.osmand.core.jni.MapMarkerBuilder;
+import net.osmand.core.jni.MapMarkersCollection;
+import net.osmand.core.jni.Model3D;
+import net.osmand.core.jni.PointI;
+import net.osmand.core.jni.SWIGTYPE_p_void;
+import net.osmand.core.jni.SwigUtilities;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
 import net.osmand.data.RotatedTileBox;
@@ -42,6 +50,7 @@ import net.osmand.plus.helpers.Model3dHelper;
 import net.osmand.plus.profiles.LocationIcon;
 import net.osmand.plus.profiles.ProfileIconColors;
 import net.osmand.plus.routing.RoutingHelper;
+import net.osmand.plus.routing.RoutingHelperUtils;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.AndroidUtils;
@@ -243,9 +252,6 @@ public class PointLocationLayer extends OsmandMapLayer
 		super.onUpdateFrame(mapRenderer);
 		if (isMapLinkedToLocation() && !isMovingToMyLocation()) {
 			Location location = getPointLocation();
-			if (location != null && location.hasBearing()) {
-				location.setBearing(getPointBearing());
-			}
 			PointI target31 = mapRenderer.getTarget();
 			updateMarker(location, target31, 0);
 		}
@@ -556,25 +562,6 @@ public class PointLocationLayer extends OsmandMapLayer
 		return location != null ? location : locationProvider.getLastStaleKnownLocation();
 	}
 
-	public float getPointBearing() {
-		float result = 0.0f;
-		Location location = null;
-		OsmandApplication app = getApplication();
-		if (app.getRoutingHelper().isFollowingMode() && app.getSettings().SNAP_TO_ROAD.get()) {
-			RouteLayer routeLayer = app.getOsmandMap().getMapLayers().getRouteLayer();
-			location = routeLayer.getLastRouteProjection();
-			if (location != null) {
-				result = routeLayer.getLastRouteBearing();
-			}
-		}
-		if (location == null) {
-			location = locationProvider.getLastStaleKnownLocation();
-			if (location != null && location.hasBearing()) {
-				result = location.getBearing();
-			}
-		}
-		return result;
-	}
 
 	private boolean isLocationVisible(@NonNull RotatedTileBox tb, @NonNull Location l) {
 		return tb.containsLatLon(l.getLatitude(), l.getLongitude());
@@ -699,7 +686,19 @@ public class PointLocationLayer extends OsmandMapLayer
 			boolean dataChanged = !MapUtils.areLatLonEqual(prevLocation, location, HIGH_LATLON_PRECISION);
 			if (dataChanged) {
 				long movingTime = prevLocation != null ? location.getTime() - prevLocation.getTime() : 0;
-				updateMarker(location, null, isAnimateMyLocation() ? movingTime : 0);
+				boolean animatePosition = settings.ANIMATE_MY_LOCATION.get();
+				Integer interpolationPercent = settings.LOCATION_INTERPOLATION_PERCENT.get();
+				if (prevLocation != null && getApplication().getRoutingHelper().isFollowingMode() && interpolationPercent > 0 && animatePosition) {
+					List<Location> predictedLocations = RoutingHelperUtils.predictLocations(prevLocation, location,
+							movingTime / 1000.0, getApplication().getRoutingHelper().getRoute(), interpolationPercent);
+					if (!predictedLocations.isEmpty()) {
+						// At the moment we get the first predicted location, but there may be several of them
+						Location predictedLocation = predictedLocations.get(0);
+						updateMarker(predictedLocation, null, isAnimateMyLocation() ? movingTime : 0);
+					}
+				} else {
+					updateMarker(location, null, isAnimateMyLocation() ? movingTime : 0);
+				}
 				prevLocation = location;
 			}
 		}
@@ -828,10 +827,10 @@ public class PointLocationLayer extends OsmandMapLayer
 	}
 
 	@Override
-	public void collectObjectsFromPoint(PointF point, RotatedTileBox tileBox, List<Object> o,
+	public void collectObjectsFromPoint(@NonNull MapSelectionResult result,
 	                                    boolean unknownLocation, boolean excludeUntouchableObjects) {
-		if (tileBox.getZoom() >= 3 && !excludeUntouchableObjects) {
-			getMyLocationFromPoint(tileBox, point, o);
+		if (result.getTileBox().getZoom() >= 3 && !excludeUntouchableObjects) {
+			getMyLocationFromPoint(result);
 		}
 	}
 
@@ -855,15 +854,17 @@ public class PointLocationLayer extends OsmandMapLayer
 		}
 	}
 
-	private void getMyLocationFromPoint(RotatedTileBox tb, PointF point, List<? super LatLon> myLocation) {
+	private void getMyLocationFromPoint(@NonNull MapSelectionResult result) {
 		LatLon location = getMyLocation();
 		if (location != null && view != null) {
+			PointF point = result.getPoint();
+			RotatedTileBox tileBox = result.getTileBox();
 			int ex = (int) point.x;
 			int ey = (int) point.y;
-			PointF pixel = NativeUtilities.getElevatedPixelFromLatLon(getMapRenderer(), tb, location);
-			int rad = (int) (18 * tb.getDensity());
+			PointF pixel = NativeUtilities.getElevatedPixelFromLatLon(getMapRenderer(), tileBox, location);
+			int rad = (int) (18 * tileBox.getDensity());
 			if (Math.abs(pixel.x - ex) <= rad && (ey - pixel.y) <= rad && (pixel.y - ey) <= 2.5 * rad) {
-				myLocation.add(location);
+				result.collect(location, this);
 			}
 		}
 	}

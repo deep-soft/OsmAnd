@@ -2,6 +2,7 @@ package net.osmand;
 
 import static net.osmand.IndexConstants.GPX_FILE_EXT;
 import static net.osmand.IndexConstants.GPX_GZ_FILE_EXT;
+import static net.osmand.data.Amenity.ROUTE_ID;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -696,17 +697,8 @@ public class NativeLibrary {
 
 		public String getRouteID() {
 			for (Map.Entry<String, String> entry : getTags().entrySet()) {
-				if ("route_id".equals(entry.getKey())) {
+				if (ROUTE_ID.equals(entry.getKey())) {
 					return entry.getValue();
-				}
-			}
-			return null;
-		}
-
-		public String getGpxFileName() {
-			for (String name : getOriginalNames()) {
-				if (name.endsWith(GPX_FILE_EXT) || name.endsWith(GPX_GZ_FILE_EXT)) {
-					return name;
 				}
 			}
 			return null;
@@ -750,6 +742,18 @@ public class NativeLibrary {
 				bottom = Math.max(bottom, y);
 			}
 			return new QuadRect(MapUtils.get31LongitudeX(left), MapUtils.get31LatitudeY(top), MapUtils.get31LongitudeX(right), MapUtils.get31LatitudeY(bottom));
+		}
+
+		public LatLon getLatLon() {
+			LatLon latLon = getLabelLatLon();
+			if (latLon == null && getLabelX() != 0) {
+				latLon = new LatLon(MapUtils.get31LatitudeY(getLabelY()), MapUtils.get31LongitudeX(getLabelX()));
+			}
+			QuadRect rect = getRectLatLon();
+			if (latLon == null && rect != null) {
+				latLon = new LatLon(rect.centerY(), rect.centerX());
+			}
+			return latLon;
 		}
 	}
 }

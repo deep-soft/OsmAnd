@@ -115,7 +115,7 @@ public class GalleryGridFragment extends BaseOsmAndFragment {
 	}
 
 	private void setupScaleDetector() {
-		scaleDetector = new ScaleGestureDetector(app, new ScaleGestureDetector.OnScaleGestureListener() {
+		scaleDetector = new ScaleGestureDetector(requireMapActivity(), new ScaleGestureDetector.OnScaleGestureListener() {
 			@Override
 			public boolean onScale(@NonNull ScaleGestureDetector detector) {
 				if (zoomedForPinch) {
@@ -199,7 +199,7 @@ public class GalleryGridFragment extends BaseOsmAndFragment {
 
 	@Override
 	public int getStatusBarColorId() {
-		AndroidUiHelper.setStatusBarContentColor(getView(), !nightMode);
+		AndroidUiHelper.setStatusBarContentColor(getView(), nightMode);
 		return ColorUtilities.getListBgColorId(nightMode);
 	}
 

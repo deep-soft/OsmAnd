@@ -88,7 +88,11 @@ open class GpxExtensions {
 		getExtensionsToWrite().remove(GpxUtilities.COLOR_NAME_EXTENSION)
 	}
 
-	companion object {
-		const val OBF_GPX_EXTENSION_TAG_PREFIX = "gpx_" // enlisted in poi_types.xml under name="route_track"
+	fun getWidth(defaultWidth: String?) = this.extensions?.get(GpxUtilities.LINE_WIDTH_EXTENSION) ?: defaultWidth
+
+	fun setWidth(width: String?) {
+		width?.let {
+			getExtensionsToWrite()[GpxUtilities.LINE_WIDTH_EXTENSION] = it
+		}
 	}
 }

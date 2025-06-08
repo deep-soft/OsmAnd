@@ -44,7 +44,6 @@ public class CompassButton extends MapButton {
 	private ViewPropertyAnimatorCompat hideAnimator;
 
 	private boolean forceHideCompass;
-	private float mapRotation;
 
 	public CompassButton(@NonNull Context context) {
 		this(context, null);
@@ -75,15 +74,12 @@ public class CompassButton extends MapButton {
 	@Override
 	public void update() {
 		super.update();
-
 		float mapRotation = mapActivity.getMapRotate();
-		if (this.mapRotation != mapRotation) {
-			this.mapRotation = mapRotation;
-
-			if (imageView.getDrawable() instanceof CompassDrawable drawable) {
+		if (imageView.getDrawable() instanceof CompassDrawable drawable) {
+			if (drawable.getMapRotation() != mapRotation) {
 				drawable.setMapRotation(mapRotation);
+				imageView.invalidate();
 			}
-			imageView.invalidate();
 		}
 		CompassMode compassMode = settings.getCompassMode();
 		setContentDescription(app.getString(compassMode.getTitleId()));

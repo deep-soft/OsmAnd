@@ -1,6 +1,7 @@
 package net.osmand.plus.views.mapwidgets.widgets;
 
 import static net.osmand.plus.views.mapwidgets.WidgetType.LANES;
+import static net.osmand.plus.views.mapwidgets.WidgetsPanel.BOTTOM;
 
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -16,11 +17,12 @@ import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.routepreparationmenu.MapRouteInfoMenu;
-import net.osmand.plus.routing.RouteCalculationResult.NextDirectionInfo;
+import net.osmand.plus.routing.NextDirectionInfo;
 import net.osmand.plus.routing.RouteDirectionInfo;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.routing.data.AnnounceTimeDistances;
 import net.osmand.plus.utils.OsmAndFormatter;
+import net.osmand.plus.utils.OsmAndFormatterParams;
 import net.osmand.plus.views.layers.MapInfoLayer.TextState;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 import net.osmand.plus.views.mapwidgets.LanesDrawable;
@@ -48,8 +50,9 @@ public class LanesWidget extends MapWidget {
 	private int shadowRadius;
 	boolean specialPosition;
 
-	public LanesWidget(@NonNull MapActivity mapActivity) {
-		super(mapActivity, LANES);
+	public LanesWidget(@NonNull MapActivity mapActivity, @Nullable String customId,
+			@Nullable WidgetsPanel panel) {
+		super(mapActivity, LANES, customId, panel);
 
 		routingHelper = mapActivity.getMyApplication().getRoutingHelper();
 		lanesImage = view.findViewById(R.id.map_lanes);
@@ -107,16 +110,18 @@ public class LanesWidget extends MapWidget {
 			}
 		}
 
-		boolean visible = lanes != null && lanes.length > 0
-				&& !MapRouteInfoMenu.chooseRoutesVisible
-				&& !MapRouteInfoMenu.waypointsVisible
-				&& !MapRouteInfoMenu.followTrackVisible
-				&& !mapActivity.getWidgetsVisibilityHelper().shouldHideVerticalWidgets();
+		boolean visible = lanes != null && lanes.length > 0 && !shouldHide();
 		if (visible) {
 			updateLanes(lanes, imminent, distance);
 		}
 
 		updateVisibility(visible);
+	}
+
+	protected boolean shouldHide() {
+		return MapRouteInfoMenu.chooseRoutesVisible || MapRouteInfoMenu.waypointsVisible ||
+				MapRouteInfoMenu.followTrackVisible || visibilityHelper.shouldHideVerticalWidgets()
+				|| panel == BOTTOM && visibilityHelper.shouldHideBottomWidgets();
 	}
 
 	@Override
@@ -153,7 +158,7 @@ public class LanesWidget extends MapWidget {
 				lanesText.setText("");
 			} else {
 				String formattedDistance = OsmAndFormatter.getFormattedDistance(distance, app,
-						OsmAndFormatter.OsmAndFormatterParams.USE_LOWER_BOUNDS);
+						OsmAndFormatterParams.USE_LOWER_BOUNDS);
 				lanesText.setText(formattedDistance);
 				lanesShadowText.setText(formattedDistance);
 			}
@@ -173,7 +178,8 @@ public class LanesWidget extends MapWidget {
 	}
 
 	@Override
-	public void attachView(@NonNull ViewGroup container, @NonNull WidgetsPanel panel, @NonNull List<MapWidget> followingWidgets) {
+	public void attachView(@NonNull ViewGroup container, @NonNull WidgetsPanel panel,
+			@NonNull List<MapWidget> followingWidgets) {
 		ViewGroup specialContainer = getSpecialContainer();
 		specialPosition = panel == WidgetsPanel.TOP && followingWidgets.isEmpty();
 		if (specialPosition) {

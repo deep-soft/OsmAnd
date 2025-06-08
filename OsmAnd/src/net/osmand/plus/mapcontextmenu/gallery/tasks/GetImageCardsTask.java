@@ -27,9 +27,10 @@ import net.osmand.plus.plugins.mapillary.MapillaryImageCard;
 import net.osmand.plus.plugins.mapillary.MapillaryOsmTagHelper;
 import net.osmand.plus.utils.AndroidNetworkUtils;
 import net.osmand.plus.wikipedia.WikiImageCard;
+import net.osmand.shared.wiki.WikiImage;
 import net.osmand.util.Algorithms;
 import net.osmand.wiki.WikiCoreHelper;
-import net.osmand.wiki.WikiImage;
+import net.osmand.wiki.WikiCoreHelper.NetworkResponseListener;
 
 import org.apache.commons.logging.Log;
 import org.json.JSONArray;
@@ -50,21 +51,23 @@ public class GetImageCardsTask extends AsyncTask<Void, Void, ImageCardsHolder> {
 
 	private final LatLon latLon;
 	private final Map<String, String> params;
-	private final GetImageCardsListener listener;
+	private final GetImageCardsListener imageCardsListener;
+	private final NetworkResponseListener networkResponseListener;
 
 	public GetImageCardsTask(@NonNull MapActivity mapActivity, @NonNull LatLon latLon,
-	                         @Nullable Map<String, String> params, @Nullable GetImageCardsListener listener) {
+	                         @Nullable Map<String, String> params, @Nullable GetImageCardsListener imageCardsListener, @NonNull NetworkResponseListener networkResponseListener) {
 		this.app = mapActivity.getMyApplication();
 		this.mapActivity = mapActivity;
 		this.latLon = latLon;
 		this.params = params;
-		this.listener = listener;
+		this.imageCardsListener = imageCardsListener;
+		this.networkResponseListener = networkResponseListener;
 	}
 
 	@Override
 	protected void onPreExecute() {
-		if (listener != null) {
-			listener.onTaskStarted();
+		if (imageCardsListener != null) {
+			imageCardsListener.onTaskStarted();
 		}
 	}
 
@@ -88,18 +91,19 @@ public class GetImageCardsTask extends AsyncTask<Void, Void, ImageCardsHolder> {
 			if (!Algorithms.isEmpty(preferredLang)) {
 				httpPms.put("lang", preferredLang);
 			}
-			List<WikiImage> wikimediaImageList = WikiCoreHelper.getWikiImageList(params);
+
+			List<WikiImage> wikimediaImageList = WikiCoreHelper.getWikiImageList(params, networkResponseListener);
 			for (WikiImage wikiImage : wikimediaImageList) {
 				holder.addCard(WIKIMEDIA, new WikiImageCard(mapActivity, wikiImage));
 			}
-
-			if (!Algorithms.isEmpty(params.get(Amenity.MAPILLARY))) {
-				JSONObject imageObject = MapillaryOsmTagHelper.getImageByKey(params.get(Amenity.MAPILLARY));
+			String key = params.remove(Amenity.MAPILLARY);
+			if (!Algorithms.isEmpty(key)) {
+				JSONObject imageObject = MapillaryOsmTagHelper.getImageByKey(key);
 				if (imageObject != null) {
 					holder.addCard(MAPILLARY_AMENITY, new MapillaryImageCard(mapActivity, imageObject));
 				}
 			}
-			PluginsHelper.populateContextMenuImageCards(holder, httpPms, params, listener);
+			httpPms.putAll(params);
 			String response = AndroidNetworkUtils.sendRequest(app, "https://osmand.net/api/cm_place", httpPms,
 					"Requesting location images...", false, false);
 			if (!Algorithms.isEmpty(response)) {
@@ -141,8 +145,8 @@ public class GetImageCardsTask extends AsyncTask<Void, Void, ImageCardsHolder> {
 
 	@Override
 	protected void onPostExecute(ImageCardsHolder holder) {
-		if (listener != null) {
-			listener.onFinish(holder);
+		if (imageCardsListener != null) {
+			imageCardsListener.onFinish(holder);
 		}
 	}
 

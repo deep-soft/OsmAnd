@@ -2,8 +2,8 @@ package net.osmand.plus.auto;
 
 import static net.osmand.plus.routing.data.AnnounceTimeDistances.STATE_TURN_IN;
 import static net.osmand.plus.routing.data.AnnounceTimeDistances.STATE_TURN_NOW;
-import static net.osmand.plus.utils.OsmAndFormatter.OsmAndFormatterParams.DEFAULT;
-import static net.osmand.plus.utils.OsmAndFormatter.OsmAndFormatterParams.USE_LOWER_BOUNDS;
+import static net.osmand.plus.utils.OsmAndFormatterParams.DEFAULT;
+import static net.osmand.plus.utils.OsmAndFormatterParams.USE_LOWER_BOUNDS;
 
 import android.content.Context;
 
@@ -17,12 +17,11 @@ import androidx.car.app.navigation.model.Maneuver;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.routing.CurrentStreetName;
-import net.osmand.plus.routing.RouteCalculationResult.NextDirectionInfo;
+import net.osmand.plus.routing.NextDirectionInfo;
 import net.osmand.plus.routing.RouteDirectionInfo;
-import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.routing.data.AnnounceTimeDistances;
 import net.osmand.plus.utils.OsmAndFormatter;
-import net.osmand.plus.utils.OsmAndFormatter.FormattedValue;
+import net.osmand.plus.utils.FormattedValue;
 import net.osmand.router.TurnType;
 import net.osmand.shared.settings.enums.MetricsConstants;
 import net.osmand.util.Algorithms;
@@ -98,7 +97,7 @@ public class TripUtils {
 	@NonNull
 	public static Distance getFormattedDistance(@NonNull OsmandApplication app, double meters) {
 		MetricsConstants mc = app.getSettings().METRIC_SYSTEM.get();
-		OsmAndFormatter.FormattedValue formattedValue = OsmAndFormatter.getFormattedDistanceValue((float) meters, app, USE_LOWER_BOUNDS, mc);
+		FormattedValue formattedValue = OsmAndFormatter.getFormattedDistanceValue((float) meters, app, USE_LOWER_BOUNDS, mc);
 
 		return Distance.create(formattedValue.valueSrc, getDistanceUnit(formattedValue.unitId));
 	}
@@ -226,30 +225,6 @@ public class TripUtils {
 
 	@NonNull
 	public static CurrentStreetName getStreetName(@NonNull OsmandApplication app, @NonNull NextDirectionInfo info, @NonNull RouteDirectionInfo routeInfo) {
-		CurrentStreetName streetName = new CurrentStreetName(info);
-		if (Algorithms.isEmpty(streetName.text)) {
-			streetName.text = getTurnDescription(app, info, routeInfo);
-		}
-		return streetName;
-	}
-
-	@Nullable
-	private static String getTurnDescription(@NonNull OsmandApplication app, @NonNull NextDirectionInfo info, @NonNull RouteDirectionInfo routeInfo) {
-		String description = routeInfo.getRef();
-		if (Algorithms.isEmpty(description)) {
-			TurnType turnType = routeInfo.getTurnType();
-			NextDirectionInfo nextInfo = getNextDirectionInfoAfter(app, info);
-			TurnType nextTurnType = nextInfo != null && nextInfo.directionInfo != null ? nextInfo.directionInfo.getTurnType() : null;
-
-			description = turnType != null ? nextTurnsToString(app, turnType, nextTurnType) : null;
-		}
-		return description;
-	}
-
-	@Nullable
-	private static NextDirectionInfo getNextDirectionInfoAfter(@NonNull OsmandApplication app, @NonNull NextDirectionInfo info) {
-		RoutingHelper helper = app.getRoutingHelper();
-		boolean onRoute = !helper.isDeviatedFromRoute();
-		return onRoute ? helper.getNextRouteDirectionInfoAfter(info, new NextDirectionInfo(), true) : null;
+		return new CurrentStreetName(info, true);
 	}
 }

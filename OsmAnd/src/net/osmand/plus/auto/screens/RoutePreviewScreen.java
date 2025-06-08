@@ -2,8 +2,6 @@ package net.osmand.plus.auto.screens;
 
 import static net.osmand.search.core.ObjectType.GPX_TRACK;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.text.SpannableString;
 
 import androidx.annotation.NonNull;
@@ -23,11 +21,12 @@ import androidx.lifecycle.LifecycleOwner;
 
 
 import net.osmand.PlatformUtil;
-import net.osmand.plus.auto.NavigationSession;
+import net.osmand.data.PointDescription;
 import net.osmand.plus.auto.TripUtils;
+import net.osmand.plus.helpers.TargetPoint;
+import net.osmand.plus.helpers.TargetPointsHelper;
 import net.osmand.plus.shared.SharedUtil;
 import net.osmand.StateChangedListener;
-import net.osmand.data.LatLon;
 import net.osmand.data.QuadRect;
 import net.osmand.data.ValueHolder;
 import net.osmand.plus.OsmandApplication;
@@ -36,12 +35,9 @@ import net.osmand.plus.routing.IRouteInformationListener;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.routing.RoutingHelperUtils;
 import net.osmand.plus.search.listitems.QuickSearchListItem;
-import net.osmand.plus.settings.enums.CompassMode;
-import net.osmand.plus.shared.SharedUtil;
 import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.track.helpers.GpxFileLoaderTask;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
-import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.search.core.SearchResult;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.util.Algorithms;
@@ -72,7 +68,7 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 	private boolean calculateRoute;
 	private boolean calculating;
 
-	private final StateChangedListener<Void> stateChangedListener = new StateChangedListener<Void>() {
+	private final StateChangedListener<Void> stateChangedListener = new StateChangedListener<>() {
 		@Override
 		public void stateChanged(Void change) {
 			if (routeGpxFile != null) {
@@ -83,7 +79,6 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 		}
 	};
 
-
 	public RoutePreviewScreen(@NonNull CarContext carContext, @NonNull Action settingsAction,
 	                          @NonNull SearchResult searchResult, boolean calculateRoute) {
 		super(carContext);
@@ -92,6 +87,11 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 		this.calculateRoute = calculateRoute;
 		getLifecycle().addObserver(this);
 		calculating = calculateRoute;
+	}
+
+	@Override
+	protected boolean shouldRestoreMapState() {
+		return true;
 	}
 
 	private void prepareRoute() {
@@ -111,7 +111,7 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 				buildRouteByGivenGpx(selectedGpxFile.getGpxFile());
 			}
 		} else {
-			getApp().getOsmandMap().getMapLayers().getMapActionsHelper().replaceDestination(
+			getApp().getOsmandMap().getMapActions().replaceDestination(
 					searchResult.location, QuickSearchListItem.getPointDescriptionObject(getApp(), searchResult).first);
 			invalidate();
 		}
@@ -119,18 +119,20 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 
 	private void buildRouteByGivenGpx(@NonNull GpxFile gpxFile) {
 		routeGpxFile = gpxFile;
-		getApp().getOsmandMap().getMapLayers().getMapActionsHelper().buildRouteByGivenGpx(gpxFile);
+		getApp().getOsmandMap().getMapActions().buildRouteByGivenGpx(gpxFile);
 		invalidate();
 	}
 
 	private void updateRoute(boolean newRoute) {
 		OsmandApplication app = getApp();
-		RoutingHelper rh = app.getRoutingHelper();
+		RoutingHelper routingHelper = app.getRoutingHelper();
+		TargetPointsHelper targetPointsHelper = app.getTargetPointsHelper();
+
 		Distance distance = null;
 		int leftTimeSec = 0;
-		if (newRoute && rh.isRoutePlanningMode()) {
-			distance = TripUtils.getDistance(app, rh.getLeftDistance());
-			leftTimeSec = rh.getLeftTime();
+		if (newRoute && routingHelper.isRoutePlanningMode()) {
+			distance = TripUtils.getDistance(app, routingHelper.getLeftDistance());
+			leftTimeSec = routingHelper.getLeftTime();
 		}
 		if (distance != null && leftTimeSec > 0) {
 			List<Row> routeRows = new ArrayList<>();
@@ -138,9 +140,14 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 			description.setSpan(DistanceSpan.create(distance), 0, 1, 0);
 			description.setSpan(DurationSpan.create(leftTimeSec), 4, 5, 0);
 
-			String name = QuickSearchListItem.getName(app, searchResult);
-			String typeName = QuickSearchListItem.getTypeName(app, searchResult);
-			String title = Algorithms.isEmpty(name) ? typeName : name;
+			TargetPoint finish = targetPointsHelper.getPointToNavigate();
+			String title = finish != null ? finish.getRoutePointDescription(app, true) : null;
+
+			if (Algorithms.isEmpty(title)) {
+				String name = QuickSearchListItem.getName(app, searchResult);
+				String typeName = QuickSearchListItem.getTypeName(app, searchResult);
+				title = Algorithms.isEmpty(name) ? typeName : name;
+			}
 			routeRows.add(new Row.Builder().setTitle(title).addText(description).build());
 			this.routeRows = routeRows;
 			calculating = app.getRoutingHelper().isRouteBeingCalculated();
@@ -163,6 +170,7 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 
 	@Override
 	public void onDestroy(@NonNull LifecycleOwner owner) {
+		super.onDestroy(owner);
 		OsmandApplication app = getApp();
 		RoutingHelper routingHelper = app.getRoutingHelper();
 		routingHelper.removeListener(this);

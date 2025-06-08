@@ -276,7 +276,7 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment implements 
 		@ColorRes int iconColor = isNightMode() ? R.color.icon_color_default_light : R.color.icon_color_default_dark;
 		int iconId = R.drawable.ic_action_car_info;
 		Drawable prefIcon = getIcon(iconId, iconColor);
-		String summary = app.getString(R.string.shared_string_none);;
+		String summary = app.getString(R.string.shared_string_none);
 
 		VehicleMetricsPlugin plugin = PluginsHelper.getPlugin(VehicleMetricsPlugin.class);
 		if (plugin != null) {
@@ -487,7 +487,7 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment implements 
 		} else if (PRESELECTED_ROUTE_ACTIVITY.equals(prefId)) {
 			MapActivity mapActivity = getMapActivity();
 			if (mapActivity != null) {
-				SelectRouteActivityController.showDialog(mapActivity, getRouteActivitySelectionHelper());
+				SelectRouteActivityController.showDialog(mapActivity, getSelectedAppMode(), getRouteActivitySelectionHelper());
 			}
 		} else if (RECORD_OBD_DATA_PROMO.equals(prefId)) {
 			MapActivity mapActivity = getMapActivity();

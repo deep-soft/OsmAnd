@@ -2,11 +2,9 @@ package net.osmand.plus.mapcontextmenu.builders;
 
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_LINKS_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_PHONE_ID;
-import static net.osmand.data.Amenity.ALT_NAME_WITH_LANG_PREFIX;
-import static net.osmand.data.Amenity.COLLAPSABLE_PREFIX;
-import static net.osmand.data.Amenity.OPENING_HOURS;
-import static net.osmand.data.Amenity.SUBTYPE;
-import static net.osmand.data.Amenity.TYPE;
+import static net.osmand.data.Amenity.*;
+import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE;
+import static net.osmand.osm.MapPoiTypes.WIKI_LANG;
 import static net.osmand.plus.mapcontextmenu.builders.MenuRowBuilder.ALT_NAMES_ROW_KEY;
 import static net.osmand.plus.mapcontextmenu.builders.MenuRowBuilder.NAMES_ROW_KEY;
 import static net.osmand.plus.utils.OsmAndFormatter.FEET_IN_ONE_METER;
@@ -79,13 +77,14 @@ import java.util.Map.Entry;
 
 public class AmenityUIHelper extends MenuBuilder {
 
-	public static final Log LOG = PlatformUtil.getLog(AmenityMenuBuilder.class);
+	public static final Log LOG = PlatformUtil.getLog(AmenityUIHelper.class);
 
 	private static final DecimalFormat DISTANCE_FORMAT = new DecimalFormat("#.##");
 
 	private static final String CUISINE_INFO_ID = COLLAPSABLE_PREFIX + "cuisine";
 	private static final String DISH_INFO_ID = COLLAPSABLE_PREFIX + "dish";
 	private static final String US_MAPS_RECREATION_AREA = "us_maps_recreation_area";
+	private static final String WIKI_DATA_BASE_URL = "https://www.wikidata.org/wiki/";
 
 	private final MetricsConstants metricSystem;
 	private final AdditionalInfoBundle additionalInfo;
@@ -96,17 +95,17 @@ public class AmenityUIHelper extends MenuBuilder {
 	private PoiCategory poiCategory;
 	private PoiType poiType;
 	private String subtype;
-	private boolean hasWiki = false;
 	private AmenityInfoRow cuisineRow = null;
 	private Map<String, List<PoiType>> poiAdditionalCategories = new HashMap<>();
 	private Map<String, List<PoiType>> collectedPoiTypes = new HashMap<>();
 	private boolean osmEditingEnabled = PluginsHelper.isActive(OsmEditingPlugin.class);
 	private boolean lastBuiltRowIsDescription = false;
 
-	public AmenityUIHelper(@NonNull MapActivity mapActivity, String preferredLang, Map<String, String> additionalInfoMap) {
+	public AmenityUIHelper(@NonNull MapActivity mapActivity, String preferredLang,
+			@NonNull AdditionalInfoBundle infoBundle) {
 		super(mapActivity);
 		this.preferredLang = preferredLang;
-		this.additionalInfo = new AdditionalInfoBundle(app, additionalInfoMap);
+		this.additionalInfo = infoBundle;
 		this.metricSystem = mapActivity.getMyApplication().getSettings().METRIC_SYSTEM.get();
 	}
 
@@ -121,10 +120,24 @@ public class AmenityUIHelper extends MenuBuilder {
 		List<AmenityInfoRow> infoRows = new LinkedList<>();
 		List<AmenityInfoRow> descriptions = new LinkedList<>();
 		Map<String, Object> filteredInfo = additionalInfo.getFilteredLocalizedInfo();
-
 		for (Entry<String, Object> entry : filteredInfo.entrySet()) {
 			String key = entry.getKey();
 			Object value = entry.getValue();
+			if (MapPoiTypes.getDefault().getAnyPoiAdditionalTypeByKey(key) instanceof PoiType that) {
+				if (that.isHidden()) {
+					continue;
+				}
+			}
+			if (key.contains(WIKIPEDIA) || key.contains(CONTENT)
+					|| key.contains(SHORT_DESCRIPTION) || key.contains(WIKI_LANG)) {
+				continue;
+			}
+			if (ROUTE_ARTICLE.equals(subtype) && key.contains(DESCRIPTION)) {
+				continue;
+			}
+			if (key.equals(NAME)) {
+				continue; // will be added in buildNamesRow
+			}
 			AmenityInfoRow infoRow = null;
 			if (value instanceof String strValue) {
 				infoRow = createAmenityInfoRow(context, key, strValue, null);
@@ -154,7 +167,10 @@ public class AmenityUIHelper extends MenuBuilder {
 					StringBuilder sb = new StringBuilder();
 					List<String> records = new ArrayList<>(Arrays.asList(e.getValue().split(Amenity.SEPARATOR)));
 					for (String record : records) {
-						AbstractPoiType pt = poiTypes.getAnyPoiAdditionalTypeByKey(record);
+						AbstractPoiType pt = poiTypes.getPoiAdditionalType(poiCategory, record);
+						if (pt == null) {
+							pt = poiTypes.getAnyPoiAdditionalTypeByKey(record);
+						}
 						categoryTypes.add((PoiType) pt);
 						if (sb.length() > 0) {
 							sb.append(" • ");
@@ -220,6 +236,24 @@ public class AmenityUIHelper extends MenuBuilder {
 		}
 	}
 
+	public void buildWikiDataRow(@NonNull View view) {
+		String wikidataValue = additionalInfo.get(WIKIDATA);
+		if (wikidataValue != null) {
+			int iconId = R.drawable.ic_action_logo_wikidata;
+			PoiType pType;
+			AbstractPoiType pt = poiTypes.getAnyPoiAdditionalTypeByKey(WIKIDATA);
+			if (pt != null) {
+				pType = (PoiType) pt;
+				String textPrefix = pType.getTranslation();
+				String hiddenUrl = getSocialMediaUrl(WIKIDATA, wikidataValue);
+				AmenityInfoRow infoRow = new AmenityInfoRow(WIKIDATA, iconId, textPrefix, wikidataValue, hiddenUrl, false,
+						null, 0, false, true, true, pType.getOrder(),
+						pType.getKeyName(), false, true, matchWidthDivider, 0);
+				buildAmenityRow(view, infoRow);
+			}
+		}
+	}
+
 	private void initVariables() {
 		poiCategory = null;
 		String typeTag = additionalInfo.get(TYPE);
@@ -230,7 +264,6 @@ public class AmenityUIHelper extends MenuBuilder {
 			poiCategory = MapPoiTypes.getDefault().getOtherPoiCategory();
 		}
 		subtype = additionalInfo.get(SUBTYPE);
-		hasWiki = false;
 		poiTypes = app.getPoiTypes();
 		cuisineRow = null;
 		poiAdditionalCategories = new HashMap<>();
@@ -291,7 +324,6 @@ public class AmenityUIHelper extends MenuBuilder {
 			}
 			collapsableView = new CollapsableView(llv, this, true);
 		}
-		hasWiki = false; // allow another hasWiki try for infoRow at return
 		return createAmenityInfoRow(context, headerKey, headerValue, collapsableView);
 	}
 
@@ -370,38 +402,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			}
 		}
 
-		if (poiCategory.isWiki()) {
-			if (!hasWiki) {
-				Map<String, String> additionalInfoFiltered = additionalInfo.getFilteredInfo();
-				wikiAmenity = new Amenity();
-				wikiAmenity.setType(poiCategory);
-				wikiAmenity.setSubType(subtype);
-				wikiAmenity.setAdditionalInfo(additionalInfoFiltered);
-				wikiAmenity.setLocation(getLatLon());
-				String name = additionalInfoFiltered.get("name");
-				if (!Algorithms.isEmpty(name)) {
-					wikiAmenity.setName(name);
-				}
-
-				String articleLang = PluginsHelper.onGetMapObjectsLocale(wikiAmenity, this.preferredLang);
-				String lng = wikiAmenity.getContentLanguage("content", articleLang, "en");
-				if (Algorithms.isEmpty(lng)) {
-					lng = "en";
-				}
-
-				String langSelected = lng;
-				String content = wikiAmenity.getDescription(langSelected);
-				vl = (content != null) ? WikiArticleHelper.getPartialContent(content) : "";
-				vl = vl == null ? "" : vl;
-				hasWiki = true;
-				isWiki = true;
-				needLinks = false;
-				hiddenUrl = null;
-				isUrl = false;
-			} else {
-				return null;
-			}
-		} else if (MapObject.isNameLangTag(key)) {
+		if (MapObject.isNameLangTag(key)) {
 			return null;
 		} else if (Amenity.COLLECTION_TIMES.equals(baseKey) || Amenity.SERVICE_TIMES.equals(baseKey)) {
 			iconId = R.drawable.ic_action_time;
@@ -449,6 +450,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			textPrefix = app.getString(R.string.poi_cuisine);
 			vl = sb.toString();
 		} else if (key.contains(Amenity.ROUTE)
+				|| key.equals(Amenity.WIKI_PHOTO)
 				|| key.equals(Amenity.WIKIDATA)
 				|| key.equals(Amenity.WIKIMEDIA_COMMONS)) {
 			return null;
@@ -500,6 +502,9 @@ public class AmenityUIHelper extends MenuBuilder {
 				}
 			} else if (poiType != null) {
 				String catKey = poiType.getCategory().getKeyName();
+				if (MapPoiTypes.OTHER_MAP_CATEGORY.equals(catKey)) {
+					return null; // the "Others" value is already displayed as a title
+				}
 				List<PoiType> list = collectedPoiTypes.computeIfAbsent(catKey, s -> new ArrayList<>());
 				list.add(poiType);
 			} else if (baseKey.startsWith(US_MAPS_RECREATION_AREA)) {
@@ -510,7 +515,7 @@ public class AmenityUIHelper extends MenuBuilder {
 					textPrefix = Algorithms.capitalizeFirstLetterAndLowercase(key);
 				}
 			} else {
-				textPrefix = Algorithms.capitalizeFirstLetterAndLowercase(key);
+				return null; // skip non-translatable NON-poiType tags
 			}
 		}
 
@@ -557,10 +562,10 @@ public class AmenityUIHelper extends MenuBuilder {
 	}
 
 	public void buildNamesRow(ViewGroup viewGroup, Map<String, String> namesMap, boolean altName) {
-		if (namesMap.values().size() > 0) {
+		if (!namesMap.isEmpty()) {
 			Locale nameLocale = getPreferredLocale(namesMap.keySet());
 			if (nameLocale == null) {
-				String localeId = (String) namesMap.values().toArray()[0];
+				String localeId = (String) namesMap.keySet().toArray()[0];
 				nameLocale = new Locale(localeId);
 			}
 			String name = namesMap.get(nameLocale.getLanguage());
@@ -571,6 +576,10 @@ public class AmenityUIHelper extends MenuBuilder {
 			buildDetailsRow(amenitiesRow, getRowIcon(R.drawable.ic_action_map_language), name,
 					app.getString(R.string.ltr_or_rtl_combine_via_colon, hint, nameLocale.getDisplayLanguage()), null,
 					namesMap.size() > 1 ? getNamesCollapsableView(namesMap, nameLocale.getLanguage(), hint) : null, true, null);
+			int viewGroupChildCount = viewGroup.getChildCount();
+			if (viewGroupChildCount > 0 && !isDividerAtPosition(viewGroup, viewGroupChildCount - 1)) {
+				buildRowDivider(viewGroup, viewGroupChildCount);
+			}
 			viewGroup.addView(amenitiesRow);
 		}
 	}
@@ -585,7 +594,7 @@ public class AmenityUIHelper extends MenuBuilder {
 				Locale locale = new Locale(key);
 				String name = mapNames.get(key);
 
-				View amenitiesRow = createRowContainer(app, null);
+				View amenitiesRow = createRowContainer(mapActivity, null);
 				buildDetailsRow(amenitiesRow, null, name,
 						app.getString(R.string.ltr_or_rtl_combine_via_colon, hint, locale.getDisplayLanguage()),
 						null, null, false, null);
@@ -639,6 +648,7 @@ public class AmenityUIHelper extends MenuBuilder {
 		urls.put("ok", "https://ok.ru/%s");
 		urls.put("telegram", "https://t.me/%s");
 		urls.put("flickr", "https://flickr.com/%s");
+		urls.put("wikidata", WIKI_DATA_BASE_URL + "%s");
 
 		String url = urls.get(key);
 		if (url != null) {
@@ -675,8 +685,8 @@ public class AmenityUIHelper extends MenuBuilder {
 				}
 			case "depth":
 			case "seamark_height":
-				try {
-					double valueAsDouble = Double.parseDouble(value);
+				double valueAsDouble = Algorithms.parseDoubleSilently(value, 0);
+				if (valueAsDouble > 0) {
 					if (metricSystem == MILES_AND_FEET || metricSystem == NAUTICAL_MILES_AND_FEET) {
 						formattedValue = DISTANCE_FORMAT.format(valueAsDouble * FEET_IN_ONE_METER) + " " + app.getString(R.string.foot);
 					} else if (metricSystem == MILES_AND_YARDS) {
@@ -684,8 +694,6 @@ public class AmenityUIHelper extends MenuBuilder {
 					} else {
 						formattedValue = value + " " + app.getString(R.string.m);
 					}
-				} catch (RuntimeException e) {
-					LOG.error(e.getMessage(), e);
 				}
 				break;
 			case "distance":
@@ -772,6 +780,8 @@ public class AmenityUIHelper extends MenuBuilder {
 			String textToCopy;
 			if (hiddenUrl != null && hiddenUrl.contains(WIKI_LINK)) {
 				textToCopy = hiddenUrl;
+			} else if (hiddenUrl != null && hiddenUrl.contains(WIKI_DATA_BASE_URL)) {
+				textToCopy = text;
 			} else {
 				textToCopy = !Algorithms.isEmpty(textPrefix) ? textPrefix + ": " + text : text;
 			}
@@ -900,7 +910,7 @@ public class AmenityUIHelper extends MenuBuilder {
 
 		if (isWiki) {
 			buildReadFullButton(llText, app.getString(R.string.context_menu_read_full_article), v -> {
-				WikipediaDialogFragment.showInstance(mapActivity, wikiAmenity);
+				WikipediaDialogFragment.showInstance(mapActivity, wikiAmenity, null);
 			});
 		}
 
@@ -927,7 +937,7 @@ public class AmenityUIHelper extends MenuBuilder {
 				}
 			});
 		} else if (isWiki) {
-			ll.setOnClickListener(v -> WikipediaDialogFragment.showInstance(mapActivity, wikiAmenity));
+			ll.setOnClickListener(v -> WikipediaDialogFragment.showInstance(mapActivity, wikiAmenity, null));
 		} else if (isText && text.length() > 200) {
 			ll.setOnClickListener(v -> POIMapLayer.showPlainDescriptionDialog(view.getContext(), app, text, textPrefix));
 		}
@@ -963,20 +973,21 @@ public class AmenityUIHelper extends MenuBuilder {
 			TextViewEx button = buildButtonInCollapsableView(context, false, false);
 			String name = pt.getTranslation();
 			button.setText(name);
+			PoiCategory category = pt.getCategory() != null ? pt.getCategory() : type;
 
 			button.setOnClickListener(v -> {
-				if (type != null) {
-					PoiUIFilter filter = app.getPoiFilters().getFilterById(PoiUIFilter.STD_PREFIX + type.getKeyName());
+				if (category != null) {
+					PoiUIFilter filter = app.getPoiFilters().getFilterById(PoiUIFilter.STD_PREFIX + category.getKeyName());
 					if (filter != null) {
 						filter.clearFilter();
 						if (poiAdditional) {
-							filter.setTypeToAccept(type, true);
+							filter.setTypeToAccept(category, true);
 							filter.updateTypesToAccept(pt);
 							filter.setFilterByName(pt.getKeyName().replace('_', ':').toLowerCase());
 						} else {
 							LinkedHashSet<String> accept = new LinkedHashSet<>();
 							accept.add(pt.getKeyName());
-							filter.selectSubTypesToAccept(type, accept);
+							filter.selectSubTypesToAccept(category, accept);
 						}
 						getMapActivity().getFragmentsHelper().showQuickSearch(filter);
 					}
@@ -1015,11 +1026,11 @@ public class AmenityUIHelper extends MenuBuilder {
 	}
 
 	@NonNull
-	private Set<String> collectAvailableLocalesFromTags(@NonNull Collection<String> tags) {
+	public static Set<String> collectAvailableLocalesFromTags(@NonNull Collection<String> tags) {
 		Set<String> result = new HashSet<>();
 		for (String tag : tags) {
 			String[] parts = tag.split(":");
-			String locale = parts.length > 1 ? parts[1] : null;
+			String locale = parts.length > 1 ? parts[1] : "en";
 			if (locale != null) {
 				result.add(locale);
 			}

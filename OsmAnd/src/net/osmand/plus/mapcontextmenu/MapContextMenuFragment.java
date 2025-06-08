@@ -53,8 +53,6 @@ import net.osmand.plus.helpers.MapDisplayPositionManager.ICoveredScreenRectProvi
 import net.osmand.plus.helpers.MapDisplayPositionManager.IMapDisplayPositionProvider;
 import net.osmand.plus.mapcontextmenu.AdditionalActionsBottomSheetDialogFragment.ContextMenuItemClickListener;
 import net.osmand.plus.mapcontextmenu.MenuController.MenuState;
-import net.osmand.plus.mapcontextmenu.MenuController.TitleButtonController;
-import net.osmand.plus.mapcontextmenu.MenuController.TitleProgressController;
 import net.osmand.plus.mapcontextmenu.controllers.TransportStopController;
 import net.osmand.plus.mapcontextmenu.gallery.GalleryController;
 import net.osmand.plus.routepreparationmenu.ChooseRouteFragment;
@@ -74,6 +72,7 @@ import net.osmand.plus.views.MapLayers;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.controls.HorizontalSwipeConfirm;
 import net.osmand.plus.views.controls.SingleTapConfirm;
+import net.osmand.plus.views.controls.maphudbuttons.MapButton;
 import net.osmand.plus.views.layers.MapControlsLayer;
 import net.osmand.plus.views.layers.TransportStopsLayer;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
@@ -192,7 +191,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 		DialogManager dialogManager = mapActivity.getMyApplication().getDialogManager();
 		GalleryController controller = (GalleryController) dialogManager.findController(GalleryController.PROCESS_ID);
 		if (controller == null) {
-			dialogManager.register(GalleryController.PROCESS_ID, new GalleryController(mapActivity.getMyApplication()));
+			dialogManager.register(GalleryController.PROCESS_ID, new GalleryController(app));
 		}
 	}
 
@@ -235,7 +234,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 		backButton.setImageResource(AndroidUtils.getNavigationIconResId(mapActivity));
 		updateVisibility(topButtonContainer, 0);
 
-		RotatedTileBox box = map.getCurrentRotatedTileBox().copy();
+		RotatedTileBox box = map.getRotatedTileBox();
 		customMapCenter = menu.getMapCenter() != null;
 		if (!customMapCenter) {
 			mapCenter = box.getCenterLatLon();
@@ -491,9 +490,9 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 
 		((TextView) view.findViewById(R.id.context_menu_line1))
 				.setTextColor(ColorUtilities.getPrimaryTextColor(mapActivity, nightMode));
-		View menuLine2 = view.findViewById(R.id.context_menu_line2);
+		TextView menuLine2 = view.findViewById(R.id.context_menu_line2);
 		if (menuLine2 != null) {
-			((TextView) menuLine2).setTextColor(ContextCompat.getColor(mapActivity, R.color.text_color_secondary_light));
+			menuLine2.setTextColor(ColorUtilities.getSecondaryTextColor(view.getContext(), nightMode));
 		}
 		((TextView) view.findViewById(R.id.distance)).setTextColor(ContextCompat.getColor(mapActivity,
 				nightMode ? R.color.icon_color_active_dark : R.color.icon_color_active_light));
@@ -507,8 +506,12 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 			MapLayers mapLayers = mapActivity.getMapLayers();
 			MapControlsLayer layer = mapLayers.getMapControlsLayer();
 
-			layer.addCustomMapButton(view.findViewById(R.id.map_zoom_in_button));
-			layer.addCustomMapButton(view.findViewById(R.id.map_zoom_out_button));
+			MapButton zoomInButton = view.findViewById(R.id.map_zoom_in_button);
+			MapButton zoomOutButton = view.findViewById(R.id.map_zoom_out_button);
+			layer.addCustomizedDefaultMapButton(zoomInButton);
+			layer.addCustomizedDefaultMapButton(zoomOutButton);
+			zoomInButton.setUseDefaultAppearance(false);
+			zoomOutButton.setUseDefaultAppearance(false);
 		}
 		AndroidUiHelper.updateVisibility(zoomButtonsView, zoomButtonsVisible);
 
@@ -662,7 +665,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 		if (needMoreItem) {
 			items.add(TRANSPORT_BADGE_MORE_ITEM);
 		}
-		TransportStopRouteAdapter adapter = new TransportStopRouteAdapter(app, items, nightMode);
+		TransportStopRouteAdapter adapter = new TransportStopRouteAdapter(requireActivity(), items, nightMode);
 		adapter.setListener(position -> {
 			Object object = adapter.getItem(position);
 			MapActivity mapActivity = getMapActivity();
@@ -902,7 +905,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 
 	private void setCustomMapRatio() {
 		LatLon latLon = menu.getLatLon();
-		RotatedTileBox tb = map.getCurrentRotatedTileBox().copy();
+		RotatedTileBox tb = map.getRotatedTileBox();
 		PointF pixel = NativeUtilities.getElevatedPixelFromLatLon(map.getMapRenderer(), tb, latLon);
 		float ratioX = pixel.x / tb.getPixWidth();
 		float ratioY = pixel.y / tb.getPixHeight();
@@ -913,7 +916,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 	public void doZoomIn() {
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
-			RotatedTileBox tb = map.getCurrentRotatedTileBox().copy();
+			RotatedTileBox tb = map.getRotatedTileBox();
 			boolean containsLatLon = NativeUtilities.containsLatLon(map.getMapRenderer(), tb, menu.getLatLon());
 			if (containsLatLon) {
 				setCustomMapRatio();
@@ -927,7 +930,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 	public void doZoomOut() {
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
-			RotatedTileBox tb = map.getCurrentRotatedTileBox().copy();
+			RotatedTileBox tb = map.getRotatedTileBox();
 			boolean containsLatLon = NativeUtilities.containsLatLon(map.getMapRenderer(), tb, menu.getLatLon());
 			if (containsLatLon) {
 				setCustomMapRatio();
@@ -1026,7 +1029,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 		}
 		this.mapCenter = mapCenter;
 		if (map != null) {
-			RotatedTileBox box = map.getCurrentRotatedTileBox().copy();
+			RotatedTileBox box = map.getRotatedTileBox();
 			origMarkerX = box.getCenterPixelX();
 			origMarkerY = box.getCenterPixelY();
 		}
@@ -1369,6 +1372,9 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 				this.initLayout = true;
 				this.centered = true;
 			}
+			forceUpdateLayout = true;
+			transportBadgesCreated = false;
+
 			updateButtonsAndProgress();
 			runLayoutListener();
 		}
@@ -1376,6 +1382,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 
 	private void createTransportBadges() {
 		if (!transportBadgesCreated) {
+			mainRouteBadgeContainer.removeAllViews();
 			List<TransportStopRoute> localTransportStopRoutes = menu.getLocalTransportStopRoutes();
 			List<TransportStopRoute> nearbyTransportStopRoutes = menu.getNearbyTransportStopRoutes();
 			int maxLocalRows = 0;
@@ -1517,9 +1524,9 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 
 	private int getMinBadgeWidth(List<TransportStopRoute> transportStopRoutes) {
 		try {
-			int minBadgeWidth = getResources().getDimensionPixelSize(R.dimen.context_menu_transport_grid_item_width);
-			int textPadding = getResources().getDimensionPixelSize(R.dimen.context_menu_subtitle_margin);
-			float textSizeSmall = getResources().getDimensionPixelSize(R.dimen.default_sub_text_size_small);
+			int minBadgeWidth = getDimensionPixelSize(R.dimen.context_menu_transport_grid_item_width);
+			int textPadding = getDimensionPixelSize(R.dimen.context_menu_subtitle_margin);
+			float textSizeSmall = getDimensionPixelSize(R.dimen.default_sub_text_size_small);
 
 			for (TransportStopRoute transportStopRoute : transportStopRoutes) {
 				String routeRef = transportStopRoute.route.getAdjustedRouteRef(false);
@@ -1542,7 +1549,6 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 
 				@Override
 				public void onGlobalLayout() {
-
 					if (view != null) {
 						ViewTreeObserver obs = view.getViewTreeObserver();
 						obs.removeOnGlobalLayoutListener(this);
@@ -1553,7 +1559,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 
 						int newMenuTopViewHeight = view.findViewById(R.id.context_menu_top_view).getHeight();
 						int newMenuTopShadowAllHeight = view.findViewById(R.id.context_menu_top_shadow_all).getHeight();
-						menuFullHeight = view.findViewById(R.id.context_menu_main).getHeight();
+						menuFullHeight = mainView.getHeight();
 						zoomButtonsHeight = zoomButtonsView.getHeight();
 
 						int dy = 0;
@@ -1611,6 +1617,11 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 								titleProgressHeight = titleProgressContainer.getMeasuredHeight();
 							}
 
+							int transportBadgesHeight = 0;
+							View transportBadgesContainer = view.findViewById(R.id.transport_badges_container);
+							if (transportBadgesContainer.getVisibility() == View.VISIBLE) {
+								transportBadgesHeight = transportBadgesContainer.getMeasuredHeight();
+							}
 							if (menuTopViewHeight != 0) {
 								int titleHeight = line1.getLineCount() * line1.getLineHeight()
 										+ line2LineCount * line2LineHeight + menuTitleTopBottomPadding;
@@ -1619,14 +1630,19 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 								}
 								newMenuTopViewHeight = menuTopViewHeightExcludingTitle + titleHeight
 										+ titleButtonHeight + customAddressLineHeight + downloadButtonsHeight
-										+ titleBottomButtonHeight + additionalButtonsHeight + titleProgressHeight + line3Height;
+										+ titleBottomButtonHeight + additionalButtonsHeight
+										+ titleProgressHeight + transportBadgesHeight + line3Height;
 								dy = Math.max(0, newMenuTopViewHeight - menuTopViewHeight
 										- (newMenuTopShadowAllHeight - menuTopShadowAllHeight));
 							} else {
-								menuTopViewHeightExcludingTitle = newMenuTopViewHeight - line1.getMeasuredHeight() - line2MeasuredHeight - customAddressLineHeight
-										- titleButtonHeight - downloadButtonsHeight - titleBottomButtonHeight - additionalButtonsHeight - titleProgressHeight - line3Height;
+								menuTopViewHeightExcludingTitle = newMenuTopViewHeight - line1.getMeasuredHeight()
+										- line2MeasuredHeight - customAddressLineHeight	- titleButtonHeight
+										- downloadButtonsHeight - titleBottomButtonHeight - additionalButtonsHeight
+										- titleProgressHeight - transportBadgesHeight - line3Height;
+
 								menuTitleTopBottomPadding = (line1.getMeasuredHeight() - line1.getLineCount() * line1.getLineHeight())
 										+ (line2MeasuredHeight - line2LineCount * line2LineHeight);
+
 								menuButtonsHeight = view.findViewById(R.id.context_menu_bottom_buttons).getHeight()
 										+ view.findViewById(R.id.buttons_bottom_border).getHeight()
 										+ view.findViewById(R.id.context_menu_buttons).getHeight();
@@ -1680,7 +1696,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 		double flat = latLon.getLatitude();
 		double flon = latLon.getLongitude();
 
-		RotatedTileBox cp = map.getCurrentRotatedTileBox().copy();
+		RotatedTileBox cp = map.getRotatedTileBox();
 		cp.setCenterLocation(0.5f, displayPositionManager.getNavigationMapPosition() == MapPosition.BOTTOM ? 0.15f : 0.5f);
 		cp.setLatLonCenter(flat, flon);
 		cp.setZoom(zoom);
@@ -2033,7 +2049,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 	private LatLon getAdjustedMarkerLocation(int y, LatLon reqMarkerLocation, boolean center, int zoom) {
 		double markerLat = reqMarkerLocation.getLatitude();
 		double markerLon = reqMarkerLocation.getLongitude();
-		RotatedTileBox box = map.getCurrentRotatedTileBox().copy();
+		RotatedTileBox box = map.getRotatedTileBox();
 		box.setCenterLocation(0.5f, displayPositionManager.getNavigationMapPosition() == MapPosition.BOTTOM ? 0.15f : 0.5f);
 		box.setZoom(zoom);
 		boolean hasMapCenter = mapCenter != null;
@@ -2291,7 +2307,7 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 				return false;
 			}
 			getMapActivity().getMapView();
-			RotatedTileBox tb = getMapActivity().getMapView().getCurrentRotatedTileBox().copy();
+			RotatedTileBox tb = getMapActivity().getMapView().getRotatedTileBox();
 			int tileBoxWidthPx = 0;
 			int tileBoxHeightPx = 0;
 			int marginStartPx = 0;
@@ -2304,7 +2320,8 @@ public class MapContextMenuFragment extends BaseOsmAndFragment implements Downlo
 				int fHeight = viewHeight - y - AndroidUtils.getStatusBarHeight(getMapActivity());
 				tileBoxHeightPx = tb.getPixHeight() - fHeight;
 			}
-			getMapActivity().getMapView().fitRectToMap(r.left, r.right, r.top, r.bottom, tileBoxWidthPx, tileBoxHeightPx, 0, marginStartPx);
+			getMapActivity().getMapView().fitRectToMap(r.left, r.right, r.top, r.bottom,
+					tileBoxWidthPx, tileBoxHeightPx, 0, marginStartPx);
 			return true;
 		}
 		return false;

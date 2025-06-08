@@ -14,11 +14,10 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.auto.NavigationSession;
 import net.osmand.plus.helpers.TargetPointsHelper;
-import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
+import net.osmand.plus.helpers.TargetPoint;
 import net.osmand.plus.notifications.OsmandNotification.NotificationType;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.routing.GPXRouteParams.GPXRouteParamsBuilder;
-import net.osmand.plus.routing.RouteCalculationResult.NextDirectionInfo;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization.OsmAndAppCustomizationListener;
 import net.osmand.plus.settings.backend.OsmandSettings;
@@ -50,6 +49,7 @@ public class RoutingHelper {
 	private static final float POS_TOLERANCE = 60; // 60m or 30m + accuracy
 	private static final float POS_TOLERANCE_DEVIATION_MULTIPLIER = 2;
 	private static final int MAX_POSSIBLE_SPEED = 140;// 504 km/h
+	private static final boolean ENABLE_LOG_POS_PROCESSED = false;
 
 	private List<WeakReference<IRouteInformationListener>> listeners = new LinkedList<>();
 	private List<WeakReference<IRoutingDataUpdateListener>> updateListeners = new LinkedList<>();
@@ -306,11 +306,12 @@ public class RoutingHelper {
 		return route.getImmutableAllLocations();
 	}
 
-	public void setAppMode(ApplicationMode mode) {
+	public void setAppMode(@NonNull ApplicationMode mode) {
 		this.mode = mode;
 		voiceRouter.updateAppMode();
 	}
 
+	@NonNull
 	public ApplicationMode getAppMode() {
 		return mode;
 	}
@@ -366,16 +367,6 @@ public class RoutingHelper {
 		listeners = Algorithms.updateWeakReferencesList(listeners, lt, false);
 	}
 
-	public void updateLocation(Location currentLocation) {
-		if (settings.getPointToStart() == null && settings.getMyLocationToStart() == null && currentLocation != null) {
-			app.getTargetPointsHelper().setMyLocationPoint(
-					new LatLon(currentLocation.getLatitude(), currentLocation.getLongitude()), false, null);
-		}
-		if (isFollowingMode() || (settings.getPointToStart() == null && isRoutePlanningMode) ||
-				app.getLocationProvider().getLocationSimulation().isRouteAnimating()) {
-			setCurrentLocation(currentLocation, false);
-		}
-	}
 
 	public Location setCurrentLocation(Location currentLocation, boolean returnUpdatedLocation) {
 		return setCurrentLocation(currentLocation, returnUpdatedLocation, route, false);
@@ -535,7 +526,7 @@ public class RoutingHelper {
 		// 2. check if intermediate found
 		if (route.getIntermediatePointsToPass() > 0
 				&& route.getDistanceToNextIntermediate(lastFixedLocation) < voiceRouter.getArrivalDistance() && !isRoutePlanningMode) {
-			showMessage(app.getString(R.string.arrived_at_intermediate_point));
+			app.showToastMessage(R.string.arrived_at_intermediate_point);
 			route.passIntermediatePoint();
 			TargetPointsHelper targets = app.getTargetPointsHelper();
 			String name = "";
@@ -544,7 +535,7 @@ public class RoutingHelper {
 				List<TargetPoint> ll = targets.getIntermediatePointsNavigation();
 				int ind = -1;
 				for (int i = 0; i < ll.size(); i++) {
-					if (ll.get(i).point != null && MapUtils.getDistance(ll.get(i).point, rm) < 5) {
+					if (ll.get(i).getLatLon() != null && MapUtils.getDistance(ll.get(i).getLatLon(), rm) < 5) {
 						name = ll.get(i).getOnlyName();
 						ind = i;
 						break;
@@ -654,7 +645,7 @@ public class RoutingHelper {
 					routeNodes.get(newCurrentRoute + 1));
 			if (longDistance) {
 				if (newDist < dist) {
-					if (log.isDebugEnabled()) {
+					if (ENABLE_LOG_POS_PROCESSED) {
 						log.debug("Processed by distance : (new) " + newDist + " (old) " + dist); //$NON-NLS-1$//$NON-NLS-2$
 					}
 					processed = true;
@@ -663,7 +654,7 @@ public class RoutingHelper {
 				// newDist < posTolerance / 8 - 4-8 m (avoid distance 0 till next turn)
 				if (dist > posTolerance) {
 					processed = true;
-					if (log.isDebugEnabled()) {
+					if (ENABLE_LOG_POS_PROCESSED) {
 						log.debug("Processed by distance : " + newDist + " " + dist); //$NON-NLS-1$//$NON-NLS-2$
 					}
 				} else {
@@ -680,7 +671,7 @@ public class RoutingHelper {
 						double diff = Math.abs(MapUtils.degreesDiff(bearingMotion, bearingToRoute));
 						double diffToNext = Math.abs(MapUtils.degreesDiff(bearingMotion, bearingRouteNext));
 						if (diff > diffToNext) {
-							if (log.isDebugEnabled()) {
+							if (ENABLE_LOG_POS_PROCESSED) {
 								log.debug("Processed point bearing deltas : " + diff + " " + diffToNext);
 							}
 							processed = true;
@@ -758,7 +749,11 @@ public class RoutingHelper {
 	}
 
 	public int getLeftDistanceNextIntermediate() {
-		return route.getDistanceToNextIntermediate(lastFixedLocation);
+		return getLeftDistanceToIntermediate(0);
+	}
+
+	public int getLeftDistanceToIntermediate(int intermediateIndexOffset) {
+		return route.getDistanceToNextIntermediate(lastFixedLocation, intermediateIndexOffset);
 	}
 
 	public int getLeftTime() {
@@ -770,7 +765,11 @@ public class RoutingHelper {
 	}
 
 	public int getLeftTimeNextIntermediate() {
-		return route.getLeftTimeToNextIntermediate(lastFixedLocation);
+		return getLeftTimeNextIntermediate(0);
+	}
+
+	public int getLeftTimeNextIntermediate(int intermediateIndexOffset) {
+		return route.getLeftTimeToNextIntermediate(lastFixedLocation, intermediateIndexOffset);
 	}
 
 	public OsmandSettings getSettings() {
@@ -901,10 +900,6 @@ public class RoutingHelper {
 
 	public boolean isRouteBeingCalculated() {
 		return routeRecalculationHelper.isRouteBeingCalculated();
-	}
-
-	private void showMessage(String msg) {
-		app.runInUIThread(() -> app.showToastMessage(msg));
 	}
 
 	@NonNull

@@ -57,7 +57,7 @@ import net.osmand.plus.plugins.externalsensors.devices.sensors.SensorData;
 import net.osmand.plus.plugins.externalsensors.devices.sensors.SensorDataField;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.BLEUtils;
-import net.osmand.plus.utils.OsmAndFormatter.FormattedValue;
+import net.osmand.plus.utils.FormattedValue;
 import net.osmand.util.Algorithms;
 
 import org.apache.commons.logging.Log;
@@ -649,7 +649,7 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 			}
 		} else {
 			bluetoothEnabled = false;
-//			Toast.makeText(activity, "Bluetooth LE isnt supported on this device", Toast.LENGTH_SHORT).show();
+//			app.showToastMessage("Bluetooth LE isnt supported on this device");
 		}
 		return bluetoothEnabled;
 	}

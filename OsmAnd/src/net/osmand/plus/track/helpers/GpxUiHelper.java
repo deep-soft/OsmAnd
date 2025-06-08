@@ -12,7 +12,6 @@ import static net.osmand.util.Algorithms.formatDuration;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -20,7 +19,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,7 +36,9 @@ import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.helpers.SelectGpxTrackBottomSheet;
 import net.osmand.plus.mapcontextmenu.controllers.SelectedGpxMenuController.SelectedGpxPoint;
+import net.osmand.plus.mapcontextmenu.other.ShareMenu.NativeShareDialogBuilder;
 import net.osmand.plus.mapcontextmenu.other.TrackDetailsMenu.ChartPointLayer;
+import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
 import net.osmand.plus.routing.RouteCalculationResult;
@@ -67,6 +67,7 @@ import net.osmand.shared.gpx.primitives.TrkSegment;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.shared.io.KFile;
 import net.osmand.util.Algorithms;
+import net.osmand.util.CollectionUtils;
 import net.osmand.util.MapUtils;
 
 import org.apache.commons.logging.Log;
@@ -189,24 +190,27 @@ public class GpxUiHelper {
 	}
 
 	@NonNull
-	public static String getFolderName(@NonNull Context context, @NonNull File dir, boolean includeParentDir) {
-		String name = dir.getName();
+	public static String getFolderName(@NonNull Context context, @NonNull File directory) {
+		String name = directory.getName();
 		if (GPX_INDEX_DIR.equals(name + File.separator)) {
 			return context.getString(R.string.shared_string_tracks);
 		}
-		String dirPath = dir.getPath() + File.separator;
+		String dirPath = directory.getPath() + File.separator;
 		if (dirPath.endsWith(GPX_IMPORT_DIR) || dirPath.endsWith(GPX_RECORDED_INDEX_DIR)) {
 			return Algorithms.capitalizeFirstLetter(name);
 		}
-		if (includeParentDir) {
-			File parent = dir.getParentFile();
-			String parentName = parent != null ? parent.getName() : "";
-			if (!Algorithms.isEmpty(parentName) && !GPX_INDEX_DIR.equals(parentName + File.separator)) {
-				name = parentName + File.separator + name;
-			}
-			return name;
-		}
 		return name;
+	}
+
+	@NonNull
+	public static String getFolderPath(@NonNull File directory, @NonNull String initialName) {
+		String name = directory.getName() + File.separator;
+		File parent = directory.getParentFile();
+		String parentName = parent != null ? parent.getName() + File.separator : "";
+		if (!CollectionUtils.equalsToAny(GPX_INDEX_DIR, name, parentName)) {
+			return parentName + initialName;
+		}
+		return initialName;
 	}
 
 	@NonNull
@@ -496,7 +500,7 @@ public class GpxUiHelper {
 			String warn = builder.toString();
 			activity.runOnUiThread(() -> {
 				if (warn.length() > 0) {
-					Toast.makeText(activity, warn, Toast.LENGTH_LONG).show();
+					AndroidUtils.getApp(activity).showToastMessage(warn);
 				} else {
 					callback.processResult(result);
 				}
@@ -575,11 +579,11 @@ public class GpxUiHelper {
 		return null;
 	}
 
-	public static void saveAndShareGpx(@NonNull Context context, @NonNull GpxFile gpxFile) {
+	public static void saveAndShareGpx(@NonNull Context context, @NonNull Activity activity, @NonNull GpxFile gpxFile) {
 		File file = getGpxTempFile(context, gpxFile);
 		SaveGpxHelper.saveGpx(file, gpxFile, errorMessage -> {
 			if (errorMessage == null) {
-				shareGpx(context, file);
+				shareGpx(context, activity, file);
 			}
 		});
 	}
@@ -591,32 +595,32 @@ public class GpxUiHelper {
 		return new File(FileUtils.getTempDir(app), fileName);
 	}
 
-	public static void saveAndShareCurrentGpx(@NonNull OsmandApplication app, @NonNull GpxFile gpxFile) {
+	public static void saveAndShareCurrentGpx(@NonNull OsmandApplication app, @NonNull Activity activity, @NonNull GpxFile gpxFile) {
 		SaveGpxHelper.saveCurrentTrack(app, gpxFile, errorMessage -> {
 			if (errorMessage == null) {
-				shareGpx(app, new File(gpxFile.getPath()));
+				shareGpx(app, activity, new File(gpxFile.getPath()));
 			}
 		});
 	}
 
-	public static void saveAndShareGpxWithAppearance(@NonNull OsmandApplication app, @NonNull GpxFile gpxFile) {
+	public static void saveAndShareGpxWithAppearance(@NonNull OsmandApplication app, @NonNull Activity activity, @NonNull GpxFile gpxFile) {
 		if (gpxFile.isShowCurrentTrack()) {
-			saveAndShareCurrentGpx(app, gpxFile);
+			saveAndShareCurrentGpx(app, activity, gpxFile);
 		} else if (!Algorithms.isEmpty(gpxFile.getPath())) {
 			KFile file = new KFile(gpxFile.getPath());
-			GpxDataItem item = app.getGpxDbHelper().getItem(file, dataItem -> saveAndShareGpxWithAppearance(app, gpxFile, dataItem));
+			GpxDataItem item = app.getGpxDbHelper().getItem(file, dataItem -> saveAndShareGpxWithAppearance(app, activity, gpxFile, dataItem));
 			if (item != null) {
-				saveAndShareGpxWithAppearance(app, gpxFile, item);
+				saveAndShareGpxWithAppearance(app, activity, gpxFile, item);
 			}
 		}
 	}
 
-	public static void saveAndShareGpxWithAppearance(@NonNull OsmandApplication app, @NonNull GpxFile gpxFile, @NonNull GpxDataItem item) {
+	public static void saveAndShareGpxWithAppearance(@NonNull OsmandApplication app, @NonNull Activity activity, @NonNull GpxFile gpxFile, @NonNull GpxDataItem item) {
 		if (item.hasAppearanceData()) {
 			addDbParametersToGpx(app, gpxFile, item);
-			saveAndShareGpx(app, gpxFile);
+			saveAndShareGpx(app, activity, gpxFile);
 		} else {
-			shareGpx(app, new File(gpxFile.getPath()));
+			shareGpx(app, activity, new File(gpxFile.getPath()));
 		}
 	}
 
@@ -625,7 +629,8 @@ public class GpxUiHelper {
 	                                  @NonNull GpxFile gpxFile,
 	                                  @NonNull WptPt selectedPoint,
 	                                  @Nullable GpxTrackAnalysis analyses,
-	                                  @Nullable RouteKey routeKey) {
+	                                  @Nullable RouteKey routeKey,
+	                                  boolean adjustMapPosition) {
 		SaveGpxHelper.saveGpx(file, gpxFile, errorMessage -> {
 			if (errorMessage == null) {
 				OsmandApplication app = mapActivity.getMyApplication();
@@ -634,7 +639,7 @@ public class GpxUiHelper {
 				GpxTrackAnalysis trackAnalysis = analyses != null ? analyses : selectedGpxFile.getTrackAnalysis(app);
 				SelectedGpxPoint selectedGpxPoint = new SelectedGpxPoint(selectedGpxFile, selectedPoint);
 				Bundle bundle = new Bundle();
-				bundle.putBoolean(TrackMenuFragment.ADJUST_MAP_POSITION, false);
+				bundle.putBoolean(TrackMenuFragment.ADJUST_MAP_POSITION, adjustMapPosition);
 				TrackMenuFragment.showInstance(mapActivity, selectedGpxFile, selectedGpxPoint,
 						trackAnalysis, routeKey, bundle);
 			} else {
@@ -697,17 +702,18 @@ public class GpxUiHelper {
 		GpsFilter.writeValidFilterValuesToExtensions(gpxFile.getExtensionsToWrite(), item);
 	}
 
-	public static void shareGpx(@NonNull Context context, @NonNull File file) {
+	public static void shareGpx(@NonNull Context context, @NonNull Activity activity, @NonNull File file) {
+		OsmandApplication app = (OsmandApplication) activity.getApplication();
 		Uri fileUri = AndroidUtils.getUriForFile(context, file);
-		Intent intent = new Intent(Intent.ACTION_SEND);
-		intent.putExtra(Intent.EXTRA_STREAM, fileUri);
-		intent.setType("application/gpx+xml");
-		intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-		if (context instanceof OsmandApplication) {
-			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-		}
-		Intent chooserIntent = Intent.createChooser(intent, context.getString(R.string.shared_string_share));
-		AndroidUtils.startActivityIfSafe(context, chooserIntent);
+		boolean singleTop = !(activity instanceof MapActivity);
+
+		new NativeShareDialogBuilder()
+				.addFileWithSaveAction(file, app, activity, singleTop)
+				.setChooserTitle(app.getString(R.string.shared_string_share))
+				.setExtraStream(fileUri)
+				.setNewTask(context instanceof OsmandApplication)
+				.setType("application/gpx+xml")
+				.build(app);
 	}
 
 	@NonNull

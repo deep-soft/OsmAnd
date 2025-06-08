@@ -12,12 +12,10 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.car.app.CarContext;
-import androidx.car.app.CarToast;
 import androidx.car.app.Screen;
 import androidx.car.app.ScreenManager;
 import androidx.car.app.Session;
@@ -48,19 +46,13 @@ import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmAndLocationProvider.OsmAndLocationListener;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
-import net.osmand.plus.auto.screens.LandingScreen;
-import net.osmand.plus.auto.screens.NavigationScreen;
-import net.osmand.plus.auto.screens.RequestPermissionScreen;
+import net.osmand.plus.auto.screens.*;
 import net.osmand.plus.auto.screens.RequestPermissionScreen.LocationPermissionCheckCallback;
-import net.osmand.plus.auto.screens.RequestPurchaseScreen;
-import net.osmand.plus.auto.screens.RoutePreviewScreen;
-import net.osmand.plus.auto.screens.SearchResultsScreen;
-import net.osmand.plus.auto.screens.SettingsScreen;
 import net.osmand.plus.helpers.LocationCallback;
 import net.osmand.plus.helpers.LocationServiceHelper;
 import net.osmand.plus.helpers.RestoreNavigationHelper;
 import net.osmand.plus.helpers.SearchHistoryHelper.HistoryEntry;
-import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
+import net.osmand.plus.helpers.TargetPoint;
 import net.osmand.plus.inapp.InAppPurchaseUtils;
 import net.osmand.plus.routing.IRouteInformationListener;
 import net.osmand.plus.routing.RoutingHelper;
@@ -121,7 +113,7 @@ public class NavigationSession extends Session implements NavigationListener, Os
 	Action settingsAction;
 
 	private OsmandMapTileView mapView;
-	private ApplicationMode defaultAppMode;
+	private ApplicationMode originalAppMode;
 
 	private OsmAndLocationProvider locationProvider;
 	private LocationServiceHelper locationServiceHelper;
@@ -190,12 +182,13 @@ public class NavigationSession extends Session implements NavigationListener, Os
 	public void onStart(@NonNull LifecycleOwner owner) {
 		OsmandApplication app = getApp();
 		routingHelper.addListener(this);
-		defaultAppMode = settings.getApplicationMode();
-		if (!isAppModeDerivedFromCar(defaultAppMode)) {
-			List<ApplicationMode> availableAppModes = ApplicationMode.values(app);
-			for (ApplicationMode availableAppMode : availableAppModes) {
-				if (isAppModeDerivedFromCar(availableAppMode)) {
-					settings.setApplicationMode(availableAppMode);
+
+		ApplicationMode appMode = settings.getApplicationMode();
+		if (!isAppModeDerivedFromCar(appMode)) {
+			for (ApplicationMode mode : ApplicationMode.values(app)) {
+				if (isAppModeDerivedFromCar(mode)) {
+					originalAppMode = appMode;
+					settings.setApplicationMode(mode, false);
 					break;
 				}
 			}
@@ -227,11 +220,13 @@ public class NavigationSession extends Session implements NavigationListener, Os
 		OsmandApplication app = getApp();
 		routingHelper.removeListener(this);
 		settings.setLastKnownMapElevation(app.getOsmandMap().getMapView().getElevationAngle());
-		boolean routing = settings.FOLLOW_THE_ROUTE.get() || routingHelper.isRouteCalculated() || routingHelper.isRouteBeingCalculated();
-		if (defaultAppMode != null && !routing) {
-			settings.setApplicationMode(defaultAppMode);
+
+		boolean routing = settings.FOLLOW_THE_ROUTE.get() || routingHelper.isRouteCalculated()
+				|| routingHelper.isRouteBeingCalculated();
+		if (originalAppMode != null && !routing) {
+			settings.setApplicationMode(originalAppMode);
 		}
-		defaultAppMode = null;
+		originalAppMode = null;
 
 		app.getOsmandMap().getMapView().setupRenderingView();
 		app.onCarNavigationSessionStop(this);
@@ -296,7 +291,8 @@ public class NavigationSession extends Session implements NavigationListener, Os
 
 		String action = intent.getAction();
 		if (ACTION_NAVIGATE.equals(action)) {
-			CarToast.makeText(getCarContext(), "Navigation intent: " + intent.getDataString(), CarToast.LENGTH_LONG).show();
+			String text = "Navigation intent: " + intent.getDataString();
+			getApp().getToastHelper().showCarToast(text, true);
 		}
 
 		landingScreen = new LandingScreen(getCarContext(), settingsAction);
@@ -375,7 +371,7 @@ public class NavigationSession extends Session implements NavigationListener, Os
 				}
 				screenManager.pushForResult(new RoutePreviewScreen(context, settingsAction, result, true), (obj) -> {
 					if (obj != null) {
-						getApp().getOsmandMap().getMapLayers().getMapActionsHelper().startNavigation();
+						getApp().getOsmandMap().getMapActions().startNavigation();
 						if (hasStarted()) {
 							startNavigationScreen();
 						}
@@ -520,7 +516,7 @@ public class NavigationSession extends Session implements NavigationListener, Os
 			screenManager.popToRoot();
 			screenManager.pushForResult(new RoutePreviewScreen(context, settingsAction, result, false), (obj) -> {
 				if (obj != null) {
-					app.getOsmandMap().getMapLayers().getMapActionsHelper().startNavigation();
+					app.getOsmandMap().getMapActions().startNavigation();
 					if (hasStarted()) {
 						startNavigationScreen();
 					}
@@ -569,9 +565,9 @@ public class NavigationSession extends Session implements NavigationListener, Os
 				});
 			}
 		} catch (SecurityException e) {
-			Toast.makeText(getCarContext(), R.string.no_location_permission, Toast.LENGTH_LONG).show();
+			getApp().showToastMessage(R.string.no_location_permission);
 		} catch (IllegalArgumentException e) {
-			Toast.makeText(getCarContext(), R.string.gps_not_available, Toast.LENGTH_LONG).show();
+			getApp().showToastMessage(R.string.gps_not_available);
 		}
 	}
 
@@ -617,7 +613,7 @@ public class NavigationSession extends Session implements NavigationListener, Os
 
 				@Override
 				public void onAutoDriveEnabled() {
-					CarToast.makeText(carContext, "Auto drive enabled", CarToast.LENGTH_LONG).show();
+					getApp().getToastHelper().showCarToast("Auto drive enabled", true);
 					if (!settings.simulateNavigation) {
 						OsmAndLocationSimulation sim = getApp().getLocationProvider().getLocationSimulation();
 						sim.startStopRouteAnimation(null);

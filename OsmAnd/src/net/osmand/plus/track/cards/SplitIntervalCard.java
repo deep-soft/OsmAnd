@@ -17,6 +17,7 @@ import net.osmand.plus.track.TrackDrawInfo;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.FontCache;
 import net.osmand.plus.utils.OsmAndFormatter;
+import net.osmand.plus.utils.OsmAndFormatterParams;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
 
 public class SplitIntervalCard extends BaseCard {
@@ -56,10 +57,12 @@ public class SplitIntervalCard extends BaseCard {
 	private String getSplitInterval() {
 		String intervalStr = "";
 		int splitInterval = (int) trackDrawInfo.getSplitInterval();
-		if (splitInterval == 0) {
+		if (trackDrawInfo.getSplitType() == GpxSplitType.UPHILL_DOWNHILL.getType()) {
+			intervalStr = GpxSplitType.UPHILL_DOWNHILL.getHumanString(app);
+		} else if (splitInterval == 0) {
 			intervalStr = GpxSplitType.NO_SPLIT.getHumanString(app);
 		} else if (trackDrawInfo.getSplitType() == GpxSplitType.DISTANCE.getType()) {
-			intervalStr = OsmAndFormatter.getFormattedDistanceInterval(app, trackDrawInfo.getSplitInterval(), OsmAndFormatter.OsmAndFormatterParams.NO_TRAILING_ZEROS);
+			intervalStr = OsmAndFormatter.getFormattedDistanceInterval(app, trackDrawInfo.getSplitInterval(), OsmAndFormatterParams.NO_TRAILING_ZEROS);
 		} else if (trackDrawInfo.getSplitType() == GpxSplitType.TIME.getType()) {
 			intervalStr = OsmAndFormatter.getFormattedTimeInterval(app, splitInterval);
 		}

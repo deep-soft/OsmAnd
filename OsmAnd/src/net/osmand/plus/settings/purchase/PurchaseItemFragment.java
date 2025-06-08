@@ -3,6 +3,8 @@ package net.osmand.plus.settings.purchase;
 import static net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin.GOOGLE;
 import static net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin.HUGEROCK_PROMO;
 import static net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin.TRIPLTEK_PROMO;
+import static net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin.UNDEFINED;
+import static net.osmand.plus.settings.purchase.data.PurchaseUiDataUtils.UNDEFINED_TIME;
 
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
@@ -30,8 +32,11 @@ import net.osmand.plus.chooseplan.PromoCompanyFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper.InAppPurchaseListener;
+import net.osmand.plus.inapp.InAppPurchaseHelper.InAppStateHolder;
+import net.osmand.plus.inapp.InAppPurchaseHelper.SubscriptionStateHolder;
 import net.osmand.plus.inapp.InAppPurchases.InAppPurchase;
 import net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin;
+import net.osmand.plus.inapp.InAppPurchases.InAppSubscription;
 import net.osmand.plus.inapp.InAppPurchases.InAppSubscription.SubscriptionState;
 import net.osmand.plus.liveupdates.LiveUpdatesFragment;
 import net.osmand.plus.settings.purchase.data.PurchaseUiData;
@@ -49,9 +54,11 @@ public class PurchaseItemFragment extends BaseOsmAndDialogFragment implements In
 	private static final String NO_VALUE = "—";
 	private static final String PROMO_TYPE_KEY = "promo_type_key";
 	private static final String PURCHASE_SKU_KEY = "purchase_sku_key";
+	private static final String PURCHASE_ORIGIN_KEY = "purchase_origin_key";
 
 	private String promoType;
 	private String purchaseSku;
+	private PurchaseOrigin purchaseOrigin;
 	private PurchaseUiData purchase;
 	private InAppPurchaseHelper inAppPurchaseHelper;
 
@@ -69,6 +76,13 @@ public class PurchaseItemFragment extends BaseOsmAndDialogFragment implements In
 			}
 			if (args.containsKey(PROMO_TYPE_KEY)) {
 				promoType = args.getString(PROMO_TYPE_KEY);
+			}
+			if (args.containsKey(PURCHASE_ORIGIN_KEY)) {
+				try {
+					purchaseOrigin = PurchaseOrigin.valueOf(args.getString(PURCHASE_ORIGIN_KEY));
+				} catch (IllegalArgumentException e) {
+					purchaseOrigin = null;
+				}
 			}
 		}
 	}
@@ -91,23 +105,50 @@ public class PurchaseItemFragment extends BaseOsmAndDialogFragment implements In
 	}
 
 	private void initRefreshableData() {
+		PurchaseUiData purchase = null;
 		inAppPurchaseHelper = getInAppPurchaseHelper();
 		if (purchaseSku != null) {
 			if (inAppPurchaseHelper != null) {
-				InAppPurchase inAppPurchase = inAppPurchaseHelper.getEverMadePurchaseBySku(purchaseSku);
-				if (inAppPurchase != null) {
-					purchase = PurchaseUiDataUtils.createUiData(app, inAppPurchase);
+				if (purchaseOrigin != null) {
+					for (InAppStateHolder holder : inAppPurchaseHelper.getExternalInApps()) {
+						InAppPurchase inapp = holder.linkedPurchase;
+						if (inapp != null && holder.origin == purchaseOrigin && purchaseSku.equals(inapp.getSku())) {
+							purchase = PurchaseUiDataUtils.createUiData(app, inapp, holder.purchaseTime, UNDEFINED_TIME, holder.origin, null);
+							break;
+						}
+					}
+					if (purchase == null) {
+						for (SubscriptionStateHolder holder : inAppPurchaseHelper.getExternalSubscriptions()) {
+							InAppSubscription subscription = holder.linkedSubscription;
+							if (subscription != null && holder.origin == purchaseOrigin && purchaseSku.equals(subscription.getSku())) {
+								purchase = PurchaseUiDataUtils.createUiData(app, subscription, UNDEFINED_TIME, holder.expireTime, holder.origin, holder.state);
+								break;
+							}
+						}
+					}
+				}
+				if (purchase == null) {
+					InAppPurchase inAppPurchase = inAppPurchaseHelper.getEverMadePurchaseBySku(purchaseSku);
+					if (inAppPurchase != null) {
+						purchase = PurchaseUiDataUtils.createUiData(app, inAppPurchase);
+					}
 				}
 			}
-		} else if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.osmand_start))) {
-			purchase = PurchaseUiDataUtils.createFreeAccPurchaseUiData(app);
-		} else if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.tripltek))) {
-			purchase = PurchaseUiDataUtils.createTripltekPurchaseUiData(app);
-		} else if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.hugerock))) {
-			purchase = PurchaseUiDataUtils.createHugerockPurchaseUiData(app);
-		} else {
-			purchase = PurchaseUiDataUtils.createBackupSubscriptionUiData(app);
 		}
+		if (purchase == null) {
+			if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.osmand_start))) {
+				purchase = PurchaseUiDataUtils.createFreeAccPurchaseUiData(app);
+			} else if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.tripltek))) {
+				purchase = PurchaseUiDataUtils.createTripltekPurchaseUiData(app);
+			} else if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.hugerock))) {
+				purchase = PurchaseUiDataUtils.createHugerockPurchaseUiData(app);
+			} else if (CollectionUtils.startsWithAny(promoType, app.getString(R.string.hmd))) {
+				purchase = PurchaseUiDataUtils.createHMDPurchaseUiData(app);
+			} else {
+				purchase = PurchaseUiDataUtils.createBackupSubscriptionUiData(app);
+			}
+		}
+		this.purchase = purchase;
 	}
 
 	private void updateView() {
@@ -154,7 +195,7 @@ public class PurchaseItemFragment extends BaseOsmAndDialogFragment implements In
 
 		String purchasedOn = getString(R.string.shared_string_purchased_on);
 		PurchaseOrigin origin = purchase.getOrigin();
-		String platform = promoType == null ? NO_VALUE : getString(origin.getStoreNameId());
+		String platform = origin == UNDEFINED ? NO_VALUE : getString(origin.getStoreNameId());
 		updateInformationBlock(R.id.platform_block, purchasedOn, platform);
 
 		// Bottom buttons
@@ -277,7 +318,8 @@ public class PurchaseItemFragment extends BaseOsmAndDialogFragment implements In
 		return iconsCache.getIcon(iconId, ColorUtilities.getActiveColorId(nightMode));
 	}
 
-	public static void showInstance(@NonNull FragmentManager manager, @Nullable String sku, @Nullable String promoType) {
+	public static void showInstance(@NonNull FragmentManager manager, @Nullable String sku,
+									@Nullable String promoType, @Nullable PurchaseOrigin origin) {
 		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
 			Bundle args = new Bundle();
 			if (!Algorithms.isEmpty(promoType)) {
@@ -285,6 +327,9 @@ public class PurchaseItemFragment extends BaseOsmAndDialogFragment implements In
 			}
 			if (!Algorithms.isEmpty(sku)) {
 				args.putString(PURCHASE_SKU_KEY, sku);
+			}
+			if (origin != null) {
+				args.putString(PURCHASE_ORIGIN_KEY, origin.name());
 			}
 			PurchaseItemFragment fragment = new PurchaseItemFragment();
 			fragment.setArguments(args);

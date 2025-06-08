@@ -1,6 +1,6 @@
 package net.osmand.plus.views.controls.maphudbuttons;
 
-import static net.osmand.plus.dashboard.DashboardOnMap.DashboardType.CONFIGURE_MAP;
+import static net.osmand.plus.dashboard.DashboardType.CONFIGURE_MAP;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -31,8 +31,10 @@ public class ConfigureMapButton extends MapButton {
 		buttonState = app.getMapButtonsHelper().getConfigureMapButtonState();
 
 		setOnClickListener(v -> {
-			MapActivity.clearPrevActivityIntent();
-			mapActivity.getDashboard().setDashboardVisibility(true, CONFIGURE_MAP, AndroidUtils.getCenterViewCoordinates(v));
+			if (AndroidUtils.isActivityNotDestroyed(mapActivity)) {
+				MapActivity.clearPrevActivityIntent();
+				mapActivity.getDashboard().setDashboardVisibility(true, CONFIGURE_MAP, AndroidUtils.getCenterViewCoordinates(v));
+			}
 		});
 	}
 

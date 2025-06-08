@@ -1,7 +1,9 @@
 package net.osmand.plus.views.mapwidgets.widgets;
 
 import static net.osmand.plus.utils.AndroidUtils.dpToPx;
+import static net.osmand.plus.views.mapwidgets.WidgetsPanel.BOTTOM;
 
+import android.graphics.Typeface;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.Gravity;
@@ -19,11 +21,14 @@ import androidx.annotation.Nullable;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
+import net.osmand.plus.settings.enums.WidgetSize;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.layers.MapInfoLayer;
+import net.osmand.plus.views.layers.MapInfoLayer.TextState;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.WidgetsContextMenu;
@@ -31,7 +36,6 @@ import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.plus.views.mapwidgets.widgetinterfaces.ISupportMultiRow;
 import net.osmand.plus.views.mapwidgets.widgetinterfaces.ISupportWidgetResizing;
 import net.osmand.plus.views.mapwidgets.widgetstates.SimpleWidgetState;
-import net.osmand.plus.settings.enums.WidgetSize;
 import net.osmand.plus.widgets.popup.PopUpMenuItem;
 import net.osmand.util.Algorithms;
 
@@ -41,21 +45,17 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 
 	private final SimpleWidgetState widgetState;
 
-	private TextView widgetNameTextView;
-	private boolean verticalWidget;
+	protected OutlinedTextContainer widgetName;
+	protected TextState textState;
 	private boolean isFullRow;
-	protected MapInfoLayer.TextState textState;
-	@Nullable
-	protected String customId;
 
-	public SimpleWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType, @Nullable String customId, @Nullable WidgetsPanel panel) {
-		super(mapActivity, widgetType);
-		widgetState = new SimpleWidgetState(app, customId, widgetType);
-		this.customId = customId;
+	public SimpleWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType,
+			@Nullable String customId, @Nullable WidgetsPanel panel) {
+		super(mapActivity, widgetType, customId, panel);
+		widgetState = new SimpleWidgetState(app, customId, widgetType, getDefaultWidgetSize());
 
-		WidgetsPanel selectedPanel = panel != null ? panel : widgetType.getPanel(customId != null ? customId : widgetType.id, settings);
-		setVerticalWidget(selectedPanel);
 		setupViews();
+		updateWidgetView();
 	}
 
 	private void setupViews() {
@@ -65,16 +65,20 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 		int layoutId = getContentLayoutId();
 		UiUtilities.getInflater(mapActivity, nightMode).inflate(layoutId, container);
 		findViews();
-		updateWidgetView();
 		view.setOnLongClickListener(v -> {
-			WidgetsContextMenu.showMenu(v, mapActivity, widgetType, customId, getWidgetActions(), verticalWidget, nightMode);
+			WidgetsContextMenu.showMenu(v, mapActivity, widgetType, customId, getWidgetActions(), panel, nightMode);
 			return true;
 		});
 	}
 
 	@LayoutRes
 	protected int getContentLayoutId() {
-		return verticalWidget ? getProperVerticalLayoutId(widgetState) : R.layout.map_hud_widget;
+		return isVerticalWidget() ? getProperVerticalLayoutId(widgetState) : getProperSideLayoutId(widgetState);
+	}
+
+	@NonNull
+	protected WidgetSize getDefaultWidgetSize() {
+		return isVerticalWidget() ? WidgetSize.MEDIUM : WidgetSize.SMALL;
 	}
 
 	public void updateValueAlign(boolean fullRow) {
@@ -94,10 +98,9 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 		emptyBanner = view.findViewById(R.id.empty_banner);
 		imageView = view.findViewById(R.id.widget_icon);
 		textView = view.findViewById(R.id.widget_text);
-		textViewShadow = view.findViewById(R.id.widget_text_shadow);
 		smallTextViewShadow = view.findViewById(R.id.widget_text_small_shadow);
 		smallTextView = view.findViewById(R.id.widget_text_small);
-		widgetNameTextView = view.findViewById(R.id.widget_name);
+		widgetName = view.findViewById(R.id.widget_name);
 		bottomDivider = view.findViewById(R.id.bottom_divider);
 	}
 
@@ -107,31 +110,32 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 	}
 
 	@LayoutRes
+	private int getProperSideLayoutId(@NonNull SimpleWidgetState simpleWidgetState) {
+		return switch (simpleWidgetState.getWidgetSizePref().get()) {
+			case SMALL -> R.layout.map_hud_widget;
+			case LARGE -> R.layout.simple_map_widget_large;
+			default -> R.layout.simple_map_widget_medium;
+		};
+	}
+
+	@LayoutRes
 	private int getProperVerticalLayoutId(@NonNull SimpleWidgetState simpleWidgetState) {
-		switch (simpleWidgetState.getWidgetSizePref().get()) {
-			case SMALL:
-				return isFullRow ? R.layout.simple_map_widget_small_full : R.layout.simple_map_widget_small;
-			case LARGE:
-				return R.layout.simple_map_widget_large;
-			default:
-				return R.layout.simple_map_widget_medium;
-		}
-	}
-
-	public void setVerticalWidget(@NonNull WidgetsPanel panel) {
-		verticalWidget = panel.isPanelVertical();
-	}
-
-	public boolean isVerticalWidget() {
-		return verticalWidget;
+		return switch (simpleWidgetState.getWidgetSizePref().get()) {
+			case SMALL ->
+					isFullRow ? R.layout.simple_map_widget_small_full : R.layout.simple_map_widget_small;
+			case LARGE -> R.layout.simple_map_widget_large;
+			default -> R.layout.simple_map_widget_medium;
+		};
 	}
 
 	public void updateWidgetView() {
-		if (verticalWidget) {
-			boolean showIcon = shouldShowIcon();
-			AndroidUiHelper.updateVisibility(imageView, showIcon);
-			updateWidgetName();
+		boolean showIcon = shouldShowIcon();
+		AndroidUiHelper.updateVisibility(imageView, showIcon);
+		updateWidgetName();
+		if (isVerticalWidget()) {
 			app.getOsmandMap().getMapLayers().getMapInfoLayer().updateRow(this);
+		} else {
+			updateValueAlign(false);
 		}
 	}
 
@@ -146,7 +150,7 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 
 	@Override
 	public boolean allowResize() {
-		return isVerticalWidget();
+		return true;
 	}
 
 	@NonNull
@@ -155,21 +159,21 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 	}
 
 	public void recreateViewIfNeeded(@NonNull WidgetsPanel panel) {
-		boolean oldWidgetOrientation = verticalWidget;
-		setVerticalWidget(panel);
-		if (oldWidgetOrientation != verticalWidget) {
+		boolean oldWidgetOrientation = isVerticalWidget();
+		setPanel(panel);
+		if (oldWidgetOrientation != isVerticalWidget()) {
 			recreateView();
 		}
 	}
 
 	public void recreateView() {
 		ImageView oldImageView = imageView;
-		TextView oldTextView = textView;
-		TextView oldTextViewShadow = textViewShadow;
-		TextView oldSmallTextView = smallTextView;
+		OutlinedTextContainer oldTextView = textView;
+		OutlinedTextContainer oldSmallTextView = smallTextView;
 		TextView oldSmallTextViewShadow = smallTextViewShadow;
 		View oldContainer = container;
 		View oldEmptyBanner = emptyBanner;
+		View oldBottomDivider = bottomDivider;
 
 		setupViews();
 		findViews();
@@ -180,10 +184,10 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 		view.setVisibility(oldContainer.getVisibility());
 
 		copyTextView(textView, oldTextView);
-		copyTextView(textViewShadow, oldTextViewShadow);
 		copyTextView(smallTextView, oldSmallTextView);
 		copyTextView(smallTextViewShadow, oldSmallTextViewShadow);
 		copyView(emptyBanner, oldEmptyBanner);
+		copyView(bottomDivider, oldBottomDivider);
 
 		updateInfo(null);
 		updateWidgetView();
@@ -196,15 +200,20 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 
 	@Override
 	public final void updateInfo(@Nullable OsmandMapLayer.DrawSettings drawSettings) {
-		boolean shouldHideTopWidgets = (verticalWidget && mapActivity.getWidgetsVisibilityHelper().shouldHideVerticalWidgets());
+		boolean shouldHide = shouldHide();
 		boolean emptyValueTextView = Algorithms.isEmpty(textView.getText());
 		boolean typeAllowed = widgetType != null && widgetType.isAllowed();
-		boolean visible = typeAllowed && !(shouldHideTopWidgets || emptyValueTextView);
+		boolean visible = typeAllowed && !(shouldHide || emptyValueTextView);
 
 		updateVisibility(visible);
-		if (typeAllowed && (!shouldHideTopWidgets || emptyValueTextView)) {
+		if (typeAllowed && (!shouldHide || emptyValueTextView)) {
 			updateSimpleWidgetInfo(drawSettings);
 		}
+	}
+
+	protected boolean shouldHide() {
+		return (!(panel == BOTTOM && visibilityHelper.shouldShowBottomWidgets())) && (isVerticalWidget() && visibilityHelper.shouldHideVerticalWidgets() ||
+				panel == BOTTOM && visibilityHelper.shouldHideBottomWidgets());
 	}
 
 	protected void updateSimpleWidgetInfo(@Nullable OsmandMapLayer.DrawSettings drawSettings) {
@@ -213,7 +222,7 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 	@Override
 	public boolean updateVisibility(boolean visible) {
 		boolean updatedVisibility = super.updateVisibility(visible);
-		if (verticalWidget && updatedVisibility) {
+		if (isVerticalWidget() && updatedVisibility) {
 			app.getOsmandMap().getMapLayers().getMapInfoLayer().updateRow(this);
 		}
 		return updatedVisibility;
@@ -221,12 +230,12 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 
 	protected void updateWidgetName() {
 		String widgetName = getWidgetName();
-		if (widgetName != null && widgetNameTextView != null) {
+		if (widgetName != null && this.widgetName != null) {
 			String additionalName = getAdditionalWidgetName();
 			if (additionalName != null) {
 				widgetName = widgetName + ", " + additionalName;
 			}
-			widgetNameTextView.setText(widgetName);
+			this.widgetName.setText(widgetName);
 		}
 	}
 
@@ -236,7 +245,8 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 	}
 
 	@Override
-	public void copySettingsFromMode(@NonNull ApplicationMode sourceAppMode, @NonNull ApplicationMode appMode, @Nullable String customId) {
+	public void copySettingsFromMode(@NonNull ApplicationMode sourceAppMode,
+			@NonNull ApplicationMode appMode, @Nullable String customId) {
 		if (widgetState != null) {
 			widgetState.copyPrefsFromMode(sourceAppMode, appMode, customId);
 		}
@@ -254,6 +264,13 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 			newTextView.getPaint().setStrokeWidth(oldTextView.getPaint().getStrokeWidth());
 			newTextView.getPaint().setStyle(oldTextView.getPaint().getStyle());
 			newTextView.setText(oldTextView.getText());
+			copyView(newTextView, oldTextView);
+		}
+	}
+
+	private void copyTextView(@Nullable OutlinedTextContainer newTextView, @Nullable OutlinedTextContainer oldTextView) {
+		if (newTextView != null && oldTextView != null) {
+			newTextView.copyFromTextContainer(oldTextView);
 			copyView(newTextView, oldTextView);
 		}
 	}
@@ -295,8 +312,14 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 	@Override
 	public void updateColors(@NonNull MapInfoLayer.TextState textState) {
 		this.textState = textState;
-		if (verticalWidget) {
+		if (isVerticalWidget()) {
 			updateVerticalWidgetColors(textState);
+		} else if (WidgetSize.SMALL != getWidgetSizePref().get() && widgetName != null) {
+			updateVerticalWidgetColors(textState);
+			int typefaceStyle = textState.textBold ? Typeface.BOLD : Typeface.NORMAL;
+			widgetName.setTypeface(Typeface.DEFAULT, typefaceStyle);
+			textView.setTypeface(Typeface.DEFAULT, typefaceStyle);
+			smallTextView.setTypeface(Typeface.DEFAULT, typefaceStyle);
 		} else {
 			super.updateColors(textState);
 		}
@@ -306,20 +329,29 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 		nightMode = textState.night;
 		textView.setTextColor(textState.textColor);
 		smallTextView.setTextColor(textState.secondaryTextColor);
-		widgetNameTextView.setTextColor(textState.secondaryTextColor);
+		widgetName.setTextColor(textState.secondaryTextColor);
 		int iconId = getIconId();
 		if (iconId != 0) {
 			setImageDrawable(iconId);
 		}
 		view.findViewById(R.id.widget_bg).setBackgroundResource(textState.widgetBackgroundId);
+
+		if (bottomDivider != null) {
+			bottomDivider.setBackgroundResource(textState.widgetDividerColorId);
+		}
+		updateTextOutline(textView, textState);
+		updateTextOutline(widgetName, textState);
+		updateTextOutline(smallTextView, textState);
 	}
 
 	@Override
 	protected View getContentView() {
-		return verticalWidget ? view : container;
+		return isVerticalWidget() ? view : container;
 	}
 
-	public void updateFullRowState(boolean fullRow) {
+	@Override
+	public void updateFullRowState(int widgetsCount) {
+		boolean fullRow = widgetsCount <= 1;
 		if (isFullRow != fullRow) {
 			isFullRow = fullRow;
 			recreateView();

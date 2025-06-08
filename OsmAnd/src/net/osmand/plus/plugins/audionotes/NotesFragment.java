@@ -6,9 +6,7 @@ import static net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin.NOTES_TAB
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.drawable.Drawable;
-import android.media.MediaScannerConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -23,7 +21,6 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,10 +38,10 @@ import net.osmand.plus.activities.ActionBarProgressActivity;
 import net.osmand.plus.activities.OsmandActionBarActivity;
 import net.osmand.plus.base.OsmAndListFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.mapcontextmenu.other.ShareMenu.NativeShareDialogBuilder;
 import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.myplaces.favorites.dialogs.FragmentStateHolder;
 import net.osmand.plus.plugins.PluginsHelper;
-import net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin.Recording;
 import net.osmand.plus.plugins.audionotes.ItemMenuBottomSheetDialogFragment.ItemMenuFragmentListener;
 import net.osmand.plus.plugins.audionotes.adapters.NotesAdapter;
 import net.osmand.plus.plugins.audionotes.adapters.NotesAdapter.NotesAdapterListener;
@@ -322,7 +319,7 @@ public class NotesFragment extends OsmAndListFragment implements FragmentStateHo
 	}
 
 	private List<Recording> sortRecsByDateDescending(List<Recording> recs) {
-		Collections.sort(recs, new Comparator<Recording>() {
+		Collections.sort(recs, new Comparator<>() {
 			@Override
 			public int compare(Recording first, Recording second) {
 				long firstTime = first.getLastModified();
@@ -486,24 +483,28 @@ public class NotesFragment extends OsmAndListFragment implements FragmentStateHo
 		if (!recording.getFile().exists()) {
 			return;
 		}
-		MediaScannerConnection.scanFile(getActivity(), new String[] {recording.getFile().getAbsolutePath()},
-				null, (path, uri) -> {
-					Activity activity = getActivity();
-					if (activity != null) {
-						Intent shareIntent = new Intent(Intent.ACTION_SEND);
-						if (recording.isPhoto()) {
-							shareIntent.setType("image/*");
-						} else if (recording.isAudio()) {
-							shareIntent.setType("audio/*");
-						} else if (recording.isVideo()) {
-							shareIntent.setType("video/*");
-						}
-						shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-						shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
-						Intent chooserIntent = Intent.createChooser(shareIntent, getString(R.string.share_note));
-						AndroidUtils.startActivityIfSafe(activity, shareIntent, chooserIntent);
-					}
-				});
+
+		Activity activity = getActivity();
+		if (activity != null) {
+			String type = null;
+			if (recording.isPhoto()) {
+				type = "image/*";
+			} else if (recording.isAudio()) {
+				type = "audio/*";
+			} else if (recording.isVideo()) {
+				type = "video/*";
+			}
+
+			OsmandApplication app = getMyApplication();
+			File file = recording.getFile().getAbsoluteFile();
+			new NativeShareDialogBuilder()
+					.addFileWithSaveAction(file, app, requireActivity(), true)
+					.setChooserTitle(getString(R.string.share_note))
+					.setExtraStream(AndroidUtils.getUriForFile(app, file))
+					.setType(type)
+					.setNewDocument(true)
+					.build(app);
+		}
 	}
 
 	private void showOnMap(Recording recording) {
@@ -531,7 +532,7 @@ public class NotesFragment extends OsmAndListFragment implements FragmentStateHo
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				if (!recording.setName(editText.getText().toString())) {
-					Toast.makeText(getActivity(), R.string.rename_failed, Toast.LENGTH_SHORT).show();
+				AndroidUtils.getApp(requireContext()).showShortToastMessage(R.string.rename_failed);
 				}
 				listAdapter.notifyDataSetInvalidated();
 			}

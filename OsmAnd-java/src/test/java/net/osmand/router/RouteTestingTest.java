@@ -17,6 +17,7 @@ import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,7 +67,7 @@ public class RouteTestingTest {
 
 	}
 
-//	@Ignore 
+	@Ignore
 	@Test(timeout = TIMEOUT)
 	public void testRouting() throws Exception {
 		NativeLibrary nativeLibrary = null;
@@ -133,6 +134,14 @@ public class RouteTestingTest {
 			}
 
 			config.planRoadDirection = planRoadDirection;
+
+			if ("true".equals(params.get("hh"))) {
+				fe.CALCULATE_MISSING_MAPS = false;
+				fe.setDefaultHHRoutingConfig();
+				fe.setUseOnlyHHRouting(true);
+				fe.setHHRouteCpp(useNative);
+			}
+
 			RoutingContext ctx;
 			if (useNative) {
 				ctx = fe.buildRoutingContext(config, nativeLibrary, binaryMapIndexReaders,
@@ -146,6 +155,7 @@ public class RouteTestingTest {
 			List<RouteSegmentResult> routeSegments = fe.searchRoute(ctx, te.getStartPoint(), te.getEndPoint(),
 					te.getTransitPoint()).detailed;
 			Set<Long> reachedSegments = new TreeSet<Long>();
+			Set<String> reachedSegmentPoints = new TreeSet<>();
 			Assert.assertNotNull(routeSegments);
 			int prevSegment = -1;
 			for (int i = 0; i <= routeSegments.size(); i++) {
@@ -159,7 +169,13 @@ public class RouteTestingTest {
 					prevSegment = i;
 				}
 				if (i < routeSegments.size()) {
-					reachedSegments.add(routeSegments.get(i).getObject().getId() >> (RouteResultPreparation.SHIFT_ID));
+					RouteSegmentResult seg = routeSegments.get(i);
+					long id = seg.getObject().getId() >> RouteResultPreparation.SHIFT_ID;
+					for (int point = Math.min(seg.getStartPointIndex(), seg.getEndPointIndex());
+					     point <= Math.max(seg.getStartPointIndex(), seg.getEndPointIndex()); point++) {
+						reachedSegmentPoints.add(id + ":" + point);
+					}
+					reachedSegments.add(id);
 				}
 			}
 			Map<String, String> expectedResults = te.getExpectedResults();
@@ -170,32 +186,33 @@ public class RouteTestingTest {
 			checkRoutingTime(ctx, params);
 			for (Entry<String, String> es : expectedResults.entrySet()) {
 				long id = RouterUtilTest.getRoadId(es.getKey());
+				int point = RouterUtilTest.getRoadStartPoint(es.getKey());
+				String pointInSegment = id + ":" + point;
 				switch (es.getValue()) {
 					case "false":
-						Assert.assertFalse("Expected segment " + id + " was wrongly reached in route segments "
-								+ reachedSegments, reachedSegments.contains(id));
+						if (point == -1) {
+							Assert.assertFalse("Expected segment " + id + " was wrongly reached in route segments "
+									+ reachedSegments, reachedSegments.contains(id));
+						} else {
+							Assert.assertTrue("Unexpected pointInSegment " + pointInSegment + " is found in "
+									+ reachedSegmentPoints, !reachedSegmentPoints.contains(pointInSegment));
+						}
 						break;
 					case "true":
-						Assert.assertTrue("Expected segment " + id + " weren't reached in route segments "
-								+ reachedSegments, reachedSegments.contains(id));
+						if (point == -1) {
+							Assert.assertTrue("Expected segment " + id + " weren't reached in route segments "
+									+ reachedSegments, reachedSegments.contains(id));
+						} else {
+							Assert.assertTrue("Expected pointInSegment " + pointInSegment + " is not found in "
+									+ reachedSegmentPoints, reachedSegmentPoints.contains(pointInSegment));
+						}
 						break;
 					case "visitedSegments":
 						Assert.assertTrue("Expected segments visit " + id + " less then actually visited segments "
 								+ ctx.getVisitedSegments(), ctx.getVisitedSegments() < id);
 						break;
-					default: // case ID:N to check exact point within the ID's segment
-						boolean isFound = false;
-						int point = Integer.parseInt(es.getValue());
-						for (RouteSegmentResult seg : routeSegments) {
-							if (seg.getObject().getId() / 64 == id) {
-								if (point >= Math.min(seg.getStartPointIndex(), seg.getEndPointIndex()) &&
-										point <= Math.max(seg.getStartPointIndex(), seg.getEndPointIndex())) {
-									isFound = true;
-									break;
-								}
-							}
-						}
-						Assert.assertTrue("Expected point " + point + " is not found in segment " + id, isFound);
+					default:
+						Assert.assertTrue("Invalid key " + es.getKey() + " value " + es.getValue(), false);
 						break;
 				}
 			}

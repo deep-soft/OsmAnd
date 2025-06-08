@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -33,6 +32,8 @@ import net.osmand.plus.helpers.FileNameTranslationHelper;
 import net.osmand.plus.inapp.InAppPurchaseUtils;
 import net.osmand.plus.liveupdates.LiveUpdatesHelper;
 import net.osmand.plus.mapcontextmenu.MenuController;
+import net.osmand.plus.mapcontextmenu.TitleButtonController;
+import net.osmand.plus.mapcontextmenu.TitleProgressController;
 import net.osmand.plus.mapcontextmenu.builders.MapDataMenuBuilder;
 import net.osmand.plus.plugins.OsmandPlugin;
 import net.osmand.plus.plugins.PluginsFragment;
@@ -41,17 +42,16 @@ import net.osmand.plus.plugins.srtm.SRTMPlugin;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProvider;
 import net.osmand.plus.views.layers.DownloadedRegionsLayer.DownloadMapObject;
+import net.osmand.plus.views.layers.MapSelectionResult.SelectedMapObject;
 import net.osmand.util.Algorithms;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class MapDataMenuController extends MenuController {
 
@@ -97,7 +97,7 @@ public class MapDataMenuController extends MenuController {
 		OsmandPlugin srtmPlugin = PluginsHelper.getPlugin(SRTMPlugin.class);
 		srtmNeedsInstallation = srtmPlugin == null || srtmPlugin.needsInstallation();
 
-		leftDownloadButtonController = new TitleButtonController() {
+		leftDownloadButtonController = new TitleButtonController(this) {
 			@Override
 			public void buttonPressed() {
 				MapActivity activity = getMapActivity();
@@ -116,13 +116,11 @@ public class MapDataMenuController extends MenuController {
 								Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(plugin.getInstallURL()));
 								AndroidUtils.startActivityIfSafe(activity, intent);
 							} else {
-								Toast.makeText(activity.getApplicationContext(),
-										activity.getString(R.string.activate_srtm_plugin), Toast.LENGTH_LONG).show();
+								app.showToastMessage(R.string.activate_srtm_plugin);
 							}
 						} else {
 							PluginsFragment.showInstance(activity.getSupportFragmentManager());
-							Toast.makeText(activity, activity.getString(R.string.activate_srtm_plugin),
-									Toast.LENGTH_SHORT).show();
+							app.showShortToastMessage(R.string.activate_srtm_plugin);
 						}
 					} else if (!downloaded || indexItem.isOutdated()) {
 						startDownload(mapActivity, indexItem);
@@ -135,26 +133,26 @@ public class MapDataMenuController extends MenuController {
 		leftDownloadButtonController.caption = mapActivity.getString(R.string.shared_string_download);
 		leftDownloadButtonController.startIconId = R.drawable.ic_action_import;
 
-		rightDownloadButtonController = new TitleButtonController() {
+		rightDownloadButtonController = new TitleButtonController(this) {
 			@Override
 			public void buttonPressed() {
 				MapActivity activity = getMapActivity();
 				if (activity != null) {
 					activity.getContextMenu().close();
 
-					Map<Object, IContextMenuProvider> selectedObjects = new HashMap<>();
+					List<SelectedMapObject> selectedObjects = new ArrayList<>();
 					IContextMenuProvider provider = activity.getMapLayers().getDownloadedRegionsLayer();
-					if (otherIndexItems != null && otherIndexItems.size() > 0) {
+					if (!Algorithms.isEmpty(otherIndexItems)) {
 						for (IndexItem item : otherIndexItems) {
-							selectedObjects.put(
-									new DownloadMapObject(mapObject.getDataObject(), mapObject.getWorldRegion(), item, null),
-									provider);
+							selectedObjects.add(new SelectedMapObject(new DownloadMapObject(
+									mapObject.getDataObject(), mapObject.getWorldRegion(),
+									item, null), provider));
 						}
-					} else if (otherLocalItems != null && otherLocalItems.size() > 0) {
+					} else if (!Algorithms.isEmpty(otherLocalItems)) {
 						for (LocalItem info : otherLocalItems) {
-							selectedObjects.put(
-									new DownloadMapObject(mapObject.getDataObject(), mapObject.getWorldRegion(), null, info),
-									provider);
+							selectedObjects.add(new SelectedMapObject(new DownloadMapObject(
+									mapObject.getDataObject(), mapObject.getWorldRegion(),
+									null, info), provider));
 						}
 					}
 					activity.getContextMenu().getMultiSelectionMenu().show(
@@ -165,7 +163,7 @@ public class MapDataMenuController extends MenuController {
 		rightDownloadButtonController.caption = mapActivity.getString(R.string.download_select_map_types);
 		rightDownloadButtonController.startIconId = R.drawable.ic_plugin_srtm;
 
-		bottomTitleButtonController = new TitleButtonController() {
+		bottomTitleButtonController = new TitleButtonController(this) {
 			@Override
 			public void buttonPressed() {
 				if (indexItem != null) {

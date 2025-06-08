@@ -40,11 +40,12 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 
 	private final SyncOperationType operation;
 	private final OnBackupSyncListener syncListener;
-	private final boolean singleOperation;
+	private final boolean syncOperation;
 
 	private int maxProgress;
 	private int importProgress;
 	private int exportProgress;
+	private boolean startSyncPending = true;
 
 	public SyncBackupTask(@NonNull OsmandApplication app, @NonNull String key,
 	                      @NonNull SyncOperationType operation,
@@ -52,7 +53,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		this.app = app;
 		this.key = key;
 		this.operation = operation;
-		this.singleOperation = operation != SYNC_OPERATION_SYNC;
+		this.syncOperation = operation == SYNC_OPERATION_SYNC;
 		this.syncListener = syncListener;
 		this.backupHelper = app.getBackupHelper();
 		this.networkSettingsHelper = app.getNetworkSettingsHelper();
@@ -81,7 +82,12 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		return null;
 	}
 
-	private void startSync() {
+	private synchronized void startSync() {
+		if (!startSyncPending) {
+			return;
+		}
+		startSyncPending = false;
+
 		PrepareBackupResult backup = backupHelper.getBackup();
 		BackupInfo info = backup.getBackupInfo();
 
@@ -96,8 +102,12 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		if (syncListener != null) {
 			syncListener.onBackupSyncStarted();
 		}
-		if (settingsItems.size() > 0 && operation != SYNC_OPERATION_UPLOAD) {
-			networkSettingsHelper.importSettings(RESTORE_ITEMS_KEY, settingsItems, UNIQUE, true, this);
+		if (!settingsItems.isEmpty() && operation != SYNC_OPERATION_UPLOAD) {
+			try {
+				networkSettingsHelper.importSettings(RESTORE_ITEMS_KEY, settingsItems, UNIQUE, true, this);
+			} catch (Exception e) {
+				LOG.error(e);
+			}
 		} else if (operation != SYNC_OPERATION_DOWNLOAD) {
 			uploadNewItems();
 		} else {
@@ -169,9 +179,8 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 
 	@Override
 	public void onBackupPrepared(@Nullable PrepareBackupResult backupResult) {
-		startSync();
-		if (syncListener != null) {
-			syncListener.onBackupSyncStarted();
+		if (syncOperation) {
+			startSync();
 		}
 	}
 
@@ -184,7 +193,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		if (succeed) {
 			BackupUtils.updateCacheForItems(app, items);
 		}
-		if (singleOperation) {
+		if (!syncOperation) {
 			onSyncFinished(null);
 		} else {
 			uploadNewItems();

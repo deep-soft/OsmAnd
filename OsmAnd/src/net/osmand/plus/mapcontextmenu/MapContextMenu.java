@@ -14,23 +14,22 @@ import androidx.fragment.app.Fragment;
 
 import net.osmand.CallbackWithObject;
 import net.osmand.Location;
+import net.osmand.NativeLibrary.RenderedObject;
 import net.osmand.OnResultCallback;
 import net.osmand.StateChangedListener;
 import net.osmand.data.Amenity;
+import net.osmand.data.BaseDetailsObject;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
+import net.osmand.plus.helpers.TargetPoint;
 import net.osmand.plus.helpers.TargetPointsHelper.TargetPointChangedListener;
 import net.osmand.plus.mapcontextmenu.AdditionalActionsBottomSheetDialogFragment.ContextMenuItemClickListener;
-import net.osmand.plus.mapcontextmenu.MenuController.ContextMenuToolbarController;
 import net.osmand.plus.mapcontextmenu.MenuController.MenuState;
 import net.osmand.plus.mapcontextmenu.MenuController.MenuType;
-import net.osmand.plus.mapcontextmenu.MenuController.TitleButtonController;
-import net.osmand.plus.mapcontextmenu.MenuController.TitleProgressController;
 import net.osmand.plus.mapcontextmenu.controllers.MapDataMenuController;
 import net.osmand.plus.mapcontextmenu.editors.FavoritePointEditor;
 import net.osmand.plus.mapcontextmenu.editors.MapMarkerEditor;
@@ -54,6 +53,7 @@ import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.mapwidgets.TopToolbarController;
 import net.osmand.plus.views.mapwidgets.TopToolbarController.TopToolbarControllerType;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
+import net.osmand.search.AmenitySearcher;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
@@ -335,18 +335,27 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	                    @Nullable PointDescription pointDescription,
 	                    @Nullable Object object,
 	                    boolean update, boolean restorePrevious) {
-
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity == null) {
 			return false;
 		}
 
 		OsmandApplication app = mapActivity.getMyApplication();
+		if (!(object instanceof RenderedObject)) {
+			AmenitySearcher searcher = app.getResourceManager().getAmenitySearcher();
+			AmenitySearcher.Settings settings = app.getResourceManager().getDefaultAmenitySearchSettings();
+			BaseDetailsObject detailsObject = searcher.searchDetailedObject(object, settings);
+			if (detailsObject != null) {
+				object = detailsObject;
+			}
+		}
 
 		Object thisObject = getObject();
 		if (!update && isVisible()) {
 			if (thisObject == null || !thisObject.equals(object)
-					|| (thisObject instanceof Amenity && !((Amenity) thisObject).strictEquals(object))) {
+					|| (thisObject instanceof Amenity amenity && !amenity.strictEquals(object))
+					|| (thisObject instanceof BaseDetailsObject detailsObject
+					&& !detailsObject.getSyntheticAmenity().strictEquals(object))) {
 				hide();
 			} else {
 				return false;
@@ -402,7 +411,6 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		} else if (object instanceof TargetPoint) {
 			app.getTargetPointsHelper().addPointListener(this);
 		}
-
 		return true;
 	}
 
@@ -769,7 +777,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		if (mapActivity != null) {
 			TopToolbarController toolbarController = mapActivity.getTopToolbarController(TopToolbarControllerType.CONTEXT_MENU);
 			if (toolbarController instanceof ContextMenuToolbarController) {
-				MenuController menuController = ((ContextMenuToolbarController) toolbarController).getMenuController();
+				MenuController menuController = ((ContextMenuToolbarController) toolbarController).getController();
 				closeToolbar(menuController);
 			}
 		}
@@ -935,7 +943,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 			if (navigateInPedestrianMode()) {
 				mapActivity.getMyApplication().getSettings().setApplicationMode(ApplicationMode.PEDESTRIAN, false);
 			}
-			mapActivity.getMapLayers().getMapActionsHelper().navigateButton();
+			mapActivity.getMapActions().navigateButton();
 		}
 	}
 
@@ -969,8 +977,14 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 			} else {
 				String mapObjectName = null;
 				Object object = getObject();
+
+				Amenity amenity = null;
 				if (object instanceof Amenity) {
-					Amenity amenity = (Amenity) object;
+					amenity = (Amenity) object;
+				} else if (object instanceof BaseDetailsObject detailsObject) {
+					amenity = detailsObject.getSyntheticAmenity();
+				}
+				if (amenity != null) {
 					mapObjectName = amenity.getName() + "_" + amenity.getType().getKeyName();
 				}
 				LatLon latLon = getLatLon();
@@ -1049,10 +1063,10 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	}
 
 	public ContextMenuItemClickListener getContextMenuItemClickListener(ContextMenuAdapter menuAdapter) {
-		MapActivity mapActivity = getMapActivity();
-		if (mapActivity != null) {
+		MapActivity activity = getMapActivity();
+		if (activity != null) {
 			LatLon latLon = getLatLon();
-			return mapActivity.getMapActions().getContextMenuItemClickListener(latLon.getLatitude(), latLon.getLongitude(), menuAdapter);
+			return activity.getMapActions().getContextMenuItemClickListener(activity, latLon.getLatitude(), latLon.getLongitude(), menuAdapter);
 		}
 		return null;
 	}
@@ -1151,9 +1165,13 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 			}
 
 			Amenity amenity = null;
-			Object object = getObject();
-			if (object instanceof Amenity && pointDescription.isPoi()) {
-				amenity = (Amenity) object;
+			if (pointDescription.isPoi()) {
+				Object object = getObject();
+				if (object instanceof Amenity) {
+					amenity = (Amenity) object;
+				} else if (object instanceof BaseDetailsObject detailsObject) {
+					amenity = detailsObject.getSyntheticAmenity();
+				}
 			}
 
 			List<SelectedGpxFile> list = app.getSelectedGpxHelper().getSelectedGPXFiles();
@@ -1591,7 +1609,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		});
 	}
 
-	private abstract class MenuAction implements Runnable {
+	private abstract static class MenuAction implements Runnable {
 		protected ProgressDialog dlg;
 	}
 }

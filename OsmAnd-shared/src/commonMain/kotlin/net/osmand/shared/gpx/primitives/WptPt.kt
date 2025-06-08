@@ -1,6 +1,7 @@
 package net.osmand.shared.gpx.primitives
 
 import net.osmand.shared.extensions.currentTimeMillis
+import net.osmand.shared.gpx.GpxFormatter
 import net.osmand.shared.gpx.GpxUtilities
 import net.osmand.shared.gpx.PointAttributes
 import net.osmand.shared.routing.RouteColorize
@@ -12,7 +13,7 @@ class WptPt : GpxExtensions {
 	var lat: Double = 0.0
 	var lon: Double = 0.0
 	var name: String? = null
-	var link: String? = null
+	var link: Link? = null
 	var category: String? = null
 	var desc: String? = null
 	var comment: String? = null
@@ -36,7 +37,6 @@ class WptPt : GpxExtensions {
 		lat = wptPt.lat
 		lon = wptPt.lon
 		name = wptPt.name
-		link = wptPt.link
 		category = wptPt.category
 		desc = wptPt.desc
 		comment = wptPt.comment
@@ -51,6 +51,7 @@ class WptPt : GpxExtensions {
 		slopeColor = wptPt.slopeColor
 		colourARGB = wptPt.colourARGB
 		distance = wptPt.distance
+		link = wptPt.link?.let { Link(it) }
 		getExtensionsToWrite().putAll(wptPt.getExtensionsToWrite())
 	}
 
@@ -196,10 +197,10 @@ class WptPt : GpxExtensions {
 	}
 
 	fun setAddress(address: String?) {
-		if (KAlgorithms.isBlank(address)) {
+		if (address.isNullOrEmpty()) {
 			getExtensionsToWrite().remove(GpxUtilities.ADDRESS_EXTENSION)
 		} else {
-			getExtensionsToWrite()[GpxUtilities.ADDRESS_EXTENSION] = address!!
+			getExtensionsToWrite()[GpxUtilities.ADDRESS_EXTENSION] = address
 		}
 	}
 
@@ -271,8 +272,8 @@ class WptPt : GpxExtensions {
 			amenityOriginName: String?,
 			amenityExtensions: Map<String, String>?
 		): WptPt {
-			val latAdjusted = GpxUtilities.formatLatLon(lat).toDouble()
-			val lonAdjusted = GpxUtilities.formatLatLon(lon).toDouble()
+			val latAdjusted = GpxFormatter.formatLatLon(lat).toDouble()
+			val lonAdjusted = GpxFormatter.formatLatLon(lon).toDouble()
 			val point = WptPt(
 				latAdjusted,
 				lonAdjusted,
@@ -305,8 +306,8 @@ class WptPt : GpxExtensions {
 	}
 
 	fun updatePoint(pt: WptPt) {
-		lat = GpxUtilities.formatLatLon(pt.lat).toDouble()
-		lon = GpxUtilities.formatLatLon(pt.lon).toDouble()
+		lat = GpxFormatter.formatLatLon(pt.lat).toDouble()
+		lon = GpxFormatter.formatLatLon(pt.lon).toDouble()
 		time = currentTimeMillis()
 		desc = pt.desc
 		name = pt.name
@@ -340,7 +341,8 @@ class WptPt : GpxExtensions {
 	}
 
 	fun setSpecialPointType(type: String?) {
-		getExtensionsToWrite()[GpxUtilities.POINT_TYPE_EXTENSION] = type!!
+		if (type != null) {
+			getExtensionsToWrite()[GpxUtilities.POINT_TYPE_EXTENSION] = type
+		}
 	}
-
 }

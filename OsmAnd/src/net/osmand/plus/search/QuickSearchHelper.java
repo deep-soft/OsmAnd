@@ -15,7 +15,7 @@ import net.osmand.data.Amenity;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
-import net.osmand.data.QuadRect;
+import net.osmand.search.AmenitySearcher;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.map.WorldRegion;
 import net.osmand.osm.AbstractPoiType;
@@ -60,6 +60,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class QuickSearchHelper implements ResourceListener {
@@ -167,32 +168,15 @@ public class QuickSearchHelper implements ResourceListener {
 		core.getSearchSettings().setRegions(app.getRegions());
 	}
 
-	public Amenity findAmenity(String name, double lat, double lon, String lang, boolean transliterate) {
-		QuadRect rect = MapUtils.calculateLatLonBbox(lat, lon, 15);
-		List<Amenity> amenities = app.getResourceManager().searchAmenities(ACCEPT_ALL_POI_TYPE_FILTER, rect, true);
+	public Amenity findAmenity(String name, double lat, double lon) {
+		AmenitySearcher amenitySearch = app.getResourceManager().getAmenitySearcher();
+		AmenitySearcher.Settings settings = app.getResourceManager().getDefaultAmenitySearchSettings();
 
-		MapPoiTypes types = app.getPoiTypes();
-		for (Amenity amenity : amenities) {
-			String poiSimpleFormat = OsmAndFormatter.getPoiStringWithoutType(amenity, lang, transliterate);
-			if (poiSimpleFormat.equals(name)) {
-				return amenity;
-			}
-		}
-		for (Amenity amenity : amenities) {
-			String amenityName = amenity.getName(lang, transliterate);
-			if (Algorithms.isEmpty(amenityName)) {
-				AbstractPoiType st = types.getAnyPoiTypeByKey(amenity.getSubType());
-				if (st != null) {
-					amenityName = st.getTranslation();
-				} else {
-					amenityName = amenity.getSubType();
-				}
-			}
-			if (name.contains(amenityName)) {
-				return amenity;
-			}
-		}
-		return null;
+		Amenity requestAmenity = new Amenity();
+		requestAmenity.setLocation(new LatLon(lat, lon));
+		AmenitySearcher.Request request = new AmenitySearcher.Request(requestAmenity, Collections.singletonList(name));
+
+		return amenitySearch.searchDetailedAmenity(request, settings);
 	}
 
 	public static class SearchWptAPI extends SearchBaseAPI {
@@ -386,8 +370,11 @@ public class QuickSearchHelper implements ResourceListener {
 			double lon = phrase.getSettings().getOriginalLocation().getLongitude();
 			String text = phrase.getFullSearchPhrase();
 			filter.setFilterByName(text);
-			publishAmenities(phrase, matcher, filter.initializeNewSearch(lat, lon,
-					-1, null, phrase.getRadiusLevel() + 3));
+			List<Amenity> amenities = filter.initializeNewSearch(lat, lon,-1, null, phrase.getRadiusLevel() + 3);
+			for (Amenity amenity : amenities) {
+				SearchResult sr = getSearchResult(phrase, amenity);
+				matcher.publish(sr);
+			}
 			return true;
 		}
 
@@ -397,21 +384,6 @@ public class QuickSearchHelper implements ResourceListener {
 				return SEARCH_ONLINE_API_PRIORITY;
 			}
 			return -1;
-		}
-
-		private void publishAmenities(SearchPhrase phrase, SearchResultMatcher matcher, List<Amenity> amenities) {
-			for (Amenity amenity : amenities) {
-				SearchResult sr = getSearchResult(phrase, amenity);
-				LatLon latLon = amenity.getLocation();
-				String lang = sr.requiredSearchPhrase.getSettings().getLang();
-				boolean transliterate = sr.requiredSearchPhrase.getSettings().isTransliterate();
-				Amenity a = app.getSearchUICore().findAmenity(amenity.getName(), latLon.getLatitude(),
-						latLon.getLongitude(), lang, transliterate);
-				if (a != null) {
-					sr = getSearchResult(phrase, a);
-				}
-				matcher.publish(sr);
-			}
 		}
 
 		@NonNull

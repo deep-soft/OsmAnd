@@ -1,5 +1,7 @@
 package net.osmand.plus.settings.purchase;
 
+import static net.osmand.plus.settings.purchase.data.PurchaseUiDataUtils.UNDEFINED_TIME;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -25,6 +27,8 @@ import net.osmand.plus.chooseplan.NoPurchasesCard;
 import net.osmand.plus.chooseplan.TroubleshootingCard;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper.InAppPurchaseListener;
+import net.osmand.plus.inapp.InAppPurchaseHelper.InAppStateHolder;
+import net.osmand.plus.inapp.InAppPurchaseHelper.SubscriptionStateHolder;
 import net.osmand.plus.inapp.InAppPurchases.InAppPurchase;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard.CardListener;
@@ -71,15 +75,50 @@ public class PurchasesFragment extends BaseOsmAndDialogFragment implements InApp
 		}
 		cardsContainer.removeAllViews();
 
+		// Android purchases
 		List<InAppPurchase> mainPurchases = purchaseHelper.getEverMadeMainPurchases();
-		for (int i = 0; i < mainPurchases.size(); i++) {
-			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
-			PurchaseUiData purchase = PurchaseUiDataUtils.createUiData(app, mainPurchases.get(i));
-			PurchaseItemCard purchaseCard = new PurchaseItemCard(activity, purchaseHelper, purchase);
-			purchaseCard.setListener(PurchasesFragment.this);
-			cardsContainer.addView(purchaseCard.build(activity));
-		}
 		boolean showBackupSubscription = PurchaseUiDataUtils.shouldShowBackupSubscription(app, mainPurchases);
+		String backupSubscriptionSku = settings.BACKUP_SUBSCRIPTION_SKU.get();
+		for (int i = 0; i < mainPurchases.size(); i++) {
+			PurchaseUiData purchaseData = PurchaseUiDataUtils.createUiData(app, mainPurchases.get(i));
+			if (purchaseData != null) {
+				themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
+				PurchaseItemCard purchaseCard = new PurchaseItemCard(activity, purchaseHelper, purchaseData);
+				purchaseCard.setListener(PurchasesFragment.this);
+				cardsContainer.addView(purchaseCard.build(activity));
+			}
+		}
+
+		// External subscriptions
+		List<SubscriptionStateHolder> externalSubscriptions = purchaseHelper.getExternalSubscriptions();
+		for (SubscriptionStateHolder holder : externalSubscriptions) {
+			if (showBackupSubscription && holder.sku.equals(backupSubscriptionSku)) {
+				continue;
+			}
+			PurchaseUiData purchaseData = PurchaseUiDataUtils.createUiData(app,
+					holder.linkedSubscription, UNDEFINED_TIME, holder.expireTime, holder.origin, holder.state);
+			if (purchaseData != null) {
+				themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
+				PurchaseItemCard purchaseCard = new PurchaseItemCard(activity, purchaseHelper, purchaseData);
+				purchaseCard.setListener(PurchasesFragment.this);
+				cardsContainer.addView(purchaseCard.build(activity));
+			}
+		}
+
+		// External inapp purchases
+		List<InAppStateHolder> externalInApps = purchaseHelper.getExternalInApps();
+		for (InAppStateHolder holder : externalInApps) {
+			PurchaseUiData purchaseData = PurchaseUiDataUtils.createUiData(app,
+					holder.linkedPurchase, holder.purchaseTime, UNDEFINED_TIME, holder.origin, null);
+			if (purchaseData != null) {
+				themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
+				PurchaseItemCard purchaseCard = new PurchaseItemCard(activity, purchaseHelper, purchaseData);
+				purchaseCard.setListener(PurchasesFragment.this);
+				cardsContainer.addView(purchaseCard.build(activity));
+			}
+		}
+
+		// Backup subscription
 		if (showBackupSubscription) {
 			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
 			PurchaseUiData purchase = PurchaseUiDataUtils.createBackupSubscriptionUiData(app);
@@ -97,6 +136,20 @@ public class PurchasesFragment extends BaseOsmAndDialogFragment implements InApp
 			cardsContainer.addView(purchaseCard.build(activity));
 		}
 
+		setupPromoCard(activity);
+
+		boolean hasMainPurchases = !Algorithms.isEmpty(mainPurchases);
+		if (!needToShowFreeAccountSubscriptionCard && (!Version.isPaidVersion(app) || (!hasMainPurchases && !showBackupSubscription))) {
+			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
+			cardsContainer.addView(new NoPurchasesCard(activity, this).build(activity));
+		} else {
+			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
+			cardsContainer.addView(new ExploreOsmAndPlansCard(activity, this).build(activity));
+		}
+		cardsContainer.addView(new TroubleshootingCard(activity, purchaseHelper, false).build(activity));
+	}
+
+	private void setupPromoCard(@NonNull FragmentActivity activity) {
 		if (Version.isTripltekBuild()) {
 			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
 			PurchaseUiData purchase = PurchaseUiDataUtils.createTripltekPurchaseUiData(app);
@@ -109,17 +162,13 @@ public class PurchasesFragment extends BaseOsmAndDialogFragment implements InApp
 			PurchaseItemCard purchaseCard = new PurchaseItemCard(activity, purchaseHelper, purchase);
 			purchaseCard.setListener(PurchasesFragment.this);
 			cardsContainer.addView(purchaseCard.build(activity));
-		}
-
-		boolean hasMainPurchases = !Algorithms.isEmpty(mainPurchases);
-		if (!needToShowFreeAccountSubscriptionCard && (!Version.isPaidVersion(app) || (!hasMainPurchases && !showBackupSubscription))) {
+		} else if (Version.isHMDBuild()) {
 			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
-			cardsContainer.addView(new NoPurchasesCard(activity, this).build(activity));
-		} else {
-			themedInflater.inflate(R.layout.list_item_divider, cardsContainer);
-			cardsContainer.addView(new ExploreOsmAndPlansCard(activity, this).build(activity));
+			PurchaseUiData purchase = PurchaseUiDataUtils.createHMDPurchaseUiData(app);
+			PurchaseItemCard purchaseCard = new PurchaseItemCard(activity, purchaseHelper, purchase);
+			purchaseCard.setListener(PurchasesFragment.this);
+			cardsContainer.addView(purchaseCard.build(activity));
 		}
-		cardsContainer.addView(new TroubleshootingCard(activity, purchaseHelper, false).build(activity));
 	}
 
 	@Nullable
@@ -177,7 +226,7 @@ public class PurchasesFragment extends BaseOsmAndDialogFragment implements InApp
 				String sku = purchase.isPromo() ? null : purchase.getSku();
 				String promoType = sku == null ? purchase.getTitle() : null;
 				FragmentManager fragmentManager = activity.getSupportFragmentManager();
-				PurchaseItemFragment.showInstance(fragmentManager, sku, promoType);
+				PurchaseItemFragment.showInstance(fragmentManager, sku, promoType, purchase.getOrigin());
 			}
 		}
 	}

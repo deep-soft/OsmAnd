@@ -21,15 +21,18 @@ import net.osmand.core.jni.IGeoTiffCollection.RasterType;
 import net.osmand.core.jni.MapPresentationEnvironment.LanguagePreference;
 import net.osmand.core.jni.MapPrimitivesProvider.Mode;
 import net.osmand.data.Amenity;
+import net.osmand.data.BaseDetailsObject;
 import net.osmand.data.LatLon;
 import net.osmand.data.QuadRect;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.R;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.srtm.SRTMPlugin;
 import net.osmand.plus.render.MapRenderRepositories;
 import net.osmand.plus.render.RendererRegistry;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.NativeUtilities;
+import net.osmand.render.RenderingClass;
 import net.osmand.render.RenderingRuleProperty;
 import net.osmand.render.RenderingRuleSearchRequest;
 import net.osmand.render.RenderingRuleStorageProperties;
@@ -43,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -89,6 +93,8 @@ public class MapRendererContext {
 	private float cachedReferenceTileSize;
 	private boolean heightmapsActive;
 
+	public boolean showDebugTiles = false;
+
 	public MapRendererContext(OsmandApplication app, float density) {
 		this.app = app;
 		this.density = density;
@@ -100,16 +106,26 @@ public class MapRendererContext {
 	 *
 	 * @param mapRendererView Reference to MapRendererView
 	 */
-	public void setMapRendererView(@Nullable MapRendererView mapRendererView) {
-		boolean update = (this.mapRendererView != mapRendererView);
-		if (update && this.mapRendererView != null)
-			this.mapRendererView.stopRenderer();
-		this.mapRendererView = mapRendererView;
-		if (!update) {
+	public synchronized void setMapRendererView(@Nullable MapRendererView mapRendererView) {
+		if (this.mapRendererView == mapRendererView) {
 			return;
 		}
+		this.mapRendererView = mapRendererView;
 		if (mapRendererView != null) {
 			applyCurrentContextToView();
+		}
+	}
+
+	public synchronized void suspendMapRendererView(@Nullable MapRendererView mapRendererView) {
+		if (this.mapRendererView != null && (mapRendererView == null || this.mapRendererView == mapRendererView)) {
+			this.mapRendererView.handleOnPause();
+		}
+	}
+
+	public synchronized void releaseMapRendererView(@Nullable MapRendererView mapRendererView) {
+		if (this.mapRendererView != null && (mapRendererView == null || this.mapRendererView == mapRendererView)) {
+			this.mapRendererView.stopRenderer();
+			this.mapRendererView = null;
 		}
 	}
 
@@ -193,18 +209,32 @@ public class MapRendererContext {
 		if (rendName.length() == 0 || rendName.equals(RendererRegistry.DEFAULT_RENDER)) {
 			rendName = "default";
 		}
-		if (!mapStyles.containsKey(rendName)) {
-			Log.d(TAG, "Style '" + rendName + "' not in cache");
-			if (mapStylesCollection.getStyleByName(rendName) == null || IGNORE_CORE_PRELOADED_STYLES) {
-				Log.d(TAG, "Unknown '" + rendName + "' style, need to load");
-				loadRenderer(rendName);
-			}
-			ResolvedMapStyle mapStyle = mapStylesCollection.getResolvedStyleByName(rendName);
-			if (mapStyle != null) {
-				mapStyles.put(rendName, mapStyle);
+		int tryCount = 0;
+		while (true) {
+			if (mapStyles.containsKey(rendName)) {
+				break;
 			} else {
-				Log.d(TAG, "Failed to resolve '" + rendName + "', will use 'default'");
-				rendName = "default";
+				Log.d(TAG, "Style '" + rendName + "' not in cache");
+				if (mapStylesCollection.getStyleByName(rendName) == null || IGNORE_CORE_PRELOADED_STYLES) {
+					Log.d(TAG, "Unknown '" + rendName + "' style, need to load");
+					loadRenderer(rendName);
+				}
+				ResolvedMapStyle mapStyle = mapStylesCollection.getResolvedStyleByName(rendName);
+				if (mapStyle != null) {
+					mapStyles.put(rendName, mapStyle);
+					break;
+				} else {
+					Log.d(TAG, "Failed to resolve '" + rendName + "', will use 'default'");
+					rendName = "default";
+				}
+			}
+			if (tryCount < 3) {
+				tryCount++;
+				if (tryCount > 1)
+				{
+					Log.e(TAG, "Failed to load '" + rendName + "' style, will keep trying");
+					app.showToastMessage(R.string.cant_load_map_styles);
+				}
 			}
 		}
 		ResolvedMapStyle mapStyle = mapStyles.get(rendName);
@@ -231,7 +261,7 @@ public class MapRendererContext {
 				recreateRasterAndSymbolsProvider(providerType);
 			} else if (languageParamsChanged) {
 				if (mapPrimitivesProvider != null || updateMapPrimitivesProvider(providerType)) {
-					updateObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
+					updateOrRemoveObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
 				}
 			}
 			setMapBackgroundColor();
@@ -298,26 +328,42 @@ public class MapRendererContext {
 		}
 	}
 
+	@NonNull
 	protected QStringStringHash getMapStyleSettings() {
 		// Apply map style settings
 		OsmandSettings settings = app.getSettings();
 		RenderingRulesStorage storage = app.getRendererRegistry().getCurrentSelectedRenderer();
 
-		Map<String, String> properties = new HashMap<>();
-		for (RenderingRuleProperty property : storage.PROPS.getCustomRules()) {
+		List<RenderingRuleProperty> customRules = storage.PROPS.getCustomRules();
+		Map<String, RenderingClass> renderingClasses = storage.getRenderingClasses();
+		Map<String, String> properties = new LinkedHashMap<>(customRules.size() + renderingClasses.size());
+
+		for (RenderingRuleProperty property : customRules) {
 			String attrName = property.getAttrName();
 			if (property.isBoolean()) {
-				properties.put(attrName, settings.getRenderBooleanPropertyValue(attrName) + "");
+				properties.put(attrName, String.valueOf(settings.getRenderBooleanPropertyValue(attrName)));
 			} else {
-				String value = settings.getRenderPropertyValue(attrName);
+				String value = settings.getRenderPropertyValue(property);
 				if (!Algorithms.isEmpty(value)) {
 					properties.put(attrName, value);
 				}
 			}
 		}
+		Map<String, Boolean> parentsStates = new HashMap<>();
+		for (Map.Entry<String, RenderingClass> entry : renderingClasses.entrySet()) {
+			String name = entry.getKey();
+			RenderingClass renderingClass = entry.getValue();
+			boolean enabled = settings.getBooleanRenderClassProperty(renderingClass).get();
 
+			String parentName = renderingClass.getParentName();
+			if (parentName != null && parentsStates.containsKey(parentName) && !parentsStates.get(parentName)) {
+				enabled = false;
+			}
+			properties.put(name, String.valueOf(enabled));
+			parentsStates.put(name, enabled);
+		}
 		QStringStringHash styleSettings = new QStringStringHash();
-		for (Entry<String, String> setting : properties.entrySet()) {
+		for (Map.Entry<String, String> setting : properties.entrySet()) {
 			styleSettings.set(setting.getKey(), setting.getValue());
 		}
 		if (nightMode) {
@@ -345,7 +391,7 @@ public class MapRendererContext {
 	public void recreateRasterAndSymbolsProvider(@NonNull ProviderType providerType) {
 		if (updateMapPrimitivesProvider(providerType)) {
 			updateObfMapRasterLayerProvider(mapPrimitivesProvider, providerType);
-			updateObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
+			updateOrRemoveObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
 			this.providerType = providerType;
 		}
 	}
@@ -401,7 +447,11 @@ public class MapRendererContext {
 	private void updateObfMapRasterLayerProvider(@NonNull MapPrimitivesProvider mapPrimitivesProvider,
 	                                             @NonNull ProviderType providerType) {
 		// Create new OBF map raster layer provider
-		obfMapRasterLayerProvider = new MapRasterLayerProvider_Software(mapPrimitivesProvider, providerType.fillBackground);
+		if (showDebugTiles) {
+			obfMapRasterLayerProvider = new MapPrimitivesMetricsLayerProvider(mapPrimitivesProvider);
+		} else {
+			obfMapRasterLayerProvider = new MapRasterLayerProvider_Software(mapPrimitivesProvider, providerType.fillBackground);
+		}
 		// In case there's bound view and configured layer, perform setup
 		MapRendererView mapRendererView = this.mapRendererView;
 		if (mapRendererView != null) {
@@ -428,13 +478,25 @@ public class MapRendererContext {
 		}
 	}
 
+	private void updateOrRemoveObfMapSymbolsProvider(@NonNull MapPrimitivesProvider mapPrimitivesProvider,
+											 @NonNull ProviderType providerType) {
+		if (showDebugTiles) {
+			if (obfMapSymbolsProvider != null && mapRendererView != null && this.providerType == providerType) {
+				mapRendererView.removeSymbolsProvider(obfMapSymbolsProvider);
+			}
+		} else {
+			updateObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
+		}
+	}
+	public void presetMapRendererOptions(@NonNull MapRendererView mapRendererView) {
+		mapRendererView.setupOptions.setMaxNumberOfRasterMapLayersInBatch(1);
+	}
+
 	private void applyCurrentContextToView() {
 		MapRendererView mapRendererView = this.mapRendererView;
 		if (mapRendererView == null) {
 			return;
 		}
-		mapRendererView.setMapRendererSetupOptionsConfigurator(
-				mapRendererSetupOptions -> mapRendererSetupOptions.setMaxNumberOfRasterMapLayersInBatch(1));
 		if (mapRendererView instanceof AtlasMapRendererView) {
 			cachedReferenceTileSize = getReferenceTileSize();
 			((AtlasMapRendererView) mapRendererView).setReferenceTileSizeOnScreenInPixels(cachedReferenceTileSize);
@@ -442,6 +504,7 @@ public class MapRendererContext {
 		updateElevationConfiguration();
 
 		if (obfMapRasterLayerProvider != null) {
+			mapRendererView.resetMapLayerProvider(providerType.layerIndex);
 			mapRendererView.setMapLayerProvider(providerType.layerIndex, obfMapRasterLayerProvider);
 		}
 		if (obfMapSymbolsProvider != null) {
@@ -655,14 +718,17 @@ public class MapRendererContext {
 		}
 	}
 
-	public List<RenderedObject> retrievePolygonsAroundMapObject(PointI point, Object mapObject, ZoomLevel zoomLevel) {
+	public List<RenderedObject> retrievePolygonsAroundMapObject(PointI point, Object object, ZoomLevel zoomLevel) {
 		List<RenderedObject> rendPolygons = retrievePolygonsAroundPoint(point, zoomLevel, false);
 		List<LatLon> objectPolygon = null;
-		if (mapObject instanceof Amenity am) {
-			objectPolygon = am.getPolygon();
+		if (object instanceof Amenity amenity) {
+			objectPolygon = amenity.getPolygon();
 		}
-		if (mapObject instanceof RenderedObject ro) {
-			objectPolygon = ro.getPolygon();
+		if (object instanceof RenderedObject renderedObject) {
+			objectPolygon = renderedObject.getPolygon();
+		}
+		if (object instanceof BaseDetailsObject detailsObject) {
+			objectPolygon = detailsObject.getSyntheticAmenity().getPolygon();
 		}
 		List<RenderedObject> res = new ArrayList<>();
 		if (objectPolygon != null) {
@@ -696,11 +762,11 @@ public class MapRendererContext {
 
 	private RenderedObject createRenderedObjectForPolygon(MapObject mapObject, int order) {
 		RenderedObject object = new RenderedObject();
-		QStringStringHash tags = mapObject.getResolvedAttributes();
-		QStringList tagsKeys = tags.keys();
-		for (int i = 0; i < tagsKeys.size(); i++) {
-			String key = tagsKeys.get(i);
-			String value = tags.get(key);
+		QStringStringList tags = mapObject.getResolvedAttributesListPairs();
+		for (int i = 0; i < tags.size(); i++) {
+			QStringStringPair pair = tags.get(i);
+			String key = pair.getFirst();
+			String value = pair.getSecond();
 			if ("osmand_change".equals(key) && "delete".equals(value)) {
 				return null;
 			}

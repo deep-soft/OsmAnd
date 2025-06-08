@@ -219,10 +219,10 @@
     <string name="poi_megalith_type_nuraghe">Megalittype: nurage</string>
     <string name="poi_megalith_type_passage_grave">Megalittype: ganggrav</string>
     <string name="poi_megalith_type_menhir">Megalittype: bautastein</string>
-    <string name="poi_site_type_petroglyph">Helleristning</string>
-    <string name="poi_site_type_city">By</string>
-    <string name="poi_site_type_settlement">Bosetting</string>
-    <string name="poi_site_type_megalith">Megalitt</string>
+    <string name="poi_archaeological_site_petroglyph">Helleristning</string>
+    <string name="poi_archaeological_site_city">By</string>
+    <string name="poi_archaeological_site_settlement">Bosetting</string>
+    <string name="poi_archaeological_site_megalith">Megalitt</string>
     <string name="poi_fountain">Fontene</string>
     <string name="poi_salt_no">Salt: nei</string>
     <string name="poi_ticket">Billettsalg</string>
@@ -313,10 +313,6 @@
     <string name="poi_pitch">Idrettsbane</string>
     <string name="poi_place_of_worship">Religiøst sted</string>
     <string name="poi_grave_yard">Kirkegård</string>
-    <string name="poi_route_hiking_iwn_poi">Internasjonal vandrerute</string>
-    <string name="poi_route_hiking_nwn_poi">Nasjonal vandrerute</string>
-    <string name="poi_route_hiking_rwn_poi">Regional vandrerute</string>
-    <string name="poi_route_hiking_lwn_poi">Lokal vandrerute</string>
     <string name="poi_crossing_traffic_signals">Med trafikklys</string>
     <string name="poi_building">Bygning</string>
     <string name="poi_car_wash_no">Nei;Bilvask: nei</string>
@@ -512,9 +508,9 @@
     <string name="poi_stars_4">4 (Førsteklasse)</string>
     <string name="poi_stars_4s">4S (Høyere Førsteklasse)</string>
     <string name="poi_tomb_tumulus">Type: gravhaug</string>
-    <string name="poi_site_type_tumulus">Gravhaug</string>
-    <string name="poi_site_type_fortification">Befestning</string>
-    <string name="poi_site_type_necropolis">Nekropolis</string>
+    <string name="poi_archaeological_site_tumulus">Gravhaug</string>
+    <string name="poi_archaeological_site_fortification">Befestning</string>
+    <string name="poi_archaeological_site_necropolis">Nekropolis</string>
     <string name="poi_caravans">Campingvogner</string>
     <string name="poi_caravans_no">Campingvogner: nei</string>
     <string name="poi_fireplace">Ildsted</string>
@@ -658,7 +654,6 @@
     <string name="poi_administrative">Administrativt</string>
     <string name="poi_club">Klubb</string>
     <string name="poi_service">Tjeneste</string>
-    <string name="poi_osmwiki">Wikipedia</string>
     <string name="poi_alcohol">Alkoholbutikk</string>
     <string name="poi_cheese">Ostebutikk</string>
     <string name="poi_chocolate">Sjokoladebutikk</string>
@@ -1802,7 +1797,6 @@
     <string name="poi_club_theatre">Teaterklubb</string>
     <string name="poi_club_charity">Veldedighetsklubb</string>
     <string name="poi_lcn_ref">Lokal sykkelnettverksnode</string>
-    <string name="poi_route_hiking_ref_poi">Fotturrutereferanse</string>
     <string name="poi_collection_times">Tømmingstider</string>
     <string name="poi_water_point">Vannpunkt</string>
     <string name="poi_recycling_small_electrical_appliances">Småelektrisk utstyr</string>
@@ -1952,4 +1946,19 @@
     <string name="poi_cash_in_customers">Kunder</string>
     <string name="poi_diet_pescetarian_no">Pesco-vegetarisk: nei</string>
     <string name="poi_waste_accepted">Akseptert avfall</string>
+    <string name="poi_route_track_point">Andre rutepunkter</string>
+    <string name="poi_osmand_foot_prohibited_tunnel">Tunnel forbudt for fotgjengere</string>
+    <string name="poi_osmand_bicycle_prohibited_tunnel">Tunnel forbudt for syklister</string>
+    <string name="poi_route_activity_type_e_mountain_bike">El-terrengsykkel</string>
+    <string name="poi_route_activity_type_gravel_biking">Grusveisykling</string>
+    <string name="poi_cafe_yes">Ja</string>
+    <string name="poi_route_activity_type_e_biking">El-sykling</string>
+    <string name="poi_cafe_filter">Kafé</string>
+    <string name="poi_us_maps_recreation_area_activity_mountain_biking">Terrengsykling</string>
+    <string name="poi_sled_yes">Slede: ja</string>
+    <string name="poi_sled_no">Slede: nei</string>
+    <string name="poi_dog_sled_yes">Hundeslede: ja</string>
+    <string name="poi_dog_sled_no">Hundeslede: nei</string>
+    <string name="poi_contact_website">Nettsted</string>
+    <string name="poi_travel_agency">Reisebyrå</string>
 </resources>

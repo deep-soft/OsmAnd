@@ -227,7 +227,7 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 		BackupHelper backupHelper = app.getBackupHelper();
 		BackupInfo info = backupHelper.getBackup().getBackupInfo();
 		if (info != null) {
-			for (RemoteFile file : info.filesToDownload) {
+			for (RemoteFile file : info.filteredFilesToDownload) {
 				maxProgress += backupHelper.calculateFileSize(file);
 			}
 		}
@@ -283,7 +283,7 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 				}
 			} else if (item instanceof QuickActionsSettingsItem) {
 				if (item.exists()) {
-					duplicateItems.add(((QuickActionsSettingsItem) item).getButtonState());
+					duplicateItems.add(((QuickActionsSettingsItem) item).getStateBean());
 				}
 			}
 		}

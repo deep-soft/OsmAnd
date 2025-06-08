@@ -6,7 +6,6 @@ import static net.osmand.osm.MapPoiTypes.OSM_WIKI_CATEGORY;
 import static net.osmand.osm.MapPoiTypes.ROUTES;
 import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE;
 import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE_POINT;
-import static net.osmand.osm.MapPoiTypes.ROUTE_TRACK;
 import static net.osmand.osm.MapPoiTypes.WIKI_PLACE;
 
 import android.content.Context;
@@ -19,6 +18,7 @@ import net.osmand.Location;
 import net.osmand.ResultMatcher;
 import net.osmand.binary.BinaryMapIndexReader.SearchPoiAdditionalFilter;
 import net.osmand.data.Amenity;
+import net.osmand.data.DataSourceType;
 import net.osmand.data.LatLon;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
@@ -31,6 +31,7 @@ import net.osmand.plus.poi.PoiFilterUtils.AmenityNameFilter;
 import net.osmand.plus.render.RenderingIcons;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.OsmAndFormatter;
+import net.osmand.plus.views.layers.POIMapLayer.PoiUIFilterResultMatcher;
 import net.osmand.search.core.CustomSearchPoiFilter;
 import net.osmand.search.core.TopIndexFilter;
 import net.osmand.util.Algorithms;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -54,6 +56,7 @@ import java.util.TreeSet;
 public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilter {
 
 	public static final String STD_PREFIX = "std_";
+	public static final String ONLINE_PREFIX = "online_";
 	public static final String USER_PREFIX = "user_";
 	public static final String CUSTOM_FILTER_ID = USER_PREFIX + "custom_id";
 	public static final String BY_NAME_FILTER_ID = USER_PREFIX + "by_name";
@@ -86,11 +89,14 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 
 	private boolean deleted;
 
-	private SearchPoiAdditionalFilter additionalFilter;
+	SearchPoiAdditionalFilter additionalFilter;
+
+	private final PoiUIFilterDataProvider dataProvider;
 
 	// constructor for standard filters
 	public PoiUIFilter(@Nullable AbstractPoiType type, @NonNull OsmandApplication app, @NonNull String idSuffix) {
 		this.app = app;
+		this.dataProvider = new PoiUIFilterDataProvider(app, this);
 		isStandardFilter = true;
 		standardIconId = type == null ? null : type.getKeyName();
 		filterId = STD_PREFIX + standardIconId + idSuffix;
@@ -110,6 +116,7 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 
 	public PoiUIFilter(TopIndexFilter topIndexFilter, @Nullable Map<PoiCategory, LinkedHashSet<String>> acceptedTypes, @NonNull OsmandApplication app) {
 		this.app = app;
+		this.dataProvider = new PoiUIFilterDataProvider(app, this);
 		isStandardFilter = true;
 		standardIconId = topIndexFilter.getIconResource();
 		filterId = topIndexFilter.getFilterId();
@@ -129,6 +136,7 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 	// search by name standard
 	protected PoiUIFilter(@NonNull OsmandApplication app) {
 		this.app = app;
+		this.dataProvider = new PoiUIFilterDataProvider(app, this);
 		isStandardFilter = true;
 		filterId = STD_PREFIX; // overridden
 		poiTypes = app.getPoiTypes();
@@ -139,6 +147,7 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 	                   @Nullable Map<PoiCategory, LinkedHashSet<String>> acceptedTypes,
 	                   @NonNull OsmandApplication app) {
 		this.app = app;
+		this.dataProvider = new PoiUIFilterDataProvider(app, this);
 		isStandardFilter = false;
 		poiTypes = app.getPoiTypes();
 		if (filterId == null) {
@@ -164,6 +173,7 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 
 	public PoiUIFilter(@NonNull PoiUIFilter filter, @NonNull String name, @NonNull String filterId) {
 		this.app = filter.app;
+		this.dataProvider = new PoiUIFilterDataProvider(app, this);
 		this.name = name;
 		this.filterId = filterId;
 		isStandardFilter = false;
@@ -173,6 +183,15 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 		filterByName = filter.filterByName;
 		savedFilterByName = filter.savedFilterByName;
 		updateAcceptedTypeOrigins();
+	}
+
+	@NonNull
+	public List<Amenity> getCurrentSearchResult() {
+		return currentSearchResult == null ? Collections.emptyList() : new ArrayList<>(currentSearchResult);
+	}
+
+	public DataSourceType getDataSourceType() {
+		return dataProvider.getDataSourceType();
 	}
 
 	public boolean isDeleted() {
@@ -187,8 +206,16 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 		return filterId.startsWith(STD_PREFIX + WIKI_PLACE) || isTopWikiFilter();
 	}
 
+	public boolean isRatingSorted() {
+		return isWikiFilter();
+	}
+
 	public boolean isTopWikiFilter() {
 		return filterId.equals(TOP_WIKI_FILTER_ID);
+	}
+
+	public boolean isTopImagesFilter() {
+		return isTopWikiFilter();
 	}
 
 	public boolean isRoutesFilter() {
@@ -201,10 +228,6 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 
 	public boolean isRouteArticlePointFilter() {
 		return filterId.startsWith(STD_PREFIX + ROUTE_ARTICLE_POINT);
-	}
-
-	public boolean isRouteTrackFilter() {
-		return filterId.startsWith(STD_PREFIX + ROUTE_TRACK);
 	}
 
 	public boolean isShowPrivateNeeded() {
@@ -367,9 +390,9 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 	}
 
 	public List<Amenity> searchAmenities(double top, double left, double bottom, double right, int zoom, ResultMatcher<Amenity> matcher) {
-		List<Amenity> results = new ArrayList<>();
-		List<Amenity> tempResults = currentSearchResult;
-		if (tempResults != null) {
+		Set<Amenity> results = new HashSet<>();
+		if (currentSearchResult != null) {
+			List<Amenity> tempResults = new ArrayList<>(currentSearchResult);
 			for (Amenity a : tempResults) {
 				LatLon l = a.getLocation();
 				if (l != null && l.getLatitude() <= top && l.getLatitude() >= bottom
@@ -383,19 +406,26 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 		List<Amenity> amenities = searchAmenitiesInternal(top / 2 + bottom / 2, left / 2 + right / 2,
 				top, bottom, left, right, zoom, matcher);
 		results.addAll(amenities);
-		return results;
+		ArrayList<Amenity> resultList = new ArrayList<>(results);
+		if(isTopWikiFilter()) {
+			Collections.sort(resultList, (p1, p2) -> p2.getTravelEloNumber() - p1.getTravelEloNumber());
+		}
+		return resultList;
 	}
 
 	public List<Amenity> searchAmenitiesOnThePath(List<Location> locs, int poiSearchDeviationRadius) {
-		return app.getResourceManager().searchAmenitiesOnThePath(locs, poiSearchDeviationRadius, this, wrapResultMatcher(null));
+		return app.getResourceManager().getAmenitySearcher().searchAmenitiesOnThePath(locs, poiSearchDeviationRadius, this, wrapResultMatcher(null));
 	}
 
 	protected List<Amenity> searchAmenitiesInternal(double lat, double lon, double topLatitude,
 	                                                double bottomLatitude, double leftLongitude,
 	                                                double rightLongitude, int zoom,
 	                                                ResultMatcher<Amenity> matcher) {
-		return app.getResourceManager().searchAmenities(this, additionalFilter, topLatitude, leftLongitude,
-				bottomLatitude, rightLongitude, zoom, true, wrapResultMatcher(matcher));
+		currentSearchResult = dataProvider.searchAmenities(lat, lon, topLatitude, bottomLatitude, leftLongitude, rightLongitude, zoom, matcher);
+		if (isTopWikiFilter()) {
+			Collections.sort(currentSearchResult, (p1, p2) -> p2.getTravelEloNumber() - p1.getTravelEloNumber());
+		}
+		return currentSearchResult;
 	}
 
 	public PoiFilterUtils.AmenityNameFilter getNameFilter() {
@@ -607,16 +637,27 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 
 	@Override
 	public ResultMatcher<Amenity> wrapResultMatcher(@Nullable ResultMatcher<Amenity> matcher) {
+		// Deduplication might break live-updates consistency in case of multiple maps.
+		// Ensure correct readers order, such as returned by getAmenityRepositories()
+		Set<String> distinctAmenities = new TreeSet<>();
+
 		PoiFilterUtils.AmenityNameFilter nm = getNameFilter();
-		Set<String> searchedPois = new TreeSet<>();
-		return new ResultMatcher<Amenity>() {
+
+		return new PoiUIFilterResultMatcher<Amenity>() {
+
+			@Override
+			public void defferedResults() {
+				if (matcher instanceof PoiUIFilterResultMatcher) {
+					((PoiUIFilterResultMatcher<?>) matcher).defferedResults();
+				}
+			}
 
 			@Override
 			public boolean publish(Amenity a) {
 				if (nm.accept(a)) {
 					if (matcher == null || matcher.publish(a)) {
-						String poiID = a.getType().getKeyName() + "_" + a.getId();
-						if (!searchedPois.add(poiID)) {
+						String amenityDistinctId = a.getType().getKeyName() + a.getId();
+						if (!distinctAmenities.add(amenityDistinctId)) {
 							return false;
 						}
 						return !a.isClosed();
@@ -969,6 +1010,11 @@ public class PoiUIFilter implements Comparable<PoiUIFilter>, CustomSearchPoiFilt
 		} else {
 			return this.name.compareToIgnoreCase(another.name);
 		}
+	}
+
+	public boolean showLayoutWithImages() {
+		OsmandSettings settings = app.getSettings();
+		return isTopImagesFilter() && settings.WIKI_SHOW_IMAGE_PREVIEWS.get();
 	}
 
 	@NonNull

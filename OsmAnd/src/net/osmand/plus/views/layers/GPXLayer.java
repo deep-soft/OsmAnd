@@ -74,6 +74,7 @@ import net.osmand.plus.views.corenative.NativeCoreContext;
 import net.osmand.plus.views.layers.ContextMenuLayer.ApplyMovedObjectCallback;
 import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProvider;
 import net.osmand.plus.views.layers.ContextMenuLayer.IMoveObjectProvider;
+import net.osmand.plus.views.layers.MapSelectionResult.SelectedMapObject;
 import net.osmand.plus.views.layers.MapTextLayer.MapTextProvider;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.layers.core.LocationPointsTileProvider;
@@ -109,6 +110,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 
 	private static final int DEFAULT_WIDTH_MULTIPLIER = 7;
 	private static final int START_ZOOM = 7;
+	private static final int MAX_SUPPORTED_TRACK_WIDTH_DP = 48;
 
 	private Paint paint;
 	private Paint borderPaint;
@@ -365,7 +367,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 				textLayer.putData(this, pointsCache);
 			}
 		}
-		invalidated = false;
+		setInvalidated(false);
 		mapActivityInvalidated = false;
 	}
 
@@ -485,10 +487,11 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 		return hashChanged;
 	}
 
-	private void acquireTrackWidth(String widthKey, RenderingRulesStorage rrs, RenderingRuleSearchRequest req, RenderingContext rc) {
+	private void acquireTrackWidth(@NonNull String widthKey, @NonNull RenderingRulesStorage rrs,
+			@NonNull RenderingRuleSearchRequest req, @NonNull RenderingContext rc) {
 		if (!Algorithms.isEmpty(widthKey) && Algorithms.isInt(widthKey)) {
 			try {
-				int widthDp = Integer.parseInt(widthKey);
+				int widthDp = Math.min(Integer.parseInt(widthKey), MAX_SUPPORTED_TRACK_WIDTH_DP);
 				float widthF = AndroidUtils.dpToPx(app, widthDp);
 				cachedTrackWidth.put(widthKey, widthF);
 			} catch (NumberFormatException e) {
@@ -709,7 +712,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 	@Nullable
 	@Override
 	protected Bitmap getScaledBitmap(int drawableId) {
-		return getScaledBitmap(drawableId, textScale);
+		return app.getUIUtilities().getScaledBitmap(getMapActivity(), drawableId, textScale);
 	}
 
 	private void drawSplitItems(@NonNull Canvas canvas, @NonNull RotatedTileBox tileBox,
@@ -1106,22 +1109,28 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 		return g.getColor() == 0 ? defPointColor : g.getColor();
 	}
 
-	private void drawBigPoint(Canvas canvas, WptPt wpt, int pointColor, float x, float y, @Nullable MapMarker marker, float textScale) {
-		PointImageDrawable pointImageDrawable;
-		boolean history = false;
-		if (marker != null) {
-			pointImageDrawable = PointImageUtils.getOrCreateSyncedIcon(getContext(), pointColor, wpt);
-			history = marker.history;
-		} else {
-			pointImageDrawable = PointImageUtils.getFromPoint(getContext(), pointColor, true, wpt);
-		}
-		pointImageDrawable.drawPoint(canvas, x, y, textScale, history);
+	private void drawBigPoint(@NonNull Canvas canvas, @Nullable WptPt wpt, int pointColor,
+	                          float x, float y, @Nullable MapMarker marker, float textScale) {
+		PointImageDrawable drawable = createWaypointIcon(pointColor, wpt, marker != null);
+		boolean history = marker != null && marker.history;
+		drawable.drawPoint(canvas, x, y, textScale, history);
+	}
+
+	@NonNull
+	public PointImageDrawable createWaypointIcon(@ColorInt int pointColor, @Nullable WptPt wpt, boolean synced) {
+		return PointImageUtils.getFromPoint(getContext(), pointColor, true, synced, wpt);
+	}
+
+	@NonNull
+	public PointImageDrawable createWaypointIcon(@ColorInt int pointColor, boolean synced,
+	                                             @NonNull String iconName, @Nullable String bgTypeName) {
+		return PointImageUtils.getFromPoint(getContext(), pointColor, true, synced, iconName, bgTypeName);
 	}
 
 	@ColorInt
-	private int getPointColor(WptPt o, @ColorInt int fileColor) {
+	private int getPointColor(@NonNull WptPt o, @ColorInt int fileColor) {
 		boolean visit = isPointVisited(o);
-		return visit ? visitedColor : o.getColor(fileColor);
+		return visit ? visitedColor : Objects.requireNonNull(o.getColor(fileColor));
 	}
 
 	private void drawSelectedFilesSegments(Canvas canvas, RotatedTileBox tileBox,
@@ -1131,9 +1140,7 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 		for (SelectedGpxFile selectedGpxFile : selectedGPXFiles) {
 			GpxFile gpxFile = selectedGpxFile.getGpxFile();
 			String width = gpxAppearanceHelper.getTrackWidth(gpxFile, defaultWidthPref.get());
-			if (!cachedTrackWidth.containsKey(width)) {
-				cachedTrackWidth.put(width, null);
-			}
+			cachedTrackWidth.putIfAbsent(width, null);
 			if (selectedGpxFile.isShowCurrentTrack()) {
 				currentTrack = selectedGpxFile;
 			} else {
@@ -1212,22 +1219,34 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 			renderedSegments = new HashSet<>();
 			renderedSegmentsCache.put(gpxFilePath, renderedSegments);
 		}
-		String width = gpxAppearanceHelper.getTrackWidth(gpxFile, defaultWidthPref.get());
+		String actualGpxWidth = gpxAppearanceHelper.getTrackWidth(gpxFile, null);
+		String defaultGpxWidth = gpxAppearanceHelper.getTrackWidth(gpxFile, defaultWidthPref.get());
 		for (int segmentIdx = 0; segmentIdx < segments.size(); segmentIdx++) {
 			TrkSegment ts = segments.get(segmentIdx);
+			String width = actualGpxWidth != null ? actualGpxWidth : ts.getWidth(defaultGpxWidth);
+			cachedTrackWidth.putIfAbsent(width, null);
 			int color = getTrackColor(gpxFile, ts.getColor(cachedColor));
+
 			boolean newTsRenderer = false;
 			if (ts.getRenderer() == null && !ts.getPoints().isEmpty()) {
-				RenderableSegment renderer = currentTrack ? new CurrentTrack(ts.getPoints()) : new StandardTrack(ts.getPoints(), 17.2);
+				List<WptPt> points = ts.getPoints();
+				RenderableSegment renderer = currentTrack ? new CurrentTrack(points) : new StandardTrack(points, 17.2);
 				renderer.setBorderPaint(borderPaint);
 				ts.setRenderer(renderer);
 				GpxGeometryWay geometryWay = new GpxGeometryWay(wayContext);
 				geometryWay.updateTrack3DStyle(track3DStyle);
 				geometryWay.updateColoringType(coloringType);
-				if (!oldSegments.isEmpty() && oldSegments.get(0).getRenderer() instanceof RenderableSegment renderableSegment) {
-					geometryWay.vectorLinesCollection = renderableSegment.getGeometryWay().vectorLinesCollection;
-					geometryWay.vectorLineArrowsProvider = renderableSegment.getGeometryWay().vectorLineArrowsProvider;
-					oldSegments.remove(0);
+				geometryWay.updateCustomWidth(paint.getStrokeWidth());
+
+				if (!oldSegments.isEmpty() && oldSegments.get(0).getRenderer() instanceof CurrentTrack track) {
+					GpxGeometryWay gpxGeometryWay = track.getGeometryWay();
+					if (gpxGeometryWay != null) {
+						geometryWay.vectorLinesCollection = gpxGeometryWay.vectorLinesCollection;
+						geometryWay.vectorLineArrowsProvider = gpxGeometryWay.vectorLineArrowsProvider;
+						geometryWay.updateCustomWidth(gpxGeometryWay.getCustomWidth());
+						geometryWay.updateDrawDirectionArrows(gpxGeometryWay.getDrawDirectionArrows());
+						oldSegments.remove(0);
+					}
 				}
 				geometryWay.baseOrder = baseOrder--;
 				renderer.setGeometryWay(geometryWay);
@@ -1477,7 +1496,9 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 		return selectedGpxFile.isGroupHidden(point.getCategory());
 	}
 
-	public void getWptFromPoint(RotatedTileBox tb, PointF point, List<? super WptPt> res) {
+	public void collectWptFromPoint(@NonNull MapSelectionResult result) {
+		PointF point = result.getPoint();
+		RotatedTileBox tb = result.getTileBox();
 		MapRendererView mapRenderer = getMapRenderer();
 		float radius = getScaledTouchRadius(app, tb.getDefaultRadiusPoi()) * TOUCH_RADIUS_MULTIPLIER;
 		List<PointI> touchPolygon31 = null;
@@ -1500,18 +1521,19 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 						? NativeUtilities.isPointInsidePolygon(waypoint.getLat(), waypoint.getLon(), touchPolygon31)
 						: tb.isLatLonNearPixel(waypoint.getLat(), waypoint.getLon(), point.x, point.y, radius);
 				if (add) {
-					res.add(waypoint);
+					result.collect(waypoint, this);
 				}
 			}
 		}
 	}
 
-	public void getTracksFromPoint(RotatedTileBox tb, PointF point, List<Object> res, boolean showTrackPointMenu) {
+	public void collectTracksFromPoint(@NonNull MapSelectionResult result, boolean showTrackPointMenu) {
 		List<SelectedGpxFile> selectedGpxFiles = new ArrayList<>(selectedGpxHelper.getSelectedGPXFiles());
 		if (selectedGpxFiles.isEmpty()) {
 			return;
 		}
-
+		PointF point = result.getPoint();
+		RotatedTileBox tb = result.getTileBox();
 		MapRendererView mapRenderer = getMapRenderer();
 		int radius = getScaledTouchRadius(app, tb.getDefaultRadiusPoi());
 		List<PointI> touchPolygon31 = null;
@@ -1542,8 +1564,8 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 				if (latLonFromPixel == null) {
 					latLonFromPixel = NativeUtilities.getLatLonFromElevatedPixel(mapRenderer, tb, point.x, point.y);
 				}
-				res.add(GpxUtils.createSelectedGpxPoint(selectedGpxFile, line.first, line.second, latLonFromPixel,
-						showTrackPointMenu));
+				result.collect(GpxUtils.createSelectedGpxPoint(selectedGpxFile, line.first, line.second, latLonFromPixel,
+						showTrackPointMenu), this);
 			}
 		}
 	}
@@ -1635,20 +1657,21 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 			return true;
 		}
 		if (tileBox.getZoom() >= START_ZOOM) {
-			List<Object> res = new ArrayList<>();
-			getTracksFromPoint(tileBox, point, res, false);
-			return !Algorithms.isEmpty(res);
+			MapSelectionResult result = new MapSelectionResult(app, tileBox, point);
+			collectTracksFromPoint(result, false);
+			return !result.isEmpty();
 		}
 		return false;
 	}
 
 	@Override
-	public void collectObjectsFromPoint(PointF point, RotatedTileBox tileBox, List<Object> res,
-	                                    boolean unknownLocation, boolean excludeUntouchableObjects) {
-		if (tileBox.getZoom() >= START_ZOOM) {
-			getWptFromPoint(tileBox, point, res);
+	public void collectObjectsFromPoint(@NonNull MapSelectionResult result,
+			boolean unknownLocation, boolean excludeUntouchableObjects) {
+		if (result.getTileBox().getZoom() >= START_ZOOM) {
+			collectWptFromPoint(result);
+
 			if (!excludeUntouchableObjects) {
-				getTracksFromPoint(tileBox, point, res, false);
+				collectTracksFromPoint(result, false);
 			}
 		}
 	}
@@ -1672,20 +1695,17 @@ public class GPXLayer extends OsmandMapLayer implements IContextMenuProvider, IM
 	@Override
 	public boolean onLongPressEvent(@NonNull PointF point, @NonNull RotatedTileBox tileBox) {
 		if (tileBox.getZoom() >= START_ZOOM) {
-			List<Object> trackPoints = new ArrayList<>();
-			getTracksFromPoint(tileBox, point, trackPoints, true);
+			MapSelectionResult result = new MapSelectionResult(app, tileBox, point);
+			collectTracksFromPoint(result, true);
 
-			if (!Algorithms.isEmpty(trackPoints)) {
+			List<SelectedMapObject> objects = result.getAllObjects();
+			if (!Algorithms.isEmpty(objects)) {
 				LatLon latLon = NativeUtilities.getLatLonFromElevatedPixel(getMapRenderer(), tileBox, point);
-				if (trackPoints.size() == 1) {
-					SelectedGpxPoint gpxPoint = (SelectedGpxPoint) trackPoints.get(0);
+				if (objects.size() == 1) {
+					SelectedGpxPoint gpxPoint = (SelectedGpxPoint) objects.get(0).object();
 					contextMenuLayer.showContextMenu(latLon, getObjectName(gpxPoint), gpxPoint, null);
-				} else if (trackPoints.size() > 1) {
-					Map<Object, IContextMenuProvider> selectedObjects = new HashMap<>();
-					for (Object object : trackPoints) {
-						selectedObjects.put(object, this);
-					}
-					contextMenuLayer.showContextMenuForSelectedObjects(latLon, selectedObjects);
+				} else if (objects.size() > 1) {
+					contextMenuLayer.showContextMenuForSelectedObjects(latLon, objects);
 				}
 				return true;
 			}

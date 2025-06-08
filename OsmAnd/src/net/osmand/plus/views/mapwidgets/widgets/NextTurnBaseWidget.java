@@ -1,9 +1,11 @@
 package net.osmand.plus.views.mapwidgets.widgets;
 
+import static net.osmand.plus.views.mapwidgets.WidgetsPanel.BOTTOM;
 import static net.osmand.plus.views.mapwidgets.widgets.StreetNameWidget.MAX_SHIELDS_QUANTITY;
 import static net.osmand.plus.views.mapwidgets.widgets.StreetNameWidget.setShieldImage;
 import static java.lang.Math.min;
 
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.text.TextPaint;
 import android.view.Gravity;
@@ -18,9 +20,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import com.github.ksoichiro.android.observablescrollview.ScrollUtils;
+
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
 import net.osmand.plus.routing.CurrentStreetName;
 import net.osmand.plus.routing.RoadShield;
 import net.osmand.plus.routing.RouteCalculationResult;
@@ -28,6 +33,7 @@ import net.osmand.plus.settings.backend.preferences.OsmandPreference;
 import net.osmand.plus.settings.enums.WidgetSize;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
+import net.osmand.plus.utils.OsmAndFormatterParams;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.layers.MapInfoLayer.TextState;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
@@ -48,6 +54,7 @@ import java.util.List;
 public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget, ISupportVerticalPanel, ISupportWidgetResizing, ISupportMultiRow {
 
 	private static final int DISTANCE_CHANGE_THRESHOLD = 10;
+	public static final int SHIELD_HEIGHT_DP = 40;
 
 	protected boolean horizontalMini;
 	protected int deviatedPath;
@@ -60,34 +67,32 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	private ViewGroup bottomLayout;
 
 	private TurnType turnType;
-	private TextView distanceView;
-	private TextView distanceSubView;
-	private TextView streetView;
+	private OutlinedTextContainer distanceView;
+	private OutlinedTextContainer distanceSubView;
+	private OutlinedTextContainer streetView;
 	private TextView exitView;
 	private ImageView arrowView;
 	private LinearLayout shieldImagesContainer;
 	private LinearLayout bg;
 
-
-	@Nullable
-	protected String customId;
 	private List<RoadShield> cachedRoadShields;
 	private final ResizableWidgetState widgetState;
 	protected TextState textState;
 	private boolean isFullRow;
 	protected boolean verticalWidget;
 
-	public NextTurnBaseWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @NonNull WidgetType widgetType, @Nullable WidgetsPanel panel, boolean horizontalMini) {
-		super(mapActivity, widgetType);
+	public NextTurnBaseWidget(@NonNull MapActivity mapActivity, @Nullable String customId,
+			@NonNull WidgetType widgetType, @Nullable WidgetsPanel panel,
+			boolean horizontalMini) {
+		super(mapActivity, widgetType, customId, panel);
 		this.horizontalMini = horizontalMini;
-		this.customId = customId;
-		widgetState = new ResizableWidgetState(app, customId, widgetType);
+		widgetState = new ResizableWidgetState(app, customId, widgetType, WidgetSize.MEDIUM);
 
 		WidgetsPanel selectedPanel = panel != null ? panel : widgetType.getPanel(customId != null ? customId : widgetType.id, settings);
 		setVerticalWidget(selectedPanel);
 		setupViews();
 
-		turnDrawable = new TurnDrawable(mapActivity, horizontalMini);
+		turnDrawable = new TurnDrawable(mapActivity, !verticalWidget && horizontalMini);
 		if (verticalWidget) {
 			setVerticalImage(turnDrawable);
 		} else if (horizontalMini) {
@@ -114,7 +119,7 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 		findViews();
 		updateWidgetView();
 		view.setOnLongClickListener(v -> {
-			WidgetsContextMenu.showMenu(view, mapActivity, widgetType, customId, null, verticalWidget, nightMode);
+			WidgetsContextMenu.showMenu(view, mapActivity, widgetType, customId, null, panel, nightMode);
 			return true;
 		});
 	}
@@ -122,6 +127,7 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	public void updateWidgetView() {
 		if (verticalWidget) {
 			app.getOsmandMap().getMapLayers().getMapInfoLayer().updateRow(this);
+			checkShieldOverflow();
 		}
 	}
 
@@ -163,7 +169,6 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			emptyBanner = view.findViewById(R.id.empty_banner);
 			imageView = view.findViewById(R.id.widget_icon);
 			textView = view.findViewById(R.id.widget_text);
-			textViewShadow = view.findViewById(R.id.widget_text_shadow);
 			smallTextViewShadow = view.findViewById(R.id.widget_text_small_shadow);
 			smallTextView = view.findViewById(R.id.widget_text_small);
 			bottomDivider = view.findViewById(R.id.bottom_divider);
@@ -171,15 +176,14 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	}
 
 	public void setTurnType(TurnType turnType) {
-		if (verticalWidget) {
-			this.turnType = turnType;
-			if (turnDrawable.setTurnType(turnType)) {
+		this.turnType = turnType;
+		boolean visibilityUpdated = !verticalWidget && updateVisibility(turnType != null);
+		if (turnDrawable.setTurnType(turnType) || visibilityUpdated) {
+			turnDrawable.updateColors(isNightMode());
+			if (verticalWidget) {
 				setVerticalImage(turnDrawable);
-			}
-		} else {
-			boolean vis = updateVisibility(turnType != null);
-			if (turnDrawable.setTurnType(turnType) || vis) {
-				turnDrawable.setTextPaint(topTextView.getPaint());
+			} else {
+				turnDrawable.updateTextPaint(textPaint, nightMode);
 				if (horizontalMini) {
 					setImageDrawable(turnDrawable, false);
 				} else {
@@ -189,18 +193,18 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 		}
 	}
 
-	private boolean setRoadShield(@NonNull List<RoadShield> shields) {
+	private void setRoadShield(@NonNull List<RoadShield> shields) {
+		boolean isShieldSet = false;
 		if (!Algorithms.isEmpty(shields)) {
-			boolean isShieldSet = false;
 			shieldImagesContainer.removeAllViews();
 			int maxShields = min(shields.size(), MAX_SHIELDS_QUANTITY);
 			for (int i = 0; i < maxShields; i++) {
 				RoadShield shield = shields.get(i);
 				isShieldSet |= setShieldImage(shield, mapActivity, shieldImagesContainer, isNightMode());
 			}
-			return isShieldSet;
 		}
-		return false;
+		AndroidUiHelper.updateVisibility(shieldImagesContainer, isShieldSet);
+		checkShieldOverflow();
 	}
 
 	public void setStreetName(@Nullable CurrentStreetName streetName) {
@@ -215,7 +219,7 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 		List<RoadShield> shields = streetName.shields;
 		if (!shields.isEmpty() && app.getRendererRegistry().getCurrentSelectedRenderer() != null) {
 			if (!shields.equals(cachedRoadShields) || (shields.equals(cachedRoadShields) && shieldImagesContainer.getChildCount() == 0)) {
-				AndroidUiHelper.updateVisibility(shieldImagesContainer, setRoadShield(shields));
+				setRoadShield(shields);
 			} else {
 				AndroidUiHelper.updateVisibility(shieldImagesContainer, shields.equals(cachedRoadShields));
 			}
@@ -225,19 +229,62 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			cachedRoadShields = null;
 		}
 
-		if (Algorithms.isEmpty(streetName.exitRef)) {
-			AndroidUiHelper.updateVisibility(exitView, false);
-		} else {
-			String exit = app.getString(R.string.shared_string_exit);
-			String exitViewText = app.getString(R.string.ltr_or_rtl_combine_via_space, exit, streetName.exitRef);
-			exitView.setText(exitViewText);
-			AndroidUiHelper.updateVisibility(exitView, true);
-		}
+		setExit(streetName);
 
 		if (Algorithms.isEmpty(streetName.text)) {
 			streetView.setText("");
 		} else if (!streetName.text.equals(streetView.getText().toString())) {
 			streetView.setText(streetName.text);
+		}
+	}
+
+	private void checkShieldOverflow() {
+		if (verticalWidget && WidgetSize.SMALL == getWidgetSizePref().get()) {
+			ScrollUtils.addOnGlobalLayoutListener(shieldImagesContainer, () -> {
+				int containerWidth = shieldImagesContainer.getWidth();
+				int usedWidth = 0;
+				int addedCount = 0;
+
+				for (int i = 0; i < shieldImagesContainer.getChildCount(); i++) {
+					View view = shieldImagesContainer.getChildAt(i);
+
+					if (!(view instanceof ImageView image)) continue;
+
+					Drawable drawable = image.getDrawable();
+					int shieldWidth = drawable.getIntrinsicWidth();
+					ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) image.getLayoutParams();
+					int margins = params.getMarginStart() + params.getMarginEnd();
+					int totalWidth = shieldWidth + margins;
+
+					if (usedWidth + totalWidth <= containerWidth) {
+						image.setVisibility(View.VISIBLE);
+						usedWidth += totalWidth;
+						addedCount++;
+					} else {
+						image.setVisibility(View.GONE);
+					}
+				}
+
+				AndroidUiHelper.updateVisibility(shieldImagesContainer, addedCount != 0);
+			});
+		}
+	}
+
+	private void setExit(@NonNull CurrentStreetName streetName) {
+		String exitNumber = null;
+		if (turnType != null && turnType.getExitOut() > 0) {
+			exitNumber = String.valueOf(turnType.getExitOut());
+		} else if (!Algorithms.isEmpty(streetName.exitRef)) {
+			exitNumber = streetName.exitRef;
+		}
+
+		if (!Algorithms.isEmpty(exitNumber)) {
+			String exit = app.getString(R.string.shared_string_road_exit);
+			String exitViewText = app.getString(R.string.ltr_or_rtl_combine_via_space, exit, exitNumber);
+			exitView.setText(exitViewText);
+			AndroidUiHelper.updateVisibility(exitView, true);
+		} else {
+			AndroidUiHelper.updateVisibility(exitView, false);
 		}
 	}
 
@@ -304,7 +351,7 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 
 	private void updateDistance() {
 		int deviatePath = turnDrawable.isDeviatedFromRoute() ? deviatedPath : nextTurnDistance;
-		String distance = OsmAndFormatter.getFormattedDistance(deviatePath, app, OsmAndFormatter.OsmAndFormatterParams.USE_LOWER_BOUNDS);
+		String distance = OsmAndFormatter.getFormattedDistance(deviatePath, app, OsmAndFormatterParams.USE_LOWER_BOUNDS);
 
 		String text;
 		String subText = null;
@@ -318,14 +365,18 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 
 		if (verticalWidget) {
 			distanceView.setText(text);
-			distanceSubView.setText(subText == null ? "" : subText);
+			if (subText == null) {
+				subText = "";
+			}
+			distanceSubView.setText(subText);
+			formatSubText();
 		} else {
 			setTextNoUpdateVisibility(text, subText);
 		}
 
 		TurnType turnType = getTurnType();
 		if (turnType != null) {
-			setContentDescription(distance + " " + RouteCalculationResult.toString(turnType, app, false));
+			setContentDescription(distance + " " + RouteCalculationResult.toString(turnType, app, true));
 		} else {
 			setContentDescription(distance);
 		}
@@ -342,32 +393,48 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			updateVerticalWidgetColors(textState);
 		} else {
 			super.updateColors(textState);
-			updateTextColor(topTextView, null, textState.textColor, textState.textShadowColor,
-					textState.textBold, textState.textShadowRadius);
+			updateTextColor(topTextView, null, textState.textColor,
+					textState.textShadowColor, textState.textBold, textState.textShadowRadius);
 
 			textPaint.set(topTextView.getPaint());
 			textPaint.setColor(textState.textColor);
-			turnDrawable.setTextPaint(textPaint);
-			turnDrawable.invalidateSelf();
+			turnDrawable.updateTextPaint(textPaint, isNightMode());
+			turnDrawable.updateColors(isNightMode());
 		}
+		turnDrawable.invalidateSelf();
 	}
 
 	protected void updateVerticalWidgetColors(@NonNull TextState textState) {
+		int typefaceStyle = textState.textBold ? Typeface.BOLD : Typeface.NORMAL;
+
 		nightMode = textState.night;
 		int exitRefTextColorId = isNightMode()
 				? R.color.text_color_primary_dark
 				: R.color.widgettext_day;
 		exitView.setTextColor(ContextCompat.getColor(app, exitRefTextColorId));
 
+		int streetNameColor = ColorUtilities.getColor(app, nightMode
+				? R.color.text_color_tertiary_light
+				: R.color.icon_color_secondary_dark);
+		streetView.setTextColor(streetNameColor);
+
 		distanceView.setTextColor(ContextCompat.getColor(app, exitRefTextColorId));
 		distanceSubView.setTextColor(ColorUtilities.getSecondaryTextColor(mapActivity, nightMode));
-		streetView.setTextColor(ColorUtilities.getSecondaryTextColor(mapActivity, nightMode));
 
+		distanceView.setTypeface(Typeface.DEFAULT, typefaceStyle);
+		distanceSubView.setTypeface(Typeface.DEFAULT, typefaceStyle);
+
+		turnDrawable.updateColors(isNightMode());
 		bg.setBackgroundResource(textState.widgetBackgroundId);
+
+		updateTextOutline(distanceView, textState);
+		updateTextOutline(distanceSubView, textState);
+		updateTextOutline(streetView, textState);
 	}
 
 	@Override
-	public void updateFullRowState(boolean fullRow) {
+	public void updateFullRowState(int widgetsCount) {
+		boolean fullRow = widgetsCount <= 1;
 		if (isFullRow != fullRow) {
 			isFullRow = fullRow;
 			recreateView();
@@ -385,14 +452,19 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			return;
 		}
 
-		boolean shouldHideTopWidgets = mapActivity.getWidgetsVisibilityHelper().shouldHideVerticalWidgets();
+		boolean shouldHide = shouldHide();
 		boolean typeAllowed = widgetType != null && widgetType.isAllowed();
 		boolean hasInfoToDisplay = (turnDrawable.getTurnType() != null || turnType != null || nextTurnDistance != 0);
-		boolean visible = typeAllowed && !shouldHideTopWidgets && hasInfoToDisplay;
+		boolean visible = typeAllowed && !shouldHide && hasInfoToDisplay;
 		updateVisibility(visible);
-		if (typeAllowed && !shouldHideTopWidgets) {
+		if (typeAllowed && !shouldHide) {
 			updateNavigationInfo(drawSettings);
 		}
+	}
+
+	protected boolean shouldHide() {
+		return visibilityHelper.shouldHideVerticalWidgets()
+				|| panel == BOTTOM && visibilityHelper.shouldHideBottomWidgets();
 	}
 
 	void updateNavigationInfo(@Nullable DrawSettings drawSettings) {
@@ -423,10 +495,6 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	}
 
 	@Override
-	public void updateValueAlign(boolean fullRow) {
-	}
-
-	@Override
 	public boolean allowResize() {
 		return verticalWidget;
 	}
@@ -441,17 +509,19 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	public void recreateView() {
 		View oldContainer = container;
 		if (verticalWidget) {
-			TextView oldDistanceView = distanceView;
-			TextView oldDistanceSubView = distanceSubView;
-			TextView oldStreetView = streetView;
+			OutlinedTextContainer oldDistanceView = distanceView;
+			OutlinedTextContainer oldDistanceSubView = distanceSubView;
+			OutlinedTextContainer oldStreetView = streetView;
 			TextView oldExitView = exitView;
 			ImageView oldArrowView = arrowView;
 			View oldShieldContainer = shieldImagesContainer;
 			TurnType type = turnDrawable.getTurnType();
 			int turnImminent = turnDrawable.getTurnImminent();
 			boolean deviatedFromRoute = turnDrawable.isDeviatedFromRoute();
+
 			setupViews();
-			turnDrawable = new TurnDrawable(mapActivity, horizontalMini);
+
+			turnDrawable = new TurnDrawable(mapActivity, !verticalWidget && horizontalMini);
 			turnDrawable.setTurnType(type);
 			turnDrawable.setTurnImminent(turnImminent, deviatedFromRoute);
 			setVerticalImage(turnDrawable);
@@ -461,24 +531,53 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 			copyTextView(distanceSubView, oldDistanceSubView);
 			copyTextView(streetView, oldStreetView);
 			copyTextView(exitView, oldExitView);
+
+			formatSubText();
 		} else {
 			ImageView oldImageView = imageView;
-			TextView oldTextView = textView;
-			TextView oldTextViewShadow = textViewShadow;
-			TextView oldSmallTextView = smallTextView;
+			OutlinedTextContainer oldTextView = textView;
+			OutlinedTextContainer oldSmallTextView = smallTextView;
 			TextView oldSmallTextViewShadow = smallTextViewShadow;
 			View oldEmptyBanner = emptyBanner;
+
 			setupViews();
+
 			imageView.setImageDrawable(oldImageView.getDrawable());
 			copyView(imageView, oldImageView);
 			copyTextView(textView, oldTextView);
-			copyTextView(textViewShadow, oldTextViewShadow);
 			copyTextView(smallTextView, oldSmallTextView);
 			copyTextView(smallTextViewShadow, oldSmallTextViewShadow);
 			copyView(emptyBanner, oldEmptyBanner);
 		}
 		view.setOnClickListener(getOnClickListener());
 		view.setVisibility(oldContainer.getVisibility());
+	}
+
+	private void formatSubText() {
+		if (distanceSubView == null || Algorithms.isEmpty(distanceSubView.getText().toString())) {
+			return;
+		}
+
+		WidgetSize currentWidgetSize = widgetState.getWidgetSizePref().get();
+		String subText = distanceSubView.getText().toString();
+		String formattedSubText = null;
+		switch (currentWidgetSize) {
+			case SMALL -> {
+				boolean shouldShowComma = !Algorithms.isEmpty(streetView.getText()) || !Algorithms.isEmpty(exitView.getText());
+				if (shouldShowComma && !subText.endsWith(",")) {
+					formattedSubText = subText + ",";
+				}
+			}
+			case MEDIUM, LARGE -> {
+				if (subText.endsWith(",")) {
+					formattedSubText = subText.substring(0, subText.length() - 1);
+				}
+			}
+		}
+
+		if (formattedSubText != null) {
+			distanceSubView.setText(formattedSubText);
+		}
 	}
 
 	protected View.OnClickListener getOnClickListener() {
@@ -488,6 +587,13 @@ public class NextTurnBaseWidget extends TextInfoWidget implements IComplexWidget
 	private void copyTextView(@Nullable TextView newTextView, @Nullable TextView oldTextView) {
 		if (newTextView != null && oldTextView != null) {
 			newTextView.setText(oldTextView.getText());
+			copyView(newTextView, oldTextView);
+		}
+	}
+
+	private void copyTextView(@Nullable OutlinedTextContainer newTextView, @Nullable OutlinedTextContainer oldTextView) {
+		if (newTextView != null && oldTextView != null) {
+			newTextView.copyFromTextContainer(oldTextView);
 			copyView(newTextView, oldTextView);
 		}
 	}

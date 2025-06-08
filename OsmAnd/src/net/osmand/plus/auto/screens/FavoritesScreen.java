@@ -66,6 +66,11 @@ public final class FavoritesScreen extends BaseAndroidAutoScreen {
 	}
 
 	@Override
+	protected boolean shouldRestoreMapState() {
+		return true;
+	}
+
+	@Override
 	public void onDestroy(@NonNull LifecycleOwner owner) {
 		super.onDestroy(owner);
 		getFavouritesLayer().setCustomMapObjects(null);
@@ -73,8 +78,8 @@ public final class FavoritesScreen extends BaseAndroidAutoScreen {
 	}
 
 	@Override
-	public void onStart(@NonNull LifecycleOwner owner) {
-		super.onStart(owner);
+	public void onCreate(@NonNull LifecycleOwner owner) {
+		super.onCreate(owner);
 		getFavouritesLayer().customObjectsDelegate = new OsmandMapLayer.CustomMapObjects<>();
 	}
 
@@ -130,7 +135,6 @@ public final class FavoritesScreen extends BaseAndroidAutoScreen {
 							CarLocation.create(point.getLatitude(), point.getLongitude())).build()).build())
 					.build());
 		}
-		adjustMapToRect(location, mapRect);
 	}
 
 	private void onClickFavorite(@NonNull FavouritePoint point) {
@@ -155,7 +159,7 @@ public final class FavoritesScreen extends BaseAndroidAutoScreen {
 	}
 
 	private void onRouteSelected(@NonNull SearchResult sr) {
-		getApp().getOsmandMap().getMapLayers().getMapActionsHelper().startNavigation();
+		getApp().getOsmandMap().getMapActions().startNavigation();
 		NavigationSession session = getApp().getCarNavigationSession();
 		if (session != null && session.hasStarted()) {
 			session.startNavigationScreen();

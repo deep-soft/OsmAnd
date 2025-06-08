@@ -184,6 +184,10 @@ public class MapQuickActionLayer extends OsmandMapLayer implements QuickActionUp
 
 	public boolean setSelectedButton(@Nullable QuickActionButton button) {
 		boolean visible = button != null;
+		return setSelectedButton(button, visible);
+	}
+
+	public boolean setSelectedButton(@Nullable QuickActionButton button, boolean visible) {
 		MapActivity mapActivity = getMapActivity();
 		// check if state change is needed
 		boolean buttonChanged = selectedButton != button;
@@ -208,20 +212,12 @@ public class MapQuickActionLayer extends OsmandMapLayer implements QuickActionUp
 			mapButtonsHelper.removeUpdatesListener(this);
 			quickActionsWidget.setSelectionListener(null);
 		}
-		if (settings.DO_NOT_USE_ANIMATIONS.get() || !quickActionsWidget.isAttachedToWindow()) {
-			AndroidUiHelper.updateVisibility(quickActionsWidget, visible);
-		} else {
-			animateWidget(visible);
+		if (quickActionsWidget != null) {
+			quickActionsWidget.updateVisibility(visible);
 		}
 		mapActivity.updateStatusBarColor();
 
 		return true;
-	}
-
-	private void animateWidget(boolean show) {
-		if (quickActionsWidget != null) {
-			quickActionsWidget.animateWidget(show);
-		}
 	}
 
 	private void enterMovingMode(RotatedTileBox tileBox) {

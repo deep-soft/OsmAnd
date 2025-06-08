@@ -4,26 +4,31 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import net.osmand.NativeLibrary.RenderedObject;
 import net.osmand.OnCompleteCallback;
+import net.osmand.data.BaseDetailsObject;
 import net.osmand.data.LatLon;
-import net.osmand.data.PointDescription;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.mapcontextmenu.BaseMenuController;
+import net.osmand.plus.resources.ResourceManager;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.views.layers.ContextMenuLayer;
 import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProvider;
+import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProviderSelection;
+import net.osmand.plus.views.layers.MapSelectionResult.SelectedMapObject;
+import net.osmand.search.AmenitySearcher;
+import net.osmand.util.Algorithms;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class MapMultiSelectionMenu extends BaseMenuController {
 
 	private LatLon latLon;
 	private final LinkedList<MenuObject> objects = new LinkedList<>();
-	private final Map<Object, IContextMenuProvider> selectedObjects = new HashMap<>();
+	private final List<SelectedMapObject> selectedObjects = new ArrayList<>();
 	private final OnCompleteCallback onSearchAddressDone = this::updateDialogContent;
 
 	public MapMultiSelectionMenu(@NonNull MapActivity mapActivity) {
@@ -51,25 +56,40 @@ public class MapMultiSelectionMenu extends BaseMenuController {
 		return 0.5f;
 	}
 
-	private void createCollection(Map<Object, IContextMenuProvider> selectedObjects) {
+	private void createCollection(List<SelectedMapObject> selectedObjects) {
 		this.selectedObjects.clear();
-		this.selectedObjects.putAll(selectedObjects);
+		this.selectedObjects.addAll(selectedObjects);
 		objects.clear();
-		for (Map.Entry<Object, IContextMenuProvider> e : selectedObjects.entrySet()) {
-			Object selectedObj = e.getKey();
-			IContextMenuProvider contextObject = e.getValue();
+		for (SelectedMapObject selectedMapObject : selectedObjects) {
+			Object object = selectedMapObject.object();
+			ResourceManager resourceManager = getApplication().getResourceManager();
+			AmenitySearcher searcher = resourceManager.getAmenitySearcher();
+			AmenitySearcher.Settings settings = resourceManager.getDefaultAmenitySearchSettings();
+			BaseDetailsObject detailsObject = searcher.searchDetailedObject(object, settings);
+			if (detailsObject != null) {
+				object = detailsObject;
+			}
+			IContextMenuProvider provider = selectedMapObject.provider();
 
-			MenuObject menuObject = MenuObjectUtils.createMenuObject(selectedObj, contextObject, latLon, getMapActivity());
+			MenuObject menuObject = MenuObjectUtils.createMenuObject(object, provider, latLon, getMapActivity());
+			if (menuObject.hasEmptyNameStr() && object instanceof RenderedObject) {
+				// Do not display nameless RenderedObject(s). Explanation:
+				// Actual menuObject.nameStr is calculated from name-tags and iconRes.
+				// Default Map Style renders some objects using different icon names, for example:
+				// "barrier=bollard" at z17 has icon "barrier_small_red_2" which is not translated (nameStr="")
+				// "barrier=bollard" at z18 has icon "barrier_bollard" and translated using "poi_bollard" ("Bollard")
+				continue;
+			}
 			if (menuObject.needStreetName()) {
 				menuObject.setOnSearchAddressDoneCallback(onSearchAddressDone);
 			}
 			objects.add(menuObject);
 
-			if (contextObject instanceof ContextMenuLayer.IContextMenuProviderSelection) {
-				menuObject.setOrder(((ContextMenuLayer.IContextMenuProviderSelection) contextObject).getOrder(selectedObj));
+			if (provider instanceof IContextMenuProviderSelection providerSelection) {
+				menuObject.setOrder(providerSelection.getOrder(object));
 			}
 		}
-		Collections.sort(objects, new MultiSelectionMenuComparator(getAppMode()));
+		objects.sort(new MultiSelectionMenuComparator(getAppMode()));
 	}
 
 	private ApplicationMode getAppMode() {
@@ -89,7 +109,7 @@ public class MapMultiSelectionMenu extends BaseMenuController {
 		}
 	}
 
-	public void show(LatLon latLon, Map<Object, IContextMenuProvider> selectedObjects) {
+	public void show(LatLon latLon, List<SelectedMapObject> selectedObjects) {
 		if (isVisible()) {
 			hide();
 		}
@@ -97,7 +117,7 @@ public class MapMultiSelectionMenu extends BaseMenuController {
 		createCollection(selectedObjects);
 		updateNightMode();
 		MapActivity mapActivity = getMapActivity();
-		if (mapActivity != null) {
+		if (mapActivity != null && !objects.isEmpty()) {
 			MapMultiSelectionMenuFragment.showInstance(mapActivity);
 			mapActivity.refreshMap();
 		}
@@ -132,7 +152,16 @@ public class MapMultiSelectionMenu extends BaseMenuController {
 	}
 
 	public void openContextMenu(@NonNull MenuObject menuObject) {
-		IContextMenuProvider provider = selectedObjects.remove(menuObject.getObject());
+		IContextMenuProvider provider = null;
+		Iterator<SelectedMapObject> iterator = selectedObjects.listIterator();
+		while (iterator.hasNext()) {
+			SelectedMapObject selectedMapObject = iterator.next();
+			if (Algorithms.objectEquals(selectedMapObject.object(), menuObject.getObject())) {
+				iterator.remove();
+				provider = selectedMapObject.provider();
+			}
+		}
+
 		hide();
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
@@ -142,9 +171,9 @@ public class MapMultiSelectionMenu extends BaseMenuController {
 	}
 
 	private void clearSelectedObjects() {
-		for(IContextMenuProvider p : selectedObjects.values()) {
-			if(p instanceof ContextMenuLayer.IContextMenuProviderSelection){
-				((ContextMenuLayer.IContextMenuProviderSelection) p).clearSelectedObject();
+		for (SelectedMapObject selectedMapObject : selectedObjects) {
+			if (selectedMapObject.provider() instanceof IContextMenuProviderSelection provider) {
+				provider.clearSelectedObject();
 			}
 		}
 		selectedObjects.clear();

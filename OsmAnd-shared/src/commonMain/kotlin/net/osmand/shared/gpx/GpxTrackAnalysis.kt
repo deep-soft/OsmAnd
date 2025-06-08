@@ -14,19 +14,19 @@ class GpxTrackAnalysis {
 	companion object {
 		const val ANALYSIS_VERSION = 1
 
-		fun prepareInformation(
-			fileTimeStamp: Long, pointsAnalyzer: TrackPointsAnalyser, segment: TrkSegment
-		): GpxTrackAnalysis {
-			return GpxTrackAnalysis().prepareInformation(
-				fileTimeStamp, pointsAnalyzer, SplitSegment(segment)
-			)
+		fun prepareInformation(fileTimeStamp: Long,
+		                       joinSegments: Boolean,
+		                       pointsAnalyzer: TrackPointsAnalyser,
+		                       segment: TrkSegment): GpxTrackAnalysis {
+			val analysis = GpxTrackAnalysis()
+			analysis.joinSegments = joinSegments
+			return analysis.prepareInformation(fileTimeStamp, pointsAnalyzer, SplitSegment(segment))
 		}
 	}
 
 	var name: String? = null
 	var totalDistanceWithoutGaps = 0f
 	var timeSpanWithoutGaps: Long = 0
-	var expectedRouteDuration: Long = 0
 	var timeMovingWithoutGaps: Long = 0
 	var totalDistanceMovingWithoutGaps = 0f
 
@@ -46,6 +46,8 @@ class GpxTrackAnalysis {
 	var top = 0.0
 	var bottom = 0.0
 
+	var segmentSlopeType: TrkSegment.SegmentSlopeType? = null
+
 	var pointAttributes = mutableListOf<PointAttributes>()
 	var availableAttributes = mutableSetOf<String>()
 
@@ -61,6 +63,10 @@ class GpxTrackAnalysis {
 		parameters[parameter] = value
 	}
 
+	fun setGpxParameters(parameters: Map<GpxParameter, Any?>) {
+		this.parameters.putAll(parameters)
+	}
+
 	var startTime: Long
 		get() = getGpxParameter(GpxParameter.START_TIME) as Long
 		set(value) = setGpxParameter(GpxParameter.START_TIME, value)
@@ -72,6 +78,10 @@ class GpxTrackAnalysis {
 	var timeSpan: Long
 		get() = getGpxParameter(GpxParameter.TIME_SPAN) as Long
 		set(value) = setGpxParameter(GpxParameter.TIME_SPAN, value)
+
+	var expectedRouteDuration: Long
+		get() = getGpxParameter(GpxParameter.EXPECTED_DURATION) as Long
+		set(value) = setGpxParameter(GpxParameter.EXPECTED_DURATION, value)
 
 	var timeMoving: Long
 		get() = getGpxParameter(GpxParameter.TIME_MOVING) as Long
@@ -168,6 +178,10 @@ class GpxTrackAnalysis {
 	var totalDistance: Float
 		get() = (getGpxParameter(GpxParameter.TOTAL_DISTANCE) as Double).toFloat()
 		set(value) = setGpxParameter(GpxParameter.TOTAL_DISTANCE, value.toDouble())
+
+	var joinSegments: Boolean
+		get() = (getGpxParameter(GpxParameter.JOIN_SEGMENTS) as Boolean)
+		set(value) = (setGpxParameter(GpxParameter.JOIN_SEGMENTS, value))
 
 	fun isTimeSpecified(): Boolean {
 		val startTime = startTime
@@ -447,7 +461,12 @@ class GpxTrackAnalysis {
 			processElevationDiff(s)
 		}
 
-		totalDistance = _totalDistance
+
+		if (!joinSegments && totalDistanceWithoutGaps > 0) {
+			totalDistance = totalDistanceWithoutGaps
+		} else {
+			totalDistance = _totalDistance
+		}
 
 		checkUnspecifiedValues(fileTimeStamp)
 		processAverageValues(totalElevation, elevationPoints, totalSpeedSum, speedCount)
@@ -562,8 +581,9 @@ class GpxTrackAnalysis {
 		approximator.approximate()
 		val distances = approximator.getDistances()
 		val elevations = approximator.getElevations()
-		if (distances != null && elevations != null) {
-			val elevationDiffsCalc = getElevationDiffsCalculator(distances, elevations)
+		val indexes = approximator.getSurvivedIndexes()
+		if (distances != null && elevations != null && indexes != null) {
+			val elevationDiffsCalc = getElevationDiffsCalculator(distances, elevations, indexes)
 			elevationDiffsCalc.calculateElevationDiffs()
 			diffElevationUp += elevationDiffsCalc.getDiffElevationUp()
 			diffElevationDown += elevationDiffsCalc.getDiffElevationDown()
@@ -591,11 +611,15 @@ class GpxTrackAnalysis {
 	}
 
 	private fun getElevationDiffsCalculator(
-		distances: DoubleArray, elevations: DoubleArray
+		distances: DoubleArray, elevations: DoubleArray, indexes: IntArray
 	): ElevationDiffsCalculator {
 		return object : ElevationDiffsCalculator() {
 			override fun getPointDistance(index: Int): Double {
 				return distances[index]
+			}
+
+			override fun getPointIndex(index: Int): Int {
+				return indexes[index]
 			}
 
 			override fun getPointElevation(index: Int): Double {

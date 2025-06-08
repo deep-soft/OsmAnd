@@ -1,7 +1,6 @@
 package net.osmand.plus.plugins.osmedit.dialogs;
 
 import static net.osmand.plus.plugins.osmedit.OsmEditingPlugin.OSMAND_TAG;
-import static net.osmand.plus.plugins.osmedit.asynctasks.UploadGPXFilesTask.DEFAULT_ACTIVITY_TAG;
 import static net.osmand.plus.settings.fragments.BaseSettingsFragment.OPEN_SETTINGS;
 import static net.osmand.plus.settings.fragments.SettingsScreenType.OPEN_STREET_MAP_EDITING;
 
@@ -21,6 +20,7 @@ import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.textfield.TextInputEditText;
 
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.MenuBottomSheetDialogFragment;
@@ -36,28 +36,41 @@ import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.chips.ChipItem;
 import net.osmand.plus.widgets.chips.HorizontalChipsView;
+import net.osmand.shared.gpx.GpxDataItem;
+import net.osmand.shared.gpx.GpxDbHelper;
+import net.osmand.shared.gpx.GpxParameter;
+import net.osmand.shared.io.KFile;
 import net.osmand.util.Algorithms;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class SendGpxBottomSheetFragment extends MenuBottomSheetDialogFragment implements UploadGpxListener {
+public class SendGpxBottomSheetFragment extends MenuBottomSheetDialogFragment {
 
 	public static final String TAG = SendGpxBottomSheetFragment.class.getSimpleName();
 
 	private final OsmEditingPlugin plugin = PluginsHelper.requirePlugin(OsmEditingPlugin.class);
 
 
+	private GpxDbHelper gpxDbHelper;
 	private File[] files;
 	private UploadVisibility uploadVisibility;
 
 	private TextInputEditText tagsField;
 	private TextInputEditText messageField;
+	private String defaultActivity;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		gpxDbHelper = getMyApplication().getGpxDbHelper();
 		if (uploadVisibility == null) {
 			uploadVisibility = plugin.OSM_UPLOAD_VISIBILITY.get();
 		}
@@ -92,9 +105,27 @@ public class SendGpxBottomSheetFragment extends MenuBottomSheetDialogFragment im
 		}
 	}
 
+	@Nullable
+	private String getDefaultActivity() {
+		for (File file : files) {
+			GpxDataItem item = gpxDbHelper.getItem(new KFile(file.getPath()));
+			String activity = item != null ? item.getParameter(GpxParameter.ACTIVITY_TYPE) : null;
+
+			if (!Algorithms.isEmpty(activity)) {
+				return activity;
+			}
+		}
+		return null;
+	}
+
 	@NonNull
 	private String getDefaultTags() {
-		return OSMAND_TAG + ", " + DEFAULT_ACTIVITY_TAG;
+		String defaultTags = OSMAND_TAG;
+		defaultActivity = getDefaultActivity();
+		if (!Algorithms.isEmpty(defaultActivity)) {
+			return defaultTags + ", " + defaultActivity;
+		}
+		return defaultTags;
 	}
 
 	private void setupVisibilityRow(@NonNull View view) {
@@ -158,20 +189,47 @@ public class SendGpxBottomSheetFragment extends MenuBottomSheetDialogFragment im
 			Editable descrText = messageField.getText();
 			Editable tagsText = tagsField.getText();
 			String description = descrText != null ? descrText.toString() : "";
-			String tags = tagsText != null ? tagsText.toString() : "";
+			Set<String> tags = tagsText != null ? parseTags(tagsText.toString()) : Collections.emptySet();
 
-			UploadGPXFilesTask task = new UploadGPXFilesTask(activity, description, tags, uploadVisibility, this);
+			OsmandApplication app = getMyApplication();
+			UploadGpxListener listener = getUploadListener(activity);
+			UploadGPXFilesTask task = new UploadGPXFilesTask(app, tags, description, defaultActivity, uploadVisibility, listener);
 			task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, files);
 		}
 		dismiss();
 	}
 
-	@Override
-	public void onGpxUploaded(String result) {
-		Fragment target = getTargetFragment();
-		if (target instanceof UploadGpxListener) {
-			((UploadGpxListener) target).onGpxUploaded(result);
-		}
+	@NonNull
+	private Set<String> parseTags(@NonNull String tags) {
+		return Arrays.stream(tags.split(","))
+				.map(String::trim)
+				.filter(tag -> !Algorithms.isEmpty(tag))
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+	}
+
+	@NonNull
+	private UploadGpxListener getUploadListener(@NonNull FragmentActivity activity) {
+		return new UploadGpxListener() {
+			@Override
+			public void onGpxUploadStarted() {
+				updateProgressVisibility(true);
+			}
+
+			public void onGpxUploadFinished(String result) {
+				updateProgressVisibility(false);
+
+				Fragment target = getTargetFragment();
+				if (target instanceof UploadGpxListener) {
+					((UploadGpxListener) target).onGpxUploadFinished(result);
+				}
+			}
+
+			private void updateProgressVisibility(boolean visible) {
+				if (AndroidUtils.isActivityNotDestroyed(activity)) {
+					activity.setProgressBarIndeterminateVisibility(visible);
+				}
+			}
+		};
 	}
 
 	protected static void showOpenStreetMapScreen(@NonNull FragmentActivity activity) {
@@ -191,7 +249,8 @@ public class SendGpxBottomSheetFragment extends MenuBottomSheetDialogFragment im
 		}
 	}
 
-	public static void showInstance(@NonNull FragmentManager manager, @NonNull File[] files, @Nullable Fragment target) {
+	public static void showInstance(@NonNull FragmentManager manager, @NonNull File[] files,
+			@Nullable Fragment target) {
 		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
 			SendGpxBottomSheetFragment fragment = new SendGpxBottomSheetFragment();
 			fragment.files = files;

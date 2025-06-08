@@ -11,10 +11,14 @@ import kotlinx.datetime.toLocalDateTime
 import net.osmand.shared.KException
 import net.osmand.shared.data.KQuadRect
 import net.osmand.shared.extensions.currentTimeMillis
+import net.osmand.shared.gpx.GpxFile.Companion.XML_COLON
+import net.osmand.shared.gpx.GpxFormatter.formatDecimal
+import net.osmand.shared.gpx.GpxFormatter.formatLatLon
 import net.osmand.shared.gpx.primitives.Author
 import net.osmand.shared.gpx.primitives.Bounds
 import net.osmand.shared.gpx.primitives.Copyright
 import net.osmand.shared.gpx.primitives.GpxExtensions
+import net.osmand.shared.gpx.primitives.Link
 import net.osmand.shared.gpx.primitives.Metadata
 import net.osmand.shared.gpx.primitives.Route
 import net.osmand.shared.gpx.primitives.Track
@@ -48,6 +52,7 @@ object GpxUtilities {
 	const val ICON_NAME_EXTENSION = "icon"
 	const val BACKGROUND_TYPE_EXTENSION = "background"
 	const val COLOR_NAME_EXTENSION = "color"
+	const val LINE_WIDTH_EXTENSION = "width"
 	const val PROFILE_TYPE_EXTENSION = "profile"
 	const val ADDRESS_EXTENSION = "address"
 	const val HIDDEN_EXTENSION = "hidden"
@@ -142,33 +147,6 @@ object GpxUtilities {
 			fun getColorFromName(name: String): GpxColor? {
 				return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
 			}
-		}
-	}
-
-	// "0.00#####"
-	fun formatLatLon(number: Double): String {
-		val roundedNumber = kotlin.math.round(number * 10000000) / 10000000
-		val numberString = roundedNumber.toString()
-		val parts = numberString.split('.')
-		val integerPart = parts[0]
-		var fractionalPart = parts.getOrElse(1) { "00" }
-		if (fractionalPart.length < 2) {
-			fractionalPart += "0"
-		}
-		return "$integerPart.$fractionalPart"
-	}
-
-	// "#.#"
-	fun formatDecimal(number: Double): String {
-		val roundedNumber = kotlin.math.round(number * 10) / 10
-		val numberString = roundedNumber.toString()
-		val parts = numberString.split('.')
-		val integerPart = parts[0]
-		val fractionalPart = parts.getOrElse(1) { "0" }
-		return if (fractionalPart == "0") {
-			integerPart
-		} else {
-			"$integerPart.$fractionalPart"
 		}
 	}
 
@@ -349,6 +327,7 @@ object GpxUtilities {
 			const val OBF_POINTS_GROUPS_ICONS = "points_groups_icons"
 			const val OBF_POINTS_GROUPS_COLORS = "points_groups_colors"
 			const val OBF_POINTS_GROUPS_BACKGROUNDS = "points_groups_backgrounds"
+			const val OBF_POINTS_GROUPS_EMPTY_NAME_STUB = "." // stub to store empty points_groups_names
 			const val OBF_POINTS_GROUPS_CATEGORY = "points_groups_category" // optional category of OBF-GPX point
 
 			fun parsePointsGroupAttributes(parser: XmlPullParser): PointsGroup {
@@ -368,6 +347,9 @@ object GpxUtilities {
 		for (segment in splitSegments) {
 			val analysis = GpxTrackAnalysis()
 			analysis.prepareInformation(0, null, segment)
+			if (segment.segmentSlopeType != null) {
+				analysis.segmentSlopeType = segment.segmentSlopeType
+			}
 			list.add(analysis)
 		}
 		return list
@@ -466,17 +448,17 @@ object GpxUtilities {
 				serializer.attribute(null, "creator", author)
 			}
 			serializer.attribute(null, "xmlns", "http://www.topografix.com/GPX/1/1")
-			serializer.attribute(null, "xmlns:osmand", "https://osmand.net")
+			serializer.attribute(null, "xmlns:osmand", "https://osmand.net/docs/technical/osmand-file-formats/osmand-gpx")
 			serializer.attribute(
 				null,
 				"xmlns:gpxtpx",
-				"http://www.garmin.com/xmlschemas/TrackPointExtension/v1"
+				"https://www8.garmin.com/xmlschemas/TrackPointExtensionv1.xsd"
 			)
 			serializer.attribute(null, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
 			serializer.attribute(
 				null,
 				"xsi:schemaLocation",
-				"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+				"http://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd"
 			)
 
 			assignPointsGroupsExtensionWriter(gpxFile)
@@ -505,7 +487,8 @@ object GpxUtilities {
 					val tagsBundle = StringBundle()
 					tagsBundle.putString("type", gpxFile.networkRouteKeyTags.get("type"))
 					for ((key, value) in gpxFile.networkRouteKeyTags) {
-						tagsBundle.putString(key, value)
+						val attributeToXml = key.replace(":", XML_COLON)
+						tagsBundle.putString(attributeToXml, value)
 					}
 					val routeKeyBundle = mutableListOf<StringBundle>()
 					routeKeyBundle.add(tagsBundle)
@@ -560,7 +543,7 @@ object GpxUtilities {
 			writeCopyright(serializer, copyright)
 			serializer.endTag(null, "copyright")
 		}
-		writeNotNullTextWithAttribute(serializer, "link", "href", file.metadata.link)
+		writeNotNullLink(serializer, file.metadata.link)
 		if (file.metadata.time != 0L) {
 			writeNotNullText(serializer, "time", formatTime(file.metadata.time))
 		}
@@ -572,6 +555,17 @@ object GpxUtilities {
 		writeExtensions(serializer, file.metadata, null)
 		progress?.progress(1)
 		serializer.endTag(null, "metadata")
+	}
+
+	private fun writeNotNullLink(serializer: XmlSerializer, link: Link?) {
+		if (link != null) {
+			serializer.startTag(null, "link")
+			if (link.href != null) {
+				serializer.attribute(null, "href", link.href!!)
+			}
+			writeNotNullText(serializer, "text", link.text)
+			serializer.endTag(null, "link")
+		}
 	}
 
 	private fun writePoints(serializer: XmlSerializer, file: GpxFile, progress: IProgress?) {
@@ -603,6 +597,7 @@ object GpxUtilities {
 				serializer.startTag(null, "trk")
 				writeNotNullText(serializer, "name", track.name)
 				writeNotNullText(serializer, "desc", track.desc)
+				writeExtensions(serializer, track, null)
 				for (segment in track.segments) {
 					serializer.startTag(null, "trkseg")
 					writeNotNullText(serializer, "name", segment.name)
@@ -615,7 +610,6 @@ object GpxUtilities {
 					writeExtensions(serializer, segment, null)
 					serializer.endTag(null, "trkseg")
 				}
-				writeExtensions(serializer, track, null)
 				serializer.endTag(null, "trk")
 			}
 		}
@@ -653,6 +647,9 @@ object GpxUtilities {
 			i = newPath.lastIndexOf('.')
 			if (i > 0) {
 				newPath = newPath.substring(0, i)
+			}
+			if (newPath.contains(XML_COLON)) {
+				newPath = newPath.replace(XML_COLON, ":");
 			}
 		}
 		return newPath
@@ -719,10 +716,10 @@ object GpxUtilities {
 			writeNotNullText(serializer, "time", formatTime(p.time))
 		}
 		writeNotNullText(serializer, "name", p.name)
-		writeNotNullText(serializer, "desc", p.desc)
-		writeNotNullTextWithAttribute(serializer, "link", "href", p.link)
-		writeNotNullText(serializer, "type", p.category)
 		writeNotNullText(serializer, "cmt", p.comment)
+		writeNotNullText(serializer, "desc", p.desc)
+		writeNotNullLink(serializer, p.link)
+		writeNotNullText(serializer, "type", p.category)
 		if (!p.hdop.isNaN()) {
 			writeNotNullText(serializer, "hdop", formatDecimal(p.hdop))
 		}
@@ -818,7 +815,7 @@ object GpxUtilities {
 		if (newKey.startsWith(OSMAND_EXTENSIONS_PREFIX)) {
 			newKey = newKey.replace(OSMAND_EXTENSIONS_PREFIX, "")
 		}
-		newKey = newKey.replace(":", "_-_")
+		newKey = newKey.replace(":", XML_COLON)
 		return OSMAND_EXTENSIONS_PREFIX + newKey
 	}
 
@@ -833,7 +830,7 @@ object GpxUtilities {
 				serializer.endTag(null, "email")
 			}
 		}
-		writeNotNullTextWithAttribute(serializer, "link", "href", author.link)
+		writeNotNullLink(serializer, author.link)
 	}
 
 	private fun writeCopyright(serializer: XmlSerializer, copyright: Copyright) {
@@ -999,6 +996,7 @@ object GpxUtilities {
 		extensionsReader: GpxExtensionsReader?,
 		addGeneralTrack: Boolean
 	): GpxFile {
+		val insideTagDepth = mutableMapOf("trk" to 0)
 		oneOffLogParseTimeErrors = true
 		val gpxFile = GpxFile(null)
 		gpxFile.metadata.time = 0
@@ -1032,6 +1030,7 @@ object GpxUtilities {
 				if (tok == XmlPullParser.START_TAG) {
 					val parse = parserState.lastOrNull()
 					val tag = parser.getName() ?: ""
+					insideTagDepth[tag]?.let { insideTagDepth[tag] = it + 1}
 					if (extensionReadMode && parse != null && !routePointExtension) {
 						val tagName = tag.lowercase()
 						when {
@@ -1062,8 +1061,8 @@ object GpxUtilities {
 								}
 							}
 
-							tagName == "route" -> routeExtension = true
-							tagName == "types" -> typesExtension = true
+							tagName == "route" && insideTagDepth["trk"]!! > 0 -> routeExtension = true
+							tagName == "types" && insideTagDepth["trk"]!! > 0 -> typesExtension = true
 							tagName == "points_groups" -> pointsGroupsExtension = true
 							tagName == "network_route" -> networkRoute = true
 							else -> {
@@ -1159,7 +1158,12 @@ object GpxUtilities {
 										parserState.add(copyright)
 									}
 
-									"link" -> parse.link = parser.getAttributeValue("", "href")
+									"link" -> {
+										val link = Link(parser.getAttributeValue("", "href"))
+										parse.link = link
+										parserState.add(link)
+									}
+
 									"time" -> {
 										val text = readText(parser, "time")
 										parse.time = parseTime(text!!)
@@ -1184,8 +1188,11 @@ object GpxUtilities {
 											parse.email = "$id@$domain"
 										}
 									}
-
-									"link" -> parse.link = parser.getAttributeValue("", "href")
+									"link" -> {
+										val link = Link(parser.getAttributeValue("", "href"))
+										parse.link = link
+										parserState.add(link)
+									}
 								}
 							}
 
@@ -1193,6 +1200,12 @@ object GpxUtilities {
 								when (tag) {
 									"year" -> parse.year = readText(parser, "year")
 									"license" -> parse.license = readText(parser, "license")
+								}
+							}
+
+							is Link -> {
+								when (tag) {
+									"text" -> parse.text = readText(parser, "text")
 								}
 							}
 
@@ -1275,8 +1288,11 @@ object GpxUtilities {
 										} catch (_: NumberFormatException) {
 										}
 									}
-
-									"link" -> parse.link = parser.getAttributeValue("", "href")
+									"link" -> {
+										val link = Link(parser.getAttributeValue("", "href"))
+										parse.link = link
+										parserState.add(link)
+									}
 									"category" -> parse.category = readText(parser, "category")
 									"type" -> {
 										if (parse.category == null) {
@@ -1314,7 +1330,8 @@ object GpxUtilities {
 					}
 				} else if (tok == XmlPullParser.END_TAG) {
 					val parse = parserState.lastOrNull()
-					val tag = parser.getName()
+					val tag = parser.getName() ?: ""
+					insideTagDepth[tag]?.let { insideTagDepth[tag] = it - 1}
 
 					if (tag.equals("routepointextension", ignoreCase = true)) {
 						routePointExtension = false
@@ -1349,6 +1366,12 @@ object GpxUtilities {
 
 						"copyright" -> {
 							if (parse is Copyright) {
+								parserState.removeLast()
+							}
+						}
+
+						"link" -> {
+							if (parse is Link) {
 								parserState.removeLast()
 							}
 						}
@@ -1425,7 +1448,7 @@ object GpxUtilities {
 
 	private fun getExtensionsSupportedTag(tag: String): String {
 		val supportedTag = SUPPORTED_EXTENSION_TAGS[tag]
-		return supportedTag ?: tag
+		return supportedTag ?: tag.replace(XML_COLON, ":")
 	}
 
 	private fun parseRouteKeyAttributes(parser: XmlPullParser): Map<String, String> {
@@ -1436,7 +1459,8 @@ object GpxUtilities {
 		if (!bundle.isEmpty()) {
 			for (item in bundle.getMap().values) {
 				if (item.type == StringBundle.ItemType.STRING) {
-					networkRouteKeyTags[item.name] = item.value as String
+					val attributeFromXml = item.name.replace(XML_COLON, ":")
+					networkRouteKeyTags[attributeFromXml] = item.value as String
 				}
 			}
 		}
@@ -1661,5 +1685,4 @@ object GpxUtilities {
 			i += if (processedPoints > 0) processedPoints else 1
 		}
 	}
-
 }

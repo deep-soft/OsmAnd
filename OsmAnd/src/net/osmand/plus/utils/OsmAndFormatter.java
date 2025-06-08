@@ -7,9 +7,9 @@ import static java.util.Calendar.YEAR;
 
 import android.content.Context;
 import android.text.format.DateUtils;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
 import com.jwetherell.openmap.common.LatLonPoint;
@@ -27,6 +27,7 @@ import net.osmand.osm.PoiType;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.SwissGridApproximation;
+import net.osmand.plus.helpers.LocaleHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
@@ -42,7 +43,7 @@ import java.text.DateFormatSymbols;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -52,6 +53,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class OsmAndFormatter {
+
 	public static final float METERS_IN_KILOMETER = 1000f;
 	public static final float METERS_IN_ONE_MILE = 1609.344f; // 1609.344
 	public static final float METERS_IN_ONE_NAUTICALMILE = 1852f; // 1852
@@ -112,18 +114,27 @@ public class OsmAndFormatter {
 	}
 
 	public static String getFormattedDuration(long seconds, @NonNull OsmandApplication app) {
+		NumberFormat numberFormat = getNumberFormat(app);
 		long hours = seconds / (60 * 60);
 		long minutes = (seconds / 60) % 60;
 		if (hours > 0) {
-			return hours + " "
+			return numberFormat.format(hours) + " "
 					+ app.getString(R.string.osmand_parking_hour)
-					+ (minutes > 0 ? " " + minutes + " "
+					+ (minutes > 0 ? " " + numberFormat.format(minutes) + " "
 					+ app.getString(R.string.shared_string_minute_lowercase) : "");
 		} else if (minutes > 0) {
-			return minutes + " " + app.getString(R.string.shared_string_minute_lowercase);
+			return numberFormat.format(minutes) + " " + app.getString(R.string.shared_string_minute_lowercase);
 		} else {
-			return "<1 " + app.getString(R.string.shared_string_minute_lowercase);
+			return "<" + numberFormat.format(1) + " " + app.getString(R.string.shared_string_minute_lowercase);
 		}
+	}
+
+	@NonNull
+	public static NumberFormat getNumberFormat(@NonNull OsmandApplication app) {
+		LocaleHelper localeHelper = app.getLocaleHelper();
+		Locale locale = localeHelper.getPreferredLocale() != null
+				? localeHelper.getPreferredLocale() : localeHelper.getDefaultLocale();
+		return NumberFormat.getInstance(locale);
 	}
 
 	public static String getFormattedDurationShort(int seconds) {
@@ -166,6 +177,24 @@ public class OsmAndFormatter {
 		int minutes = totalMinutes % 60;
 		return String.format(Locale.US, "%d:%02d", hours, minutes);
 	}
+
+	@NonNull
+	public static Pair<String, String> getFormattedTime(@NonNull Context context, long time) {
+		String timeFormatted;
+		String period = null;
+
+		boolean is24HourFormat = android.text.format.DateFormat.is24HourFormat(context);
+
+		if (is24HourFormat) {
+			timeFormatted = android.text.format.DateFormat.format("k:mm", time).toString();
+		} else {
+			timeFormatted = android.text.format.DateFormat.format("h:mm", time).toString();
+			period = android.text.format.DateFormat.format("aa", time).toString();
+		}
+
+		return new Pair<>(timeFormatted, period);
+	}
+
 
 	public static DateFormat getDateFormat(@NonNull Context context) {
 		return android.text.format.DateFormat.getDateFormat(context);
@@ -224,6 +253,12 @@ public class OsmAndFormatter {
 	public static String getFormattedDistanceInterval(OsmandApplication app, double interval, OsmAndFormatterParams pms) {
 		double roundedDist = calculateRoundedDist(interval, app);
 		return getFormattedDistance((float) roundedDist, app, pms);
+	}
+
+	public static String getFormattedPredictionTime(@NonNull OsmandApplication app, double interpolationValue) {
+		double seconds = interpolationValue / 100.0;
+		String formattedValue = String.format(seconds % 1 == 0 ? "%.0f" : "%.1f", seconds);
+		return app.getString(R.string.ltr_or_rtl_combine_via_space, formattedValue, app.getString(R.string.shared_string_sec));
 	}
 
 	public static double calculateRoundedDist(double distInMeters, OsmandApplication ctx) {
@@ -330,46 +365,6 @@ public class OsmAndFormatter {
 			default:
 				return Math.round(bearing) + AngularConstants.DEGREES.getUnitSymbol();
 		}
-	}
-
-	public static class OsmAndFormatterParams {
-		public static final boolean DEFAULT_FORCE_TRAILING = true;
-		public static final int DEFAULT_EXTRA_DECIMAL_PRECISION = 1;
-		boolean forceTrailingZerosInDecimalMainUnit = DEFAULT_FORCE_TRAILING;
-		boolean forcePreciseValue = false;
-		int extraDecimalPrecision = DEFAULT_EXTRA_DECIMAL_PRECISION;
-
-		public static final OsmAndFormatterParams USE_LOWER_BOUNDS = useLowerBoundParam();
-		public static final OsmAndFormatterParams NO_TRAILING_ZEROS = new OsmAndFormatterParams().setTrailingZerosForMainUnit(false);
-		public static final OsmAndFormatterParams DEFAULT = new OsmAndFormatterParams();
-
-		boolean useLowerBound = false;
-
-		public boolean isUseLowerBound() {
-			return useLowerBound;
-		}
-
-		private static OsmAndFormatterParams useLowerBoundParam() {
-			OsmAndFormatterParams p = new OsmAndFormatterParams();
-			p.useLowerBound = true;
-			p.extraDecimalPrecision = 0;
-			p.forceTrailingZerosInDecimalMainUnit = true;
-			return p;
-		}
-
-		private OsmAndFormatterParams setTrailingZerosForMainUnit(boolean forceTrailingZeros) {
-			this.forceTrailingZerosInDecimalMainUnit = forceTrailingZeros;
-			return this;
-		}
-
-		public void setForcePreciseValue(boolean forceDecimalPlaces) {
-			this.forcePreciseValue = forceDecimalPlaces;
-		}
-
-		public void setExtraDecimalPrecision(int extraDecimalPrecision) {
-			this.extraDecimalPrecision = extraDecimalPrecision;
-		}
-
 	}
 
 	@NonNull
@@ -692,15 +687,12 @@ public class OsmAndFormatter {
 	}
 
 	@NonNull
-	public static SpeedConstants getSpeedModeForPaceMode(SpeedConstants originalMode) {
-		switch (originalMode) {
-			case MINUTES_PER_KILOMETER:
-				return SpeedConstants.KILOMETERS_PER_HOUR;
-			case MINUTES_PER_MILE:
-				return SpeedConstants.MILES_PER_HOUR;
-			default:
-				return originalMode;
-		}
+	public static SpeedConstants getSpeedModeForPaceMode(@NonNull SpeedConstants originalMode) {
+		return switch (originalMode) {
+			case MINUTES_PER_KILOMETER -> SpeedConstants.KILOMETERS_PER_HOUR;
+			case MINUTES_PER_MILE -> SpeedConstants.MILES_PER_HOUR;
+			default -> originalMode;
+		};
 	}
 
 	@NonNull
@@ -803,42 +795,6 @@ public class OsmAndFormatter {
 				break;
 		}
 		return "";
-	}
-
-	public static String getPoiStringWithoutType(Amenity amenity, String locale, boolean transliterate) {
-		PoiCategory pc = amenity.getType();
-
-		//multivalued amenity
-		String[] subtypes = amenity.getSubType().split(";");
-		String typeName = "";
-		for (String subType : subtypes) {
-			PoiType pt = pc.getPoiTypeByKeyName(subType);
-			String tmp;
-			if (pt != null) {
-				tmp = pt.getTranslation();
-			} else {
-				tmp = Algorithms.capitalizeFirstLetterAndLowercase(typeName.replace('_', ' '));
-			}
-			if (!typeName.isEmpty()) {
-				typeName += ", " + tmp.toLowerCase();
-				break;
-			} else {
-				typeName = tmp;
-			}
-		}
-
-		String localName = amenity.getName(locale, transliterate);
-		if (typeName != null && localName.contains(typeName)) {
-			// type is contained in name e.g.
-			// localName = "Bakery the Corner"
-			// type = "Bakery"
-			// no need to repeat this
-			return localName;
-		}
-		if (localName.length() == 0) {
-			return typeName;
-		}
-		return typeName + " " + localName; //$NON-NLS-1$
 	}
 
 	public static List<String> getPoiStringsWithoutType(Amenity amenity, String locale, boolean transliterate) {
@@ -1022,71 +978,6 @@ public class OsmAndFormatter {
 		coordinate -= deg;
 		coordinate *= 60.0;
 		return coordinate;
-	}
-
-	public static class FormattedValue {
-
-		public final String value;
-		public final String unit;
-		public final float valueSrc;
-		public final int unitId;
-
-		private final boolean separateWithSpace;
-
-		public FormattedValue(float valueSrc, String value, String unit) {
-			this(valueSrc, value, unit, true);
-		}
-
-		public FormattedValue(float valueSrc, String value, String unit, boolean separateWithSpace) {
-			this(valueSrc, value, unit, -1, separateWithSpace);
-		}
-
-		public FormattedValue(float valueSrc, String value, String unit, @StringRes int unitId, boolean separateWithSpace) {
-			this.value = value;
-			this.valueSrc = valueSrc;
-			this.unit = unit;
-			this.separateWithSpace = separateWithSpace;
-			this.unitId = unitId;
-		}
-
-		@NonNull
-		public String format(@NonNull Context context) {
-			return format(context, value, unit, separateWithSpace);
-		}
-
-		@NonNull
-		public static String format(@NonNull Context context, @NonNull String value,
-		                            @NonNull String unit, boolean separateWithSpace) {
-			return separateWithSpace
-					? context.getString(R.string.ltr_or_rtl_combine_via_space, value, unit)
-					: new MessageFormat("{0}{1}").format(new Object[] {value, unit});
-		}
-	}
-
-	public static class TimeFormatter {
-
-		private final DateFormat simpleTimeFormat;
-		private final DateFormat amPmTimeFormat;
-
-		public TimeFormatter(@NonNull Locale locale, @NonNull String pattern, @NonNull String amPmPattern) {
-			this(locale, pattern, amPmPattern, null);
-		}
-
-		public TimeFormatter(@NonNull Locale locale, @NonNull String pattern,
-		                     @NonNull String amPmPattern, @Nullable TimeZone timeZone) {
-			simpleTimeFormat = new SimpleDateFormat(pattern, locale);
-			amPmTimeFormat = new SimpleDateFormat(amPmPattern, locale);
-
-			if (timeZone != null) {
-				simpleTimeFormat.getCalendar().setTimeZone(timeZone);
-				amPmTimeFormat.getCalendar().setTimeZone(timeZone);
-			}
-		}
-
-		public String format(@NonNull Date date, boolean twelveHoursFormat) {
-			DateFormat timeFormat = twelveHoursFormat ? amPmTimeFormat : simpleTimeFormat;
-			return timeFormat.format(date);
-		}
 	}
 
 	@NonNull

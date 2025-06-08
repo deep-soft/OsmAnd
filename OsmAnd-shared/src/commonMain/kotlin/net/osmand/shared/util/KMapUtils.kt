@@ -2,13 +2,10 @@ package net.osmand.shared.util
 
 import co.touchlab.stately.collections.ConcurrentMutableMap
 import net.osmand.shared.data.KLatLon
-import kotlin.math.*
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import net.osmand.shared.data.KQuadRect
 import net.osmand.shared.extensions.toDegrees
 import net.osmand.shared.extensions.toRadians
+import kotlin.math.*
 
 /**
  * This utility class includes :
@@ -860,4 +857,30 @@ object KMapUtils {
 		}
 		return KGeoParsedPoint(lat, lon, z)
 	}
+
+	fun decodeShortLinkToQuadRect(shortLink: String): KQuadRect {
+		val point: KGeoParsedPoint = decodeShortLinkString(shortLink)
+		val bottom: Double = point.getLatitude()
+		val left: Double = point.getLongitude()
+
+		var precision = 0
+		val base64chars = intToBase64.concatToString()
+		for (i in 0 until shortLink.length) {
+			if (base64chars.indexOf(shortLink[i]) > 0) {
+				precision++
+			}
+		}
+
+		val factor = 2.0.pow((2 - 3 * precision).toDouble())
+		val deltaLon = factor * 90
+		val deltaLat = factor * 45
+
+		val top = bottom + deltaLat
+		val right = left + deltaLon
+
+		return KQuadRect(left, top, right, bottom)
+	}
+
+	fun interpolateLatLon(lat1: Double, lon1: Double, lat2: Double, lon2: Double, fraction: Double) =
+		KLatLon(lat1 + (lat2 - lat1) * fraction, lon1 + (lon2 - lon1) * fraction)
 }

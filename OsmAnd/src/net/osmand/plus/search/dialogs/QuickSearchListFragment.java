@@ -1,5 +1,6 @@
 package net.osmand.plus.search.dialogs;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Pair;
 import android.view.LayoutInflater;
@@ -11,13 +12,15 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentActivity;
 
 import net.osmand.IndexConstants;
+import net.osmand.PlatformUtil;
+import net.osmand.data.Amenity;
 import net.osmand.data.PointDescription;
-import net.osmand.shared.gpx.GpxFile;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
@@ -39,15 +42,22 @@ import net.osmand.plus.track.fragments.TrackMenuFragment;
 import net.osmand.plus.track.helpers.GpxFileLoaderTask;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.wikivoyage.data.TravelGpx;
+import net.osmand.plus.wikivoyage.data.TravelHelper;
 import net.osmand.search.core.ObjectType;
 import net.osmand.search.core.SearchResult;
+import net.osmand.shared.gpx.GpxFile;
 import net.osmand.util.Algorithms;
+
+import org.apache.commons.logging.Log;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class QuickSearchListFragment extends OsmAndListFragment {
+	private static final Log LOG = PlatformUtil.getLog(QuickSearchListFragment.class);
 
 	protected OsmandApplication app;
 	private QuickSearchDialogFragment dialogFragment;
@@ -65,9 +75,15 @@ public abstract class QuickSearchListFragment extends OsmAndListFragment {
 
 	public abstract SearchListFragmentType getType();
 
+	@LayoutRes
+	protected int getLayoutId() {
+		return R.layout.search_dialog_list_layout;
+	}
+
 	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		return inflater.inflate(R.layout.search_dialog_list_layout, container, false);
+	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		LayoutInflater themedInflater = UiUtilities.getInflater(requireContext(), !app.getSettings().isLightContent());
+		return themedInflater.inflate(getLayoutId(), container, false);
 	}
 
 	@Override
@@ -90,7 +106,7 @@ public abstract class QuickSearchListFragment extends OsmAndListFragment {
 	@Override
 	public void onListItemClick(@NonNull ListView listView, @NonNull View view, int position, long id) {
 		int index = position - listView.getHeaderViewsCount();
-		if (index < listAdapter.getCount()) {
+		if (index >= 0 && index < listAdapter.getCount()) {
 			QuickSearchListItem item = listAdapter.getItem(index);
 			if (item != null) {
 				if (item.getType() == QuickSearchListItemType.BUTTON) {
@@ -122,9 +138,14 @@ public abstract class QuickSearchListFragment extends OsmAndListFragment {
 	}
 
 	@Override
+	public void onAttach(@NonNull Context context) {
+		super.onAttach(context);
+		app = getMyApplication();
+	}
+
+	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		app = getMyApplication();
 		boolean nightMode = !app.getSettings().isLightContent();
 		dialogFragment = (QuickSearchDialogFragment) getParentFragment();
 		listAdapter = new QuickSearchListAdapter(app, requireMapActivity());
@@ -175,24 +196,48 @@ public abstract class QuickSearchListFragment extends OsmAndListFragment {
 	public void showResult(SearchResult searchResult) {
 		showResult = false;
 		if (searchResult.objectType == ObjectType.GPX_TRACK) {
-			GPXInfo gpxInfo = (GPXInfo) searchResult.relatedObject;
-			if (dialogFragment.getSearchType().isTargetPoint()) {
-				File file = gpxInfo.getFile();
-				if (file != null) {
-					selectTrack(file);
-				}
-			} else {
-				showTrackMenuFragment(gpxInfo);
-			}
+			showGpxTrackResult(searchResult);
 		} else if (searchResult.location != null) {
-			Pair<PointDescription, Object> pair = QuickSearchListItem.getPointDescriptionObject(app, searchResult);
+			showResultWithLocation(searchResult);
+		}
+	}
 
-			dialogFragment.hideToolbar();
-			dialogFragment.hide();
+	private void showResultWithLocation(SearchResult searchResult) {
+		Pair<PointDescription, Object> pair = QuickSearchListItem.getPointDescriptionObject(app, searchResult);
 
-			showOnMap(getMapActivity(), dialogFragment,
-					searchResult.location.getLatitude(), searchResult.location.getLongitude(),
-					searchResult.preferredZoom, pair.first, pair.second);
+		dialogFragment.hideToolbar();
+		dialogFragment.hide();
+
+		if (getMapActivity() == null) {
+			return;
+		}
+		if (pair.second instanceof Amenity amenity) {
+			if (amenity.isRouteTrack() && !amenity.isSuperRoute()) {
+				TravelHelper travelHelper = app.getTravelHelper();
+				TravelGpx travelGpx = new TravelGpx(amenity);
+
+				SearchHistoryHelper historyHelper = SearchHistoryHelper.getInstance(app);
+				historyHelper.addNewItemToHistory(searchResult.location.getLatitude(),
+						searchResult.location.getLongitude(), pair.first, HistorySource.SEARCH);
+
+				travelHelper.openTrackMenu(travelGpx, getMapActivity(), amenity.getGpxFileName(null), amenity.getLocation(), true);
+				return; // TravelGpx
+			}
+		}
+		showOnMap(getMapActivity(), dialogFragment,
+				searchResult.location.getLatitude(), searchResult.location.getLongitude(),
+				searchResult.preferredZoom, pair.first, pair.second);
+	}
+
+	private void showGpxTrackResult(SearchResult searchResult) {
+		GPXInfo gpxInfo = (GPXInfo) searchResult.relatedObject;
+		if (dialogFragment.getSearchType().isTargetPoint()) {
+			File file = gpxInfo.getFile();
+			if (file != null) {
+				selectTrack(file);
+			}
+		} else {
+			showTrackMenuFragment(gpxInfo);
 		}
 	}
 
@@ -231,10 +276,10 @@ public abstract class QuickSearchListFragment extends OsmAndListFragment {
 						name = pointDescription.getName();
 					}
 				}
-				mapActivity.getMapLayers().getMapActionsHelper().selectAddress(name, latitude, longitude, searchType);
+				mapActivity.getMapActions().selectAddress(name, latitude, longitude, searchType);
 
 				dialogFragment.dismissAllowingStateLoss();
-				mapActivity.getMapLayers().getMapActionsHelper().showRouteInfoMenu();
+				mapActivity.getMapActions().showRouteInfoMenu();
 			} else {
 				app.getSettings().setMapLocationToShow(latitude, longitude, zoom, pointDescription, true, object);
 				MapActivity.launchMapActivityMoveToTop(mapActivity);
@@ -291,7 +336,7 @@ public abstract class QuickSearchListFragment extends OsmAndListFragment {
 	public void updateListAdapter(List<QuickSearchListItem> listItems, boolean append, boolean addShadows) {
 		if (listAdapter != null) {
 			List<QuickSearchListItem> list = new ArrayList<>(listItems);
-			if (list.size() > 0) {
+			if (!list.isEmpty()) {
 				showResult = false;
 				if (addShadows) {
 					list.add(0, new QuickSearchTopShadowListItem(app));

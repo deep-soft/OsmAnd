@@ -96,7 +96,7 @@ class GpxDataItem(
 
 	fun readGpxAppearanceParameter(gpxFile: GpxFile, parameter: GpxParameter) {
 		when (parameter) {
-			GpxParameter.COLOR -> setParameter(GpxParameter.COLOR, gpxFile.getColor(0))
+			GpxParameter.COLOR -> setParameter(GpxParameter.COLOR, gpxFile.getColor(null))
 			GpxParameter.WIDTH -> setParameter(GpxParameter.WIDTH, gpxFile.getWidth(null))
 			GpxParameter.SHOW_ARROWS ->
 				setParameter(
@@ -152,6 +152,11 @@ class GpxDataItem(
 			GpxParameter.TRACK_3D_WALL_COLORING_TYPE -> setParameter(
 				GpxParameter.TRACK_3D_WALL_COLORING_TYPE,
 				gpxFile.get3DWallColoringType()
+			)
+
+			GpxParameter.JOIN_SEGMENTS -> setParameter(
+					GpxParameter.JOIN_SEGMENTS,
+					gpxFile.isJoinSegments()
 			)
 
 			else -> {}
