@@ -142,9 +142,14 @@ jobs:
       continue-on-error: true
       shell: bash
       run: |
+        pushd android;
+        echo "-- old gradle.properties";
+        cat gradle.properties;
         echo "" >>gradle.properties;
         echo "org.gradle.jvmargs=-Xmx2048M -Dkotlin.daemon.jvm.options\=\"-Xmx2048M\"" >>gradle.properties;
+        echo "-- new gradle.properties";
         cat gradle.properties;
+        popd;
 
     - name: sed-stuff
       if: ${{ inputs.SED_STUFF }}
