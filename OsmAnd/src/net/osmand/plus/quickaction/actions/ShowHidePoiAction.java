@@ -5,6 +5,7 @@ import static net.osmand.plus.quickaction.QuickActionIds.SHOW_HIDE_POI_ACTION_ID
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +28,7 @@ import net.osmand.plus.poi.PoiUIFilter;
 import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.render.RenderingIcons;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
 import net.osmand.plus.widgets.ctxmenu.ViewCreator;
@@ -100,7 +102,7 @@ public class ShowHidePoiAction extends QuickAction {
 	}
 
 	@Override
-	public void execute(@NonNull MapActivity mapActivity) {
+	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		OsmandApplication app = mapActivity.getMyApplication();
 		PoiFiltersHelper helper = app.getPoiFilters();
 		List<PoiUIFilter> poiFilters = loadPoiFilters(helper);
@@ -135,7 +137,7 @@ public class ShowHidePoiAction extends QuickAction {
 
 	@Override
 	public void drawUI(@NonNull ViewGroup parent, @NonNull MapActivity mapActivity) {
-		boolean nightMode = mapActivity.getMyApplication().getDaynightHelper().isNightModeForMapControls();
+		boolean nightMode = mapActivity.getMyApplication().getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 		View view = UiUtilities.getInflater(mapActivity, nightMode).inflate(R.layout.quick_action_show_hide_poi, parent, false);
 
 		RecyclerView list = view.findViewById(R.id.list);
@@ -282,7 +284,7 @@ public class ShowHidePoiAction extends QuickAction {
 			}
 		}
 
-		boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
+		boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 		ViewCreator viewCreator = new ViewCreator(mapActivity, nightMode);
 		ArrayAdapter<ContextMenuItem> listAdapter = adapter.toListAdapter(mapActivity, viewCreator);
 		AlertDialog.Builder builder = new AlertDialog.Builder(UiUtilities.getThemedContext(mapActivity, nightMode));

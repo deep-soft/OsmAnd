@@ -61,6 +61,7 @@ import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
 import net.osmand.plus.render.UpdateRendererAsyncTask;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.CompassMode;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
@@ -1319,7 +1320,7 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 	// this method could be called in non UI thread
 	public void refreshMap(boolean updateVectorRendering) {
 		if (view != null && view.isShown()) {
-			boolean nightMode = app.getDaynightHelper().isNightMode();
+			boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 			Boolean currentNightMode = this.nightMode;
 			boolean forceUpdateVectorDrawing = currentNightMode != null && currentNightMode != nightMode;
 			if (forceUpdateVectorDrawing) {
@@ -2038,6 +2039,14 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 		if (!isSteplessZoomSupported() && !disable) {
 			setZoomWithFloatPart(getZoom(), 0);
 		}
+		if (mapRenderer != null) {
+			int maxRederingThreadsLimit = settings.MAX_RENDERING_THREADS.get();
+			if (maxRederingThreadsLimit > 0) {
+				mapRenderer.setResourceWorkerThreadsLimit(maxRederingThreadsLimit);
+			} else {
+				mapRenderer.setResourceWorkerThreadsLimit(mapRenderer.getDefaultWorkerThreadsLimit() / 2);
+			}
+		}
 	}
 
 	public void detachMapRenderer() {
@@ -2572,20 +2581,20 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 	public void applyDebugSettings(MapRendererView mapRenderer) {
 		OsmandDevelopmentPlugin plugin = PluginsHelper.getPlugin(OsmandDevelopmentPlugin.class);
 		if (plugin != null) {
-			boolean show = plugin.SHOW_SYMBOLS_DEBUG_INFO.get();
+			boolean show = settings.DEBUG_RENDERING_INFO.get();
 			boolean allow = plugin.ALLOW_SYMBOLS_DISPLAY_ON_TOP.get();
 			MapRendererDebugSettings debugSettings = mapRenderer.getDebugSettings();
 			debugSettings.setDebugStageEnabled(show);
-			debugSettings.setShowSymbolsMarksRejectedByViewpoint(show);
-			debugSettings.setShowSymbolsBBoxesRejectedByIntersectionCheck(show);
-			debugSettings.setShowSymbolsBBoxesRejectedByMinDistanceToSameContentFromOtherSymbolCheck(show);
-			debugSettings.setShowSymbolsBBoxesRejectedByPresentationMode(show);
-			debugSettings.setShowTooShortOnPathSymbolsRenderablesPaths(show);
+			debugSettings.setShowSymbolsMarksRejectedByViewpoint(allow);
+			debugSettings.setShowSymbolsBBoxesRejectedByIntersectionCheck(allow);
+			debugSettings.setShowSymbolsBBoxesRejectedByMinDistanceToSameContentFromOtherSymbolCheck(allow);
+			debugSettings.setShowSymbolsBBoxesRejectedByPresentationMode(allow);
+			debugSettings.setShowTooShortOnPathSymbolsRenderablesPaths(allow);
 			debugSettings.setSkipSymbolsIntersectionCheck(allow);
 			mapRenderer.setDebugSettings(debugSettings);
 			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
 			if (mapContext != null) {
-				mapContext.showDebugTiles = plugin.SHOW_TILES_DEBUG_INFO.get();
+				mapContext.showDebugPrimivitisationTiles = plugin.SHOW_PRIMITIVES_DEBUG_INFO.get();
 				mapContext.recreateRasterAndSymbolsProvider(MapRendererContext.ProviderType.MAIN);
 			}
 		}

@@ -50,6 +50,7 @@ import net.osmand.plus.SwissGridApproximation;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.search.dialogs.SearchCitiesTask.SearchCitiesListener;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
@@ -127,7 +128,7 @@ public class QuickSearchCoordinatesFragment extends DialogFragment implements Os
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		isLightTheme = getMyApplication().getSettings().isLightContent();
+		isLightTheme = !getMyApplication().getDaynightHelper().isNightMode(ThemeUsageContext.APP);
 		int themeId = isLightTheme ? R.style.OsmandLightTheme : R.style.OsmandDarkTheme;
 		setStyle(STYLE_NO_FRAME, themeId);
 	}
@@ -345,7 +346,8 @@ public class QuickSearchCoordinatesFragment extends DialogFragment implements Os
 		coordinatesView.setClickable(true);
 
 		OsmandApplication app = getMyApplication();
-		int iconColorRes = app.getSettings().isLightContent() ? R.color.osmand_orange : R.color.osmand_orange_dark;
+		boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.APP);
+		int iconColorRes = !nightMode ? R.color.osmand_orange : R.color.osmand_orange_dark;
 		Drawable icon = app.getUIUtilities().getIcon(R.drawable.ic_action_world_globe, iconColorRes);
 		((ImageView) coordinatesView.findViewById(R.id.imageView)).setImageDrawable(icon);
 
@@ -626,8 +628,8 @@ public class QuickSearchCoordinatesFragment extends DialogFragment implements Os
 				}
 			} else if (CURRENT_FORMAT == PointDescription.OLC_FORMAT) {
 				if (latLon != null) {
-					String olc = OpenLocationCode.encode(latLon.getLatitude(), latLon.getLongitude());
-					olcEdit.setText(olc);
+					String code = OsmAndFormatter.getOpenLocationCode(latLon.getLatitude(), latLon.getLongitude());
+					olcEdit.setText(code);
 				} else if (prevFormat == PointDescription.UTM_FORMAT) {
 					olcEdit.setText(zoneEdit.getText());
 				} else if (prevFormat == PointDescription.MGRS_FORMAT) {

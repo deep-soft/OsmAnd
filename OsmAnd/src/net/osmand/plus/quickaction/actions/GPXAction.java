@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ import androidx.core.widget.TextViewCompat;
 import androidx.fragment.app.Fragment;
 
 import net.osmand.CallbackWithObject;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.shared.SharedUtil;
 import net.osmand.data.BackgroundType;
 import net.osmand.data.LatLon;
@@ -101,9 +103,9 @@ public class GPXAction extends SelectMapLocationAction implements FileSelected {
 	}
 
 	@Override
-	public void execute(@NonNull MapActivity mapActivity) {
+	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		unselectGpxFileIfMissing();
-		super.execute(mapActivity);
+		super.execute(mapActivity, params);
 	}
 
 	@Override
@@ -616,6 +618,6 @@ public class GPXAction extends SelectMapLocationAction implements FileSelected {
 	}
 
 	private boolean isNightMode(@NonNull MapActivity mapActivity) {
-		return mapActivity.getMyApplication().getDaynightHelper().isNightModeForMapControls();
+		return mapActivity.getMyApplication().getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 	}
 }

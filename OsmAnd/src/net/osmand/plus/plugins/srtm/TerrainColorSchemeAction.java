@@ -5,12 +5,12 @@ import static net.osmand.plus.quickaction.QuickActionIds.TERRAIN_COLOR_SCHEME_AC
 
 import android.content.Context;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,6 +26,7 @@ import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.quickaction.SwitchableAction;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.shared.ColorPalette;
 import net.osmand.shared.ColorPalette.ColorValue;
@@ -87,7 +88,7 @@ public class TerrainColorSchemeAction extends SwitchableAction<String> {
 	}
 
 	@Override
-	public void execute(@NonNull MapActivity mapActivity) {
+	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		List<String> mapStyles = getFilteredStyles();
 		if (!Algorithms.isEmpty(mapStyles)) {
 			boolean showBottomSheetStyles = Boolean.parseBoolean(getParams().get(KEY_DIALOG));
@@ -156,7 +157,7 @@ public class TerrainColorSchemeAction extends SwitchableAction<String> {
 	protected View.OnClickListener getOnAddBtnClickListener(MapActivity activity, Adapter adapter) {
 		return view -> {
 			OsmandApplication app = activity.getMyApplication();
-			boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
+			boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 			Context themedContext = UiUtilities.getThemedContext(activity, nightMode);
 
 			AlertDialog.Builder bld = new AlertDialog.Builder(themedContext);

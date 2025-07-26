@@ -88,6 +88,7 @@ import net.osmand.plus.poi.PoiFiltersHelper;
 import net.osmand.plus.poi.PoiUIFilter;
 import net.osmand.plus.search.dialogs.QuickSearchToolbarController;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.transport.TransportStopRoute;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
@@ -331,9 +332,8 @@ public class MenuBuilder {
 			buildTitleRow(view);
 		}
 		buildWithinRow(view);
-		buildNearestWikiRow(view);
-		buildNearestPoiRow(view);
-		buildRouteRows(view);
+		buildNearestRows(view, object);
+
 		if (needBuildPlainMenuItems()) {
 			buildPlainMenuItems(view);
 		}
@@ -344,15 +344,17 @@ public class MenuBuilder {
 			buildCoordinatesRow(view);
 		}
 		if (!isCustomOnlinePhotosPosition()) {
-			buildNearestRows(view, object);
+			buildPhotosRow(view, object);
 		}
 	}
 
 	public void buildNearestRows(@NonNull ViewGroup view, @Nullable Object object) {
-		buildNearestPhotos(view, object);
+		buildNearestWikiRow(view);
+		buildNearestPoiRow(view);
+		buildRouteRows(view);
 	}
 
-	public void buildNearestPhotos(@NonNull ViewGroup view, @Nullable Object object) {
+	public void buildPhotosRow(@NonNull ViewGroup view, @Nullable Object object) {
 		galleryController = (GalleryController) app.getDialogManager().findController(GalleryController.PROCESS_ID);
 		if (customization.isFeatureEnabled(CONTEXT_MENU_ONLINE_PHOTOS_ID) && showOnlinePhotos && galleryController != null) {
 			buildNearestPhotosRow(view);
@@ -623,7 +625,7 @@ public class MenuBuilder {
 	protected void buildNearestPhotosRow(View view) {
 		boolean needUpdateOnly = onlinePhotoCardsRow != null && onlinePhotoCardsRow.getMenuBuilder() == this;
 		onlinePhotoCardsRow = new CardsRowBuilder(this);
-		onlinePhotoCardsRow.build(galleryController, true, getApplication().getDaynightHelper().isNightModeForMapControls());
+		onlinePhotoCardsRow.build(galleryController, true, getApplication().getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP));
 
 		LinearLayout parent = new LinearLayout(view.getContext());
 		parent.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
@@ -1353,7 +1355,7 @@ public class MenuBuilder {
 		LinearLayout.LayoutParams typeTextParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 		typeTextView.setLayoutParams(typeTextParams);
 		typeTextView.setText(route.getTypeStrRes());
-		AndroidUtils.setTextSecondaryColor(getMapActivity(), typeTextView, getApplication().getDaynightHelper().isNightModeForMapControls());
+		AndroidUtils.setTextSecondaryColor(getMapActivity(), typeTextView, getApplication().getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP));
 		typeView.addView(typeTextView);
 
 		baseView.setOnClickListener(listener);

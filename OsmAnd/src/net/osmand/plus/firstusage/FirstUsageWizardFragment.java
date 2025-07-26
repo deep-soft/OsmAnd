@@ -58,6 +58,7 @@ import net.osmand.plus.resources.ResourceManager;
 import net.osmand.plus.settings.datastorage.DataStorageFragment.StorageSelectionListener;
 import net.osmand.plus.settings.datastorage.DataStorageHelper;
 import net.osmand.plus.settings.datastorage.item.StorageItem;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
 import net.osmand.plus.settings.fragments.SettingsScreenType;
 import net.osmand.plus.utils.AndroidNetworkUtils;
@@ -157,7 +158,7 @@ public class FirstUsageWizardFragment extends BaseOsmAndFragment implements OsmA
 		wizardButton = view.findViewById(R.id.wizard_action_button);
 		wizardProgressBarCircle = view.findViewById(R.id.wizard_progress_bar_icon);
 
-		if (!AndroidUiHelper.isOrientationPortrait(activity) && !AndroidUiHelper.isXLargeDevice(activity)) {
+		if (!AndroidUiHelper.isOrientationPortrait(activity) && !AndroidUiHelper.isTablet(activity)) {
 			TextView wizardDescription = view.findViewById(R.id.wizard_description);
 			wizardDescription.setMinimumHeight(0);
 			wizardDescription.setMinHeight(0);
@@ -284,7 +285,7 @@ public class FirstUsageWizardFragment extends BaseOsmAndFragment implements OsmA
 				deviceNightMode = false;
 				break;
 			case Configuration.UI_MODE_NIGHT_UNDEFINED:
-				deviceNightMode = !app.getSettings().isLightContent();
+				deviceNightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.APP);
 				break;
 		}
 	}

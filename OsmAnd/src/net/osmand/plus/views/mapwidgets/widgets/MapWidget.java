@@ -19,6 +19,8 @@ import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
+import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
 import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
@@ -63,7 +65,7 @@ public abstract class MapWidget {
 		this.iconsCache = app.getUIUtilities();
 		this.locationProvider = app.getLocationProvider();
 		this.routingHelper = app.getRoutingHelper();
-		this.nightMode = app.getDaynightHelper().isNightMode();
+		this.nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 		this.visibilityHelper = mapActivity.getWidgetsVisibilityHelper();
 		this.view = UiUtilities.getInflater(mapActivity, nightMode).inflate(getLayoutId(), null);
 
@@ -104,7 +106,7 @@ public abstract class MapWidget {
 		container.addView(view);
 	}
 
-	public void detachView(@NonNull WidgetsPanel widgetsPanel) {
+	public void detachView(@NonNull WidgetsPanel widgetsPanel, @NonNull List<MapWidgetInfo> widgets, @NonNull ApplicationMode mode) {
 		ViewParent parent = view.getParent();
 		if (parent instanceof ViewGroup) {
 			((ViewGroup) parent).removeView(view);

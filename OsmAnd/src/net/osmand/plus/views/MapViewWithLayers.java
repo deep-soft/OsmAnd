@@ -23,10 +23,12 @@ import net.osmand.plus.auto.NavigationSession;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.inapp.InAppPurchaseUtils;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMap.RenderingViewSetupListener;
 import net.osmand.plus.views.corenative.NativeCoreContext;
+import net.osmand.plus.plugins.PluginsHelper;
 
 public class MapViewWithLayers extends FrameLayout {
 
@@ -63,7 +65,7 @@ public class MapViewWithLayers extends FrameLayout {
 		mapView = osmandMap.getMapView();
 		mapView.setupTouchDetectors(getContext());
 
-		boolean nightMode = app.getDaynightHelper().isNightMode();
+		boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 		inflate(UiUtilities.getThemedContext(context, nightMode), R.layout.map_view_with_layers, this);
 	}
 
@@ -124,7 +126,9 @@ public class MapViewWithLayers extends FrameLayout {
 			} else {
 				atlasMapRendererView.handleOnCreate(null);
 			}
-			mapRendererContext.presetMapRendererOptions(atlasMapRendererView);
+			// Get MSAA setting from development plugin
+			boolean enableMSAA = settings.ENABLE_MSAA.get();
+			mapRendererContext.presetMapRendererOptions(atlasMapRendererView, enableMSAA);
 			atlasMapRendererView.setupRenderer(getContext(), 0, 0, mapRendererView);
 			atlasMapRendererView.setMinZoomLevel(ZoomLevel.swigToEnum(mapView.getMinZoom()));
 			atlasMapRendererView.setMaxZoomLevel(ZoomLevel.swigToEnum(mapView.getMaxZoom()));

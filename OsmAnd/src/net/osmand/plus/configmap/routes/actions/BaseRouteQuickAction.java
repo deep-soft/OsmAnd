@@ -3,6 +3,7 @@ package net.osmand.plus.configmap.routes.actions;
 import static net.osmand.plus.configmap.routes.RouteUtils.showRendererSnackbarForAttr;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,8 +19,7 @@ import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.configmap.ConfigureMapUtils;
 import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
-import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.settings.backend.preferences.CommonPreference;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.render.RenderingRuleProperty;
 
 public abstract class BaseRouteQuickAction extends QuickAction {
@@ -48,7 +48,7 @@ public abstract class BaseRouteQuickAction extends QuickAction {
 	}
 
 	@Override
-	public void execute(@NonNull MapActivity mapActivity) {
+	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		String attrName = getAttrName();
 		OsmandApplication app = mapActivity.getMyApplication();
 		RenderingRuleProperty property = getProperty(app);
@@ -57,7 +57,7 @@ public abstract class BaseRouteQuickAction extends QuickAction {
 			mapActivity.refreshMapComplete();
 			mapActivity.updateLayers();
 		} else {
-			boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
+			boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 			showRendererSnackbarForAttr(mapActivity, attrName, nightMode, null);
 		}
 	}

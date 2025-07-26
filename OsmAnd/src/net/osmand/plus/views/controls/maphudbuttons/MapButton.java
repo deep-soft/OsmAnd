@@ -41,12 +41,12 @@ import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.quickaction.ButtonAppearanceParams;
 import net.osmand.plus.render.RenderingIcons;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
-import net.osmand.plus.views.controls.MapHudLayout.ViewChangeListener;
-import net.osmand.plus.views.controls.MapHudLayout.ViewChangeProvider;
+import net.osmand.plus.views.controls.ViewChangeProvider;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.mapwidgets.WidgetsVisibilityHelper;
 import net.osmand.plus.views.mapwidgets.configure.buttons.MapButtonState;
@@ -141,7 +141,7 @@ public abstract class MapButton extends FrameLayout implements OnAttachStateChan
 		addOnAttachStateChangeListener(this);
 		setBackgroundColor(Color.TRANSPARENT);
 		setPadding((int) shadowPadding, (int) shadowPadding, (int) shadowPadding, (int) shadowPadding);
-		setNightMode(app.getDaynightHelper().isNightMode());
+		setNightMode(app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP));
 	}
 
 	@NonNull

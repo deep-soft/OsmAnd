@@ -3,11 +3,12 @@ package net.osmand.plus.plugins.rastermaps;
 import static net.osmand.plus.quickaction.QuickActionIds.MAP_UNDERLAY_ACTION_ID;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.util.Pair;
@@ -19,6 +20,7 @@ import net.osmand.IndexConstants;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.R;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.activities.MapActivity;
@@ -100,7 +102,7 @@ public class MapUnderlayAction extends SwitchableAction<Pair<String, String>> {
 	}
 
 	@Override
-	public void execute(@NonNull MapActivity mapActivity) {
+	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		OsmandRasterMapsPlugin plugin = PluginsHelper.getActivePlugin(OsmandRasterMapsPlugin.class);
 		if (plugin != null) {
 			List<Pair<String, String>> sources = loadListFromParams();
@@ -184,7 +186,7 @@ public class MapUnderlayAction extends SwitchableAction<Pair<String, String>> {
 			Map<String, String> entriesMap = app.getSettings().getTileSourceEntries();
 			entriesMap.put(KEY_NO_UNDERLAY, activity.getString(R.string.no_underlay));
 
-			boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
+			boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 			Context themedContext = UiUtilities.getThemedContext(activity, nightMode);
 
 			AlertDialog.Builder builder = new AlertDialog.Builder(themedContext);

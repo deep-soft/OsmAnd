@@ -9,6 +9,8 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static net.osmand.test.common.Matchers.hasOnClickListener;
+import static net.osmand.test.common.SystemDialogInteractions.hasTextEventually;
+import static net.osmand.test.common.SystemDialogInteractions.isViewVisible;
 import static org.hamcrest.Matchers.allOf;
 
 import android.content.Context;
@@ -18,7 +20,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.ViewInteraction;
+import androidx.test.espresso.action.ViewActions;
 
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.views.controls.maphudbuttons.MapButton;
 
@@ -108,5 +112,34 @@ public class OsmAndDialogInteractions {
 
 	public static void writeText(@IdRes int id, @NonNull String text) {
 		onView(CustomMatchers.first(allOf(withId(id), isDisplayed()))).perform(typeText(text));
+	}
+
+	public static void checkViewText(@IdRes int id, @NonNull String text) {
+		onView(withId(id)).check(hasTextEventually(text));
+	}
+
+	public static void clearText(@IdRes int id) {
+		replaceText(id, "");
+	}
+
+	public static void replaceText(@IdRes int id, @NonNull String newText) {
+		onView(CustomMatchers.first(allOf(withId(id), isDisplayed()))).perform(ViewActions.replaceText(newText));
+	}
+
+	public static boolean isContextMenuOpened() {
+		return isViewVisible(withId(R.id.context_menu_layout));
+	}
+
+	public static boolean isMultiSelectionMenuOpened() {
+		return isViewVisible(withId(R.id.multi_selection_main_view));
+	}
+
+	public static void refreshMap(@NonNull OsmandApplication app) {
+		app.getOsmandMap().getMapView().refreshMap();
+	}
+
+	public static void moveAndZoomMap(@NonNull OsmandApplication app, double latitude, double longitude, int zoom) {
+		app.getOsmandMap().getMapView().setLatLon(latitude, longitude);
+		app.getOsmandMap().getMapView().setIntZoom(zoom);
 	}
 }

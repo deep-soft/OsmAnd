@@ -4,6 +4,7 @@ import static net.osmand.osm.OsmRouteType.ALPINE;
 import static net.osmand.osm.OsmRouteType.BICYCLE;
 import static net.osmand.osm.OsmRouteType.HIKING;
 import static net.osmand.osm.OsmRouteType.MTB;
+import static net.osmand.osm.OsmRouteType.SKI;
 
 import android.os.Bundle;
 import android.util.Pair;
@@ -25,6 +26,7 @@ import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndFragment;
 import net.osmand.plus.configmap.ConfigureMapUtils;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard.CardListener;
 import net.osmand.plus.utils.AndroidUtils;
@@ -138,9 +140,11 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 	}
 
 	protected void addRenderingClassCard(@NonNull String attrName) {
-		BaseCard card = createRenderingClassCard(attrName);
-		if (card != null) {
-			addCard(card);
+		if (PluginsHelper.isDevelopment()) {
+			BaseCard card = createRenderingClassCard(attrName);
+			if (card != null) {
+				addCard(card);
+			}
 		}
 	}
 
@@ -201,7 +205,7 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 	public static boolean shouldShow(@NonNull OsmandApplication app, @NonNull String attrName) {
 		boolean defaultScreens = CollectionUtils.equalsToAny(attrName,
 				BICYCLE.getRenderingPropertyAttr(), MTB.getRenderingPropertyAttr(),
-				HIKING.getRenderingPropertyAttr(), ALPINE.getRenderingPropertyAttr());
+				HIKING.getRenderingPropertyAttr(), ALPINE.getRenderingPropertyAttr(), SKI.getRenderingPropertyAttr());
 
 		Pair<RenderingClass, List<RenderingClass>> pair = ConfigureMapUtils.getRenderingClassWithChildren(app, attrName);
 		return defaultScreens || pair != null;
@@ -217,6 +221,8 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 			return HikingRoutesFragment.class.getName();
 		} else if (Algorithms.stringsEqual(ALPINE.getRenderingPropertyAttr(), attrName)) {
 			return AlpineHikingScaleFragment.class.getName();
+		} else if (Algorithms.stringsEqual(SKI.getRenderingPropertyAttr(), attrName)) {
+			return SkiRoutesFragment.class.getName();
 		}
 		return CustomRoutesFragment.class.getName();
 	}

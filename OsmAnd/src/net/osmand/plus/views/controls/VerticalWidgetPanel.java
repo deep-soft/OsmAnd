@@ -22,9 +22,8 @@ import net.osmand.plus.R;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.views.controls.MapHudLayout.ViewChangeListener;
-import net.osmand.plus.views.controls.MapHudLayout.ViewChangeProvider;
 import net.osmand.plus.views.layers.MapInfoLayer.TextState;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
@@ -65,7 +64,7 @@ public class VerticalWidgetPanel extends LinearLayout implements WidgetsContaine
 		super(context, attrs, defStyleAttr, defStyleRes);
 		app = (OsmandApplication) context.getApplicationContext();
 		settings = app.getSettings();
-		nightMode = app.getDaynightHelper().isNightMode();
+		nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 		widgetRegistry = app.getOsmandMap().getMapLayers().getMapWidgetRegistry();
 		definePanelSide(context, attrs);
 		init();
@@ -259,7 +258,7 @@ public class VerticalWidgetPanel extends LinearLayout implements WidgetsContaine
 				addWidgetViewToPage(rowWidgetMap, widgetInfo.pageIndex, widgetInfo);
 				widgetsToShow.add(widgetInfo.widget);
 			} else {
-				widgetInfo.widget.detachView(getWidgetsPanel());
+				widgetInfo.widget.detachView(getWidgetsPanel(), new ArrayList<>(allPanelWidget), mode);
 			}
 		}
 		return new ArrayList<>(rowWidgetMap.values());
@@ -350,7 +349,7 @@ public class VerticalWidgetPanel extends LinearLayout implements WidgetsContaine
 				if (widgetInfo.isEnabledForAppMode(appMode)) {
 					enabledMapWidgets.add(widgetInfo);
 				} else {
-					widgetInfo.widget.detachView(getWidgetsPanel());
+					widgetInfo.widget.detachView(getWidgetsPanel(), rowWidgets, appMode);
 				}
 			}
 			AndroidUiHelper.updateVisibility(topDivider, false);

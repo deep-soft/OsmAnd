@@ -23,12 +23,14 @@ import androidx.fragment.app.FragmentActivity;
 
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.track.helpers.GpxDisplayItem;
 import net.osmand.plus.track.helpers.TrackDisplayGroup;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.FontCache;
 import net.osmand.plus.utils.OsmAndFormatter;
+import net.osmand.plus.utils.UiUtilities;
 import net.osmand.shared.gpx.GpxTrackAnalysis;
 import net.osmand.util.Algorithms;
 
@@ -48,14 +50,17 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 
 	private final Paint minMaxSpeedPaint = new Paint();
 	private ColorStateList defaultTextColor;
+	private final SplitAdapterListener listener;
 
 	SplitSegmentsAdapter(@NonNull FragmentActivity activity,
 	                     @NonNull List<GpxDisplayItem> items,
-	                     @NonNull GpxDisplayItem displayItem) {
+	                     @NonNull GpxDisplayItem displayItem,
+	                     @NonNull SplitAdapterListener listener) {
 		super(activity, 0, items);
 		this.activity = activity;
 		this.app = (OsmandApplication) activity.getApplicationContext();
 		this.displayItem = displayItem;
+		this.listener = listener;
 
 		minMaxSpeedPaint.setTextSize(app.getResources().getDimension(R.dimen.default_split_segments_data));
 		minMaxSpeedPaint.setTypeface(FontCache.getMediumFont());
@@ -74,12 +79,12 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 			convertView = activity.getLayoutInflater().inflate(R.layout.gpx_split_segment_fragment, parent, false);
 		}
 		convertView.setOnClickListener(null);
-		boolean nightMode = !app.getSettings().isLightContent();
+		boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.APP);
 		int activeColorId = ColorUtilities.getActiveColorId(nightMode);
 		TextView overviewTextView = convertView.findViewById(R.id.overview_text);
 		ImageView overviewImageView = convertView.findViewById(R.id.overview_image);
 		if (position == 0) {
-			overviewImageView.setImageDrawable(getIcon(R.drawable.ic_action_time_span_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+			overviewImageView.setImageDrawable(getIcon(R.drawable.ic_action_time_span_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 			if (defaultTextColor == null) {
 				defaultTextColor = overviewTextView.getTextColors();
 			}
@@ -97,16 +102,24 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 			}
 		} else {
 			if (currentGpxDisplayItem != null && currentGpxDisplayItem.analysis != null) {
+				setupHeaderClick(currentGpxDisplayItem, convertView, nightMode);
+
 				overviewTextView.setTextColor(app.getColor(activeColorId));
-				if (trackGroup != null && (trackGroup.isSplitDistance() || currentGpxDisplayItem.analysis.getSegmentSlopeType() != null)) {
-					overviewImageView.setImageDrawable(getIcon(R.drawable.ic_action_track_16, activeColorId));
+				SegmentSlopeType slopeType = currentGpxDisplayItem.analysis.getSegmentSlopeType();
+
+				if (trackGroup != null && (trackGroup.isSplitDistance() || slopeType != null)) {
+					if (slopeType != null) {
+						overviewImageView.setImageDrawable(getSlopeDrawable(slopeType, nightMode));
+					} else {
+						overviewImageView.setImageDrawable(getIcon(R.drawable.ic_action_track_16, activeColorId));
+					}
+
 					overviewTextView.setText("");
 					double metricStart = currentGpxDisplayItem.analysis.getMetricEnd() - currentGpxDisplayItem.analysis.getTotalDistance();
 					overviewTextView.append(OsmAndFormatter.getFormattedDistance((float) metricStart, app));
 					overviewTextView.append(" - ");
 					overviewTextView.append(OsmAndFormatter.getFormattedDistance((float) currentGpxDisplayItem.analysis.getMetricEnd(), app));
 					overviewTextView.append("  (" + currentGpxDisplayItem.analysis.getPoints() + ")");
-					SegmentSlopeType slopeType = currentGpxDisplayItem.analysis.getSegmentSlopeType();
 
 					if (slopeType != null) {
 						String slopeName;
@@ -134,21 +147,21 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 		}
 
 		((ImageView) convertView.findViewById(R.id.start_time_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_time_start_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_time_start_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.end_time_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_time_end_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_time_end_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.average_altitude_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_altitude_average_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_altitude_average_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.altitude_range_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_altitude_range_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_altitude_range_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.ascent_descent_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_altitude_descent_ascent_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_altitude_descent_ascent_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.moving_time_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_time_moving_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_time_moving_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.average_speed_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_speed_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_speed_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 		((ImageView) convertView.findViewById(R.id.max_speed_image))
-				.setImageDrawable(getIcon(R.drawable.ic_action_max_speed_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+				.setImageDrawable(getIcon(R.drawable.ic_action_max_speed_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 
 		if (currentGpxDisplayItem != null) {
 			GpxTrackAnalysis analysis = currentGpxDisplayItem.analysis;
@@ -157,13 +170,13 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 				TextView distanceOrTimeSpanValue = convertView.findViewById(R.id.distance_or_time_span_value);
 				TextView distanceOrTimeSpanText = convertView.findViewById(R.id.distance_or_time_span_text);
 				if (position == 0) {
-					distanceOrTimeSpanImageView.setImageDrawable(getIcon(R.drawable.ic_action_track_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+					distanceOrTimeSpanImageView.setImageDrawable(getIcon(R.drawable.ic_action_track_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 					float totalDistance = displayItem.isGeneralTrack() ? analysis.getTotalDistanceWithoutGaps() : analysis.getTotalDistance();
 					distanceOrTimeSpanValue.setText(OsmAndFormatter.getFormattedDistance(totalDistance, app));
 					distanceOrTimeSpanText.setText(app.getString(R.string.distance));
 				} else {
 					if (trackGroup != null && trackGroup.isSplitDistance()) {
-						distanceOrTimeSpanImageView.setImageDrawable(getIcon(R.drawable.ic_action_time_span_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+						distanceOrTimeSpanImageView.setImageDrawable(getIcon(R.drawable.ic_action_time_span_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 						if (analysis.getDurationInMs() > 0) {
 							distanceOrTimeSpanValue.setText(Algorithms.formatDuration(analysis.getDurationInSeconds(), app.accessibilityEnabled()));
 						} else {
@@ -171,7 +184,7 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 						}
 						distanceOrTimeSpanText.setText(app.getString(R.string.shared_string_time_span));
 					} else if (trackGroup != null && trackGroup.isSplitTime()) {
-						distanceOrTimeSpanImageView.setImageDrawable(getIcon(R.drawable.ic_action_track_16, app.getSettings().isLightContent() ? R.color.gpx_split_segment_icon_color : 0));
+						distanceOrTimeSpanImageView.setImageDrawable(getIcon(R.drawable.ic_action_track_16, !nightMode ? R.color.gpx_split_segment_icon_color : 0));
 						distanceOrTimeSpanValue.setText(OsmAndFormatter.getFormattedDistance(analysis.getTotalDistance(), app));
 						distanceOrTimeSpanText.setText(app.getString(R.string.distance));
 					}
@@ -336,6 +349,30 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 		return convertView;
 	}
 
+	private void setupHeaderClick(@NonNull GpxDisplayItem currentGpxDisplayItem, View convertView, boolean nightMode) {
+		View headerButton = convertView.findViewById(R.id.header_button);
+
+		int color = app.getSettings().getApplicationMode().getProfileColor(nightMode);
+		Drawable background = UiUtilities.getColoredSelectableDrawable(app, color, 0.3f);
+		AndroidUtils.setBackground(headerButton, background);
+
+		headerButton.setOnClickListener(v -> {
+			listener.onOpenSegment(currentGpxDisplayItem);
+		});
+	}
+
+	private Drawable getSlopeDrawable(@NonNull SegmentSlopeType slopeType, boolean nightMode) {
+		int activeColorId = ColorUtilities.getActiveColorId(nightMode);
+
+		if (slopeType == SegmentSlopeType.UPHILL) {
+			return getIcon(R.drawable.ic_action_ascent_arrow_16, activeColorId);
+		} else if (slopeType == SegmentSlopeType.DOWNHILL) {
+			return getIcon(R.drawable.ic_action_descent_arrow_16, activeColorId);
+		} else {
+			return getIcon(R.drawable.ic_action_terrain_flat_16, activeColorId);
+		}
+	}
+
 	@NonNull
 	private Drawable getIcon(@DrawableRes int id, @ColorRes int colorId) {
 		return app.getUIUtilities().getIcon(id, colorId);
@@ -344,5 +381,9 @@ class SplitSegmentsAdapter extends ArrayAdapter<GpxDisplayItem> {
 	@NonNull
 	private String getString(@StringRes int resId, Object... formatArgs) {
 		return app.getString(resId, formatArgs);
+	}
+
+	interface SplitAdapterListener{
+		void onOpenSegment(@NonNull GpxDisplayItem currentGpxDisplayItem);
 	}
 }

@@ -5,6 +5,7 @@ import static net.osmand.plus.quickaction.CreateEditActionDialog.TAG;
 import static net.osmand.plus.quickaction.QuickActionIds.LOCATION_SIMULATION_ACTION_ID;
 
 import android.graphics.Typeface;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.slider.Slider;
 
 import net.osmand.CallbackWithObject;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.shared.SharedUtil;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.GpxTrackAnalysis;
@@ -85,7 +87,7 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 	}
 
 	@Override
-	public void execute(@NonNull MapActivity mapActivity) {
+	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		OsmandDevelopmentPlugin plugin = PluginsHelper.getActivePlugin(OsmandDevelopmentPlugin.class);
 		if (plugin != null) {
 			unselectGpxFileIfMissing();
@@ -426,6 +428,6 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 	}
 
 	private boolean isNightMode(@NonNull OsmandApplication app) {
-		return app.getDaynightHelper().isNightModeForMapControls();
+		return app.getDaynightHelper().isNightMode(ThemeUsageContext.OVER_MAP);
 	}
 }

@@ -31,10 +31,9 @@ import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.views.controls.MapHudLayout.ViewChangeListener;
-import net.osmand.plus.views.controls.MapHudLayout.ViewChangeProvider;
 import net.osmand.plus.views.controls.WidgetsPagerAdapter.VisiblePages;
 import net.osmand.plus.views.layers.MapInfoLayer.TextState;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
@@ -80,7 +79,7 @@ public class SideWidgetsPanel extends FrameLayout implements WidgetsContainer, V
 
 	public SideWidgetsPanel(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
 		super(context, attrs, defStyleAttr, defStyleRes);
-		nightMode = getMyApplication().getDaynightHelper().isNightMode();
+		nightMode = getMyApplication().getDaynightHelper().isNightMode(ThemeUsageContext.MAP);
 		context = UiUtilities.getThemedContext(getContext(), nightMode);
 
 		definePanelSide(context, attrs);
