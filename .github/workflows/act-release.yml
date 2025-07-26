@@ -1,5 +1,5 @@
-# 2024-07-23 16:00
-#
+# 2025-07-26 18:00
+# gradle.properties : org.gradle.jvmargs=-Xmx2048M -Dkotlin.daemon.jvm.options\="-Xmx2048M"
 name: act-release
 
 on:
@@ -125,7 +125,27 @@ jobs:
         repository: deep-soft/OsmAnd-misc
         path: misc
 
+    - name: checkout OsmAnd-help
+      uses: deep-soft/checkout@v4
+      with:
+        repository: deep-soft/OsmAnd-help
+        path: help
+
+    - name: checkout OsmAnd-web
+      uses: deep-soft/checkout@v4
+      with:
+        repository: deep-soft/OsmAnd-web
+        path: web
+
 # temporary fix ?!
+    - name: gradle.properties
+      continue-on-error: true
+      shell: bash
+      run: |
+        echo "" >>gradle.properties;
+        echo "org.gradle.jvmargs=-Xmx2048M -Dkotlin.daemon.jvm.options\=\"-Xmx2048M\"" >>gradle.properties;
+        cat gradle.properties;
+
     - name: sed-stuff
       if: ${{ inputs.SED_STUFF }}
       continue-on-error: true
