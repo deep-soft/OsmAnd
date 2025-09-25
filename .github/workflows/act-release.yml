@@ -366,4 +366,5 @@ jobs:
         tag_name: ${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}-ALL
         files: |
             ${{ env.ZIP_ARCHIVE_RELEASE }}
+            ${{ env.ZIP_RELEASE_ARCHIVE }}
 # zip release end
