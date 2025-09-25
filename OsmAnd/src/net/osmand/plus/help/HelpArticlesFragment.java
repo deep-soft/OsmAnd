@@ -18,8 +18,10 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
 import net.osmand.plus.R;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuListAdapter;
 import net.osmand.plus.widgets.ctxmenu.ViewCreator;
@@ -29,13 +31,25 @@ import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-public class HelpArticlesFragment extends BaseOsmAndFragment implements OnItemClickListener {
+public class HelpArticlesFragment extends BaseFullScreenFragment implements OnItemClickListener {
 
 	private static final String TAG = HelpArticlesFragment.class.getSimpleName();
 
 	private HelpArticle article;
 	private ContextMenuListAdapter adapter;
+
+	@Override
+	public int getStatusBarColorId() {
+		return ColorUtilities.getStatusBarColorId(nightMode);
+	}
+
+	@Nullable
+	@Override
+	public Set<InsetSide> getRootInsetSides() {
+		return null;
+	}
 
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -47,7 +61,7 @@ public class HelpArticlesFragment extends BaseOsmAndFragment implements OnItemCl
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		updateNightMode();
-		View view = themedInflater.inflate(R.layout.help_articles_fragment, container, false);
+		View view = inflate(R.layout.help_articles_fragment, container, false);
 
 		ContextMenuAdapter menuAdapter = new ContextMenuAdapter(app);
 		List<ContextMenuItem> items = createItems();

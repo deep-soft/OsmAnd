@@ -5,8 +5,6 @@ import android.app.DatePickerDialog;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +16,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.fragment.app.FragmentManager;
@@ -25,7 +24,8 @@ import androidx.fragment.app.FragmentManager;
 import net.osmand.map.TileSourceManager;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.plugins.PluginsHelper;
@@ -40,8 +40,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Set;
 
-public class MapillaryFiltersFragment extends BaseOsmAndFragment {
+public class MapillaryFiltersFragment extends BaseFullScreenFragment {
 
     public static final String TAG = MapillaryFiltersFragment.class.getSimpleName();
 
@@ -77,7 +78,7 @@ public class MapillaryFiltersFragment extends BaseOsmAndFragment {
             toggleIconColor = ColorUtilities.getDefaultIconColor(mapActivity, nightMode);
         }
         ((AppCompatTextView) toggleRow.findViewById(R.id.toggle_row_title)).setText(toggleActionStringId);
-        Drawable drawable = getPaintedContentIcon(toggleIconId, toggleIconColor);
+        Drawable drawable = getPaintedIcon(toggleIconId, toggleIconColor);
         ((AppCompatImageView) toggleRow.findViewById(R.id.toggle_row_icon)).setImageDrawable(drawable);
         CompoundButton toggle = toggleRow.findViewById(R.id.toggle_row_toggle);
 		toggle.setOnCheckedChangeListener(null);
@@ -134,7 +135,7 @@ public class MapillaryFiltersFragment extends BaseOsmAndFragment {
             }
         });
         ImageView imageView = view.findViewById(R.id.warning_image_view);
-        imageView.setImageDrawable(getPaintedContentIcon(R.drawable.ic_small_warning,
+        imageView.setImageDrawable(getPaintedIcon(R.drawable.ic_small_warning,
                 getColor(R.color.color_warning)));
 
 
@@ -271,6 +272,11 @@ public class MapillaryFiltersFragment extends BaseOsmAndFragment {
     private void changeButtonState(Button button, float alpha, boolean enabled) {
         button.setAlpha(alpha);
         button.setEnabled(enabled);
+    }
+
+    @Nullable
+    public Set<InsetSide> getRootInsetSides() {
+        return null;
     }
 
     public static void showInstance(@NonNull FragmentManager fragmentManager) {

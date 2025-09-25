@@ -97,6 +97,7 @@ public class MapActions {
 			builder.setSelectedSegment(settings.GPX_SEGMENT_INDEX.get());
 			builder.setSelectedRoute(settings.GPX_ROUTE_INDEX.get());
 			builder.setPassWholeRoute(settings.GPX_PASS_WHOLE_ROUTE.get());
+			builder.setReverseStrategy(settings.GPX_REVERSE_STRATEGY.get());
 
 			ApplicationMode appMode = routingHelper.getAppMode();
 			if (!gpxFile.isAttachedToRoads() && settings.DETAILED_TRACK_GUIDANCE.getModeValue(appMode) == AUTOMATIC) {
@@ -587,7 +588,7 @@ public class MapActions {
 
 	public void startNavigationForGpx(@NonNull GpxFile gpxFile, @NonNull MapActivity mapActivity) {
 		MapActivityActions mapActions = mapActivity.getMapActions();
-		if (mapActivity.getMyApplication().getRoutingHelper().isFollowingMode()) {
+		if (mapActivity.getApp().getRoutingHelper().isFollowingMode()) {
 			WeakReference<MapActivity> activityRef = new WeakReference<>(mapActivity);
 			mapActions.stopNavigationActionConfirm(null, () -> {
 				MapActivity activity = activityRef.get();

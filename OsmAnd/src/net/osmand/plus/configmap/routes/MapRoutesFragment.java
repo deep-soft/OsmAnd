@@ -23,13 +23,14 @@ import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.configmap.ConfigureMapUtils;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard.CardListener;
 import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.render.RenderingClass;
 import net.osmand.util.Algorithms;
@@ -39,8 +40,9 @@ import org.apache.commons.logging.Log;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-public abstract class MapRoutesFragment extends BaseOsmAndFragment implements CardListener {
+public abstract class MapRoutesFragment extends BaseFullScreenFragment implements CardListener {
 
 	private static final Log log = PlatformUtil.getLog(MapRoutesFragment.class);
 
@@ -72,7 +74,7 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
 			@Nullable Bundle savedInstanceState) {
 		updateNightMode();
-		View view = themedInflater.inflate(R.layout.map_routes_fragment, container, false);
+		View view = inflate(R.layout.map_routes_fragment, container, false);
 
 		setupHeader(view);
 		setupContent(view);
@@ -159,7 +161,7 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 
 	@NonNull
 	protected View createDivider(@NonNull ViewGroup group, boolean showTop, boolean showBottom) {
-		View divider = themedInflater.inflate(R.layout.list_item_divider, group, false);
+		View divider = inflate(R.layout.list_item_divider, group, false);
 		AndroidUiHelper.updateVisibility(divider.findViewById(R.id.topShadowView), showTop);
 		AndroidUiHelper.updateVisibility(divider.findViewById(R.id.bottomShadowView), showBottom);
 		return divider;
@@ -182,24 +184,6 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 			mapActivity.refreshMapComplete();
 			mapActivity.updateLayers();
 		}
-	}
-
-	@Nullable
-	protected MapActivity getMapActivity() {
-		FragmentActivity activity = getActivity();
-		if (activity instanceof MapActivity) {
-			return (MapActivity) activity;
-		}
-		return null;
-	}
-
-	@NonNull
-	protected MapActivity requireMapActivity() {
-		FragmentActivity activity = getActivity();
-		if (!(activity instanceof MapActivity)) {
-			throw new IllegalStateException("Fragment " + this + " not attached to an activity.");
-		}
-		return (MapActivity) activity;
 	}
 
 	public static boolean shouldShow(@NonNull OsmandApplication app, @NonNull String attrName) {
@@ -225,6 +209,17 @@ public abstract class MapRoutesFragment extends BaseOsmAndFragment implements Ca
 			return SkiRoutesFragment.class.getName();
 		}
 		return CustomRoutesFragment.class.getName();
+	}
+
+	@Nullable
+	public Set<InsetSide> getRootInsetSides() {
+		return null;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getBottomContainersIds() {
+		return null;
 	}
 
 	public static void showInstance(@NonNull FragmentActivity activity, @NonNull String attrName) {

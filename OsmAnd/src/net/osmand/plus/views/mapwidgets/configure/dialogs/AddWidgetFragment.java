@@ -32,6 +32,7 @@ import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.mapwidgets.WidgetGroup;
 import net.osmand.plus.views.mapwidgets.WidgetType;
@@ -43,6 +44,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class AddWidgetFragment extends BaseWidgetFragment {
@@ -71,16 +73,24 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 			selectWidgetByDefault();
 		}
 
-		view = themedInflater.inflate(R.layout.base_widget_fragment_layout, container, false);
+		view = inflate(R.layout.base_widget_fragment_layout, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 
 		ViewGroup mainContent = view.findViewById(R.id.main_content);
-		themedInflater.inflate(R.layout.add_widget_fragment_content, mainContent);
+		inflate(R.layout.add_widget_fragment_content, mainContent);
 
 		setupToolbar();
 		setupContent();
 
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getCollapsingAppBarLayoutId() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.appbar);
+		return ids;
 	}
 
 	@Override
@@ -183,7 +193,7 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		String title = aidlWidgetData.getMenuTitle();
 		String iconName = aidlWidgetData.getMenuIconName();
 		int iconId = AndroidUtils.getDrawableId(app, iconName);
-		Drawable icon = iconId != 0 ? getPaintedContentIcon(iconId, appMode.getProfileColor(nightMode)) : null;
+		Drawable icon = iconId != 0 ? getPaintedIcon(iconId, appMode.getProfileColor(nightMode)) : null;
 		setupWidgetItemView(view, widgetId, title, null, icon, false);
 
 		container.addView(view);
@@ -273,7 +283,7 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		AddWidgetFragment fragment = new AddWidgetFragment();
 		fragment.setArguments(args);
 		fragment.setTargetFragment(target, 0);
-		showFragment(manager, fragment);
+		showInstance(manager, fragment);
 	}
 
 	/**
@@ -293,7 +303,7 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		AddWidgetFragment fragment = new AddWidgetFragment();
 		fragment.setArguments(args);
 		fragment.setTargetFragment(target, 0);
-		showFragment(manager, fragment);
+		showInstance(manager, fragment);
 	}
 
 	/**
@@ -315,10 +325,11 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		AddWidgetFragment fragment = new AddWidgetFragment();
 		fragment.setArguments(args);
 		fragment.setTargetFragment(target, 0);
-		showFragment(manager, fragment);
+		showInstance(manager, fragment);
 	}
 
-	private static void showFragment(@NonNull FragmentManager manager, @NonNull AddWidgetFragment fragment) {
+	private static void showInstance(@NonNull FragmentManager manager,
+	                                 @NonNull AddWidgetFragment fragment) {
 		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
 			manager.beginTransaction()
 					.add(R.id.fragmentContainer, fragment, TAG)

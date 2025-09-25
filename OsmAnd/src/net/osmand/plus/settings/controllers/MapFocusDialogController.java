@@ -48,8 +48,7 @@ public class MapFocusDialogController extends BaseDialogController
 	@Nullable
 	@Override
 	public DisplayData getDisplayData(@NonNull String processId) {
-		int dividerStartPadding = app.getResources()
-				.getDimensionPixelSize(R.dimen.bottom_sheet_divider_margin_start);
+		int dividerStartPadding = getDimension(R.dimen.bottom_sheet_divider_margin_start);
 		UiUtilities iconsCache = app.getUIUtilities();
 		boolean nightMode = app.getDaynightHelper().isNightMode(appMode, ThemeUsageContext.APP);
 		int profileColor = appMode.getProfileColor(nightMode);
@@ -84,14 +83,13 @@ public class MapFocusDialogController extends BaseDialogController
 	@Override
 	public void onDialogItemSelected(@NonNull String processId, @NonNull DisplayItem selected) {
 		Object newValue = selected.getTag();
-		if (newValue instanceof MapFocus) {
-			MapFocus mapFocus = (MapFocus) newValue;
+		if (newValue instanceof MapFocus mapFocus) {
 			settings.POSITION_PLACEMENT_ON_MAP.setModeValue(appMode, mapFocus.getValue());
 		}
 	}
 
 	public static void showDialog(@NonNull MapActivity mapActivity, @NonNull ApplicationMode appMode) {
-		OsmandApplication app = mapActivity.getMyApplication();
+		OsmandApplication app = mapActivity.getApp();
 		MapFocusDialogController controller = new MapFocusDialogController(app, appMode);
 
 		DialogManager dialogManager = app.getDialogManager();

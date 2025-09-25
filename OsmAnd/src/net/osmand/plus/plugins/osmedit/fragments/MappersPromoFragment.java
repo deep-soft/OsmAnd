@@ -27,6 +27,7 @@ import net.osmand.plus.plugins.osmedit.oauth.OsmOAuthHelper.OsmAuthorizationList
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.InsetsUtils;
 import net.osmand.plus.utils.UiUtilities;
 
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 	public static void showInstance(@NonNull FragmentActivity activity,
 	                                @NonNull ApplicationMode appMode, @Nullable Fragment target) {
 		FragmentManager manager = activity.getSupportFragmentManager();
-		if (!manager.isStateSaved() && manager.findFragmentByTag(TAG) == null) {
+		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG, true)) {
 			MappersPromoFragment fragment = new MappersPromoFragment();
 			fragment.setAppMode(appMode);
 			fragment.setTargetFragment(target, 0);
@@ -73,11 +74,23 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 		super.onCreateView(inflater, container, savedInstanceState);
 		listContainer = mainView.findViewById(R.id.list_container);
 
+		if(!InsetsUtils.isEdgeToEdgeSupported()){
+			mainView.setFitsSystemWindows(true);
+		}
+
 		setupToolbar();
 		createFeaturesList();
 		setupSignInWithOsmButton();
 
 		return mainView;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getCollapsingAppBarLayoutId() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.appbar);
+		return ids;
 	}
 
 	private void setupToolbar() {
@@ -99,7 +112,7 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 	}
 
 	private View createFeatureItemView(@NonNull OsmAndFeature feature) {
-		View view = themedInflater.inflate(R.layout.purchase_dialog_list_item, listContainer, false);
+		View view = inflate(R.layout.purchase_dialog_list_item, listContainer, false);
 		view.setTag(feature);
 		bindFeatureItem(view, feature, false);
 		return view;

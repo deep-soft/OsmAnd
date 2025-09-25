@@ -33,14 +33,14 @@ import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 import net.osmand.plus.R;
-import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.mapcontextmenu.builders.cards.ImageCard;
 import net.osmand.plus.mapcontextmenu.builders.cards.UrlImageCard;
 import net.osmand.plus.mapcontextmenu.gallery.GalleryController.DownloadMetadataListener;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.popup.PopUpMenu;
 import net.osmand.plus.widgets.popup.PopUpMenuDisplayData;
@@ -56,7 +56,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class GalleryPhotoPagerFragment extends BaseOsmAndFragment implements DownloadMetadataListener {
+public class GalleryPhotoPagerFragment extends BaseFullScreenFragment implements DownloadMetadataListener {
 
 	public static final String TAG = GalleryPhotoPagerFragment.class.getSimpleName();
 	public static final int REQUEST_EXTERNAL_STORAGE_PERMISSION = 2000;
@@ -106,7 +106,7 @@ public class GalleryPhotoPagerFragment extends BaseOsmAndFragment implements Dow
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
 			@Nullable Bundle savedInstanceState) {
 		updateNightMode();
-		ViewGroup view = (ViewGroup) inflate(R.layout.gallery_photo_fragment, container);
+		ViewGroup view = (ViewGroup) inflate(R.layout.gallery_photo_fragment, container, false);
 
 		setupToolbar(view);
 		setupOnBackPressedCallback();
@@ -125,6 +125,20 @@ public class GalleryPhotoPagerFragment extends BaseOsmAndFragment implements Dow
 		}
 
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public Set<InsetSide> getRootInsetSides() {
+		return null;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getBottomContainersIds() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.description_container);
+		return ids;
 	}
 
 	@Override
@@ -356,19 +370,19 @@ public class GalleryPhotoPagerFragment extends BaseOsmAndFragment implements Dow
 		toolbar.setLayoutParams(params);
 
 		ImageView backButton = toolbar.findViewById(R.id.back_button);
-		backButton.setImageDrawable(getPaintedContentIcon(R.drawable.ic_action_close, ColorUtilities.getColor(app, R.color.app_bar_secondary_light)));
+		backButton.setImageDrawable(getPaintedIcon(R.drawable.ic_action_close, ColorUtilities.getColor(app, R.color.app_bar_secondary_light)));
 		backButton.setContentDescription(getString(R.string.shared_string_close));
 		backButton.setOnClickListener(v -> dismiss());
 		setupSelectableBackground(backButton);
 
 		ImageView shareButton = toolbar.findViewById(R.id.share_button);
 		shareButton.setOnClickListener(v -> shareImage());
-		shareButton.setImageDrawable(getPaintedContentIcon(R.drawable.ic_action_gshare_dark, ColorUtilities.getColor(app, R.color.app_bar_secondary_light)));
+		shareButton.setImageDrawable(getPaintedIcon(R.drawable.ic_action_gshare_dark, ColorUtilities.getColor(app, R.color.app_bar_secondary_light)));
 		setupSelectableBackground(shareButton);
 
 		ImageView optionsButton = toolbar.findViewById(R.id.options_button);
 		optionsButton.setOnClickListener(this::showContextWidgetMenu);
-		optionsButton.setImageDrawable(getPaintedContentIcon(R.drawable.ic_overflow_menu_white, ColorUtilities.getColor(app, R.color.app_bar_secondary_light)));
+		optionsButton.setImageDrawable(getPaintedIcon(R.drawable.ic_overflow_menu_white, ColorUtilities.getColor(app, R.color.app_bar_secondary_light)));
 		setupSelectableBackground(optionsButton);
 	}
 
@@ -540,10 +554,6 @@ public class GalleryPhotoPagerFragment extends BaseOsmAndFragment implements Dow
 	public void onDestroy() {
 		super.onDestroy();
 		controller.removeMetaDataListener(this);
-	}
-
-	private MapActivity getMapActivity() {
-		return (MapActivity) getActivity();
 	}
 
 	public static void showInstance(@NonNull FragmentActivity activity, int selectedPosition) {

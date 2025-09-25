@@ -26,7 +26,7 @@ import net.osmand.core.jni.WeatherTileResourcesManager;
 import net.osmand.core.jni.WeatherType;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.weather.WeatherContour;
@@ -56,7 +56,7 @@ import org.apache.commons.logging.Log;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class WeatherForecastFragment extends BaseOsmAndFragment implements WeatherWebClientListener {
+public class WeatherForecastFragment extends BaseFullScreenFragment implements WeatherWebClientListener {
 
 	public static final String TAG = WeatherForecastFragment.class.getSimpleName();
 	private final Log log = PlatformUtil.getLog(WeatherForecastFragment.class);
@@ -172,7 +172,7 @@ public class WeatherForecastFragment extends BaseOsmAndFragment implements Weath
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		updateNightMode();
 		MapActivity activity = requireMapActivity();
-		View view = themedInflater.inflate(R.layout.fragment_weather_forecast, container, false);
+		View view = inflate(R.layout.fragment_weather_forecast, container, false);
 		AndroidUtils.addStatusBarPadding21v(activity, view);
 
 		widgetsPanel = view.findViewById(R.id.weather_widgets_panel);
@@ -188,6 +188,14 @@ public class WeatherForecastFragment extends BaseOsmAndFragment implements Weath
 		buildZoomButtons(view);
 
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getBottomContainersIds() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.main_content);
+		return ids;
 	}
 
 	private void setupPLayForecastButton(View view) {
@@ -419,7 +427,7 @@ public class WeatherForecastFragment extends BaseOsmAndFragment implements Weath
 		});
 		toolbar.setTitle(R.string.shared_string_weather);
 		toolbar.setBackgroundColor(app.getColor(nightMode ? R.color.activity_background_color_dark : R.color.list_background_color_light));
-		toolbar.getMenu().findItem(R.id.weather_data_source).setVisible(false);
+		toolbar.getMenu().findItem(R.id.weather_data_source).setVisible(true);
 		toolbar.setOnMenuItemClickListener(item -> {
 			if (item.getItemId() == R.id.weather_data_source) {
 				onOptionBtnClicked();
@@ -527,21 +535,6 @@ public class WeatherForecastFragment extends BaseOsmAndFragment implements Weath
 			plugin.setSelectedContoursType(previousWeatherContour);
 		}
 		super.onDestroy();
-	}
-
-	@Nullable
-	public MapActivity getMapActivity() {
-		FragmentActivity activity = getActivity();
-		if (activity instanceof MapActivity) {
-			return (MapActivity) activity;
-		} else {
-			return null;
-		}
-	}
-
-	@NonNull
-	protected MapActivity requireMapActivity() {
-		return ((MapActivity) requireActivity());
 	}
 
 	@NonNull

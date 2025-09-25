@@ -24,11 +24,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 
-import net.osmand.plus.settings.enums.ThemeUsageContext;
+import net.osmand.plus.base.BaseNestedFragment;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.mapmarkers.MapMarkersHelper.MapMarkerChangedListener;
@@ -39,29 +39,25 @@ import net.osmand.plus.settings.fragments.MarkersHistorySettingsFragment;
 import net.osmand.plus.settings.fragments.OnPreferenceChanged;
 import net.osmand.plus.widgets.EmptyStateRecyclerView;
 
-public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChangedListener, OnPreferenceChanged {
+import java.util.List;
+import java.util.Set;
+
+public class MapMarkersHistoryFragment extends BaseNestedFragment implements MapMarkerChangedListener, OnPreferenceChanged {
 
 	private MapMarkersHistoryAdapter adapter;
-	private OsmandApplication app;
 
 	private final Paint backgroundPaint = new Paint();
 	private final Paint textPaint = new Paint();
 
 	private Snackbar snackbar;
 
-	@Override
-	public void onCreate(@Nullable Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		app = getMyApplication();
-	}
-
 	@Nullable
 	@Override
-	public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.APP);
+	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		updateNightMode();
 		MapActivity mapActivity = (MapActivity) requireActivity();
 
-		backgroundPaint.setColor(ColorUtilities.getDividerColor(mapActivity, nightMode));
+		backgroundPaint.setColor(ColorUtilities.getDividerColor(app, nightMode));
 		backgroundPaint.setStyle(Paint.Style.FILL_AND_STROKE);
 		backgroundPaint.setAntiAlias(true);
 		textPaint.setTextSize(getResources().getDimension(R.dimen.default_desc_text_size));
@@ -81,7 +77,7 @@ public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChan
 			((HistoryMarkerMenuBottomSheetDialogFragment) historyMarkerMenuFragment).setListener(createHistoryMarkerMenuListener());
 		}
 
-		View mainView = UiUtilities.getInflater(mapActivity, nightMode).inflate(R.layout.fragment_map_markers_history, container, false);
+		View mainView = inflate(R.layout.fragment_map_markers_history, container, false);
 		EmptyStateRecyclerView recyclerView = mainView.findViewById(R.id.list);
 		recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
@@ -157,8 +153,7 @@ public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChan
 			public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
 				int pos = viewHolder.getAdapterPosition();
 				Object item = adapter.getItem(pos);
-				if (item instanceof MapMarker) {
-					MapMarker marker = (MapMarker) item;
+				if (item instanceof MapMarker marker) {
 					int snackbarStringRes;
 					if (direction == ItemTouchHelper.LEFT) {
 						app.getMapMarkersHelper().restoreMarkerFromHistory((MapMarker) item, 0);
@@ -186,7 +181,7 @@ public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChan
 		ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
 		itemTouchHelper.attachToRecyclerView(recyclerView);
 
-		adapter = new MapMarkersHistoryAdapter(mapActivity.getMyApplication());
+		adapter = new MapMarkersHistoryAdapter(mapActivity.getApp());
 		adapter.setAdapterListener(view -> {
 			int pos = recyclerView.getChildAdapterPosition(view);
 			if (pos == RecyclerView.NO_POSITION) {
@@ -194,16 +189,8 @@ public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChan
 			}
 			Object item = adapter.getItem(pos);
 			if (item instanceof MapMarker marker) {
-				HistoryMarkerMenuBottomSheetDialogFragment fragment = new HistoryMarkerMenuBottomSheetDialogFragment();
-				fragment.setUsedOnMap(false);
-				Bundle arguments = new Bundle();
-				arguments.putInt(HistoryMarkerMenuBottomSheetDialogFragment.MARKER_POSITION, pos);
-				arguments.putString(HistoryMarkerMenuBottomSheetDialogFragment.MARKER_NAME, marker.getName(mapActivity));
-				arguments.putInt(HistoryMarkerMenuBottomSheetDialogFragment.MARKER_COLOR_INDEX, marker.colorIndex);
-				arguments.putLong(HistoryMarkerMenuBottomSheetDialogFragment.MARKER_VISITED_DATE, marker.visitedDate);
-				fragment.setArguments(arguments);
-				fragment.setListener(createHistoryMarkerMenuListener());
-				fragment.show(mapActivity.getSupportFragmentManager(), HistoryMarkerMenuBottomSheetDialogFragment.TAG);
+				HistoryMarkerMenuBottomSheetDialogFragment.showInstance(mapActivity,
+						mapActivity.getSupportFragmentManager(), createHistoryMarkerMenuListener(), pos, marker);
 			}
 		});
 		recyclerView.setEmptyView(getEmptyView(mainView, nightMode));
@@ -212,6 +199,24 @@ public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChan
 		app.getMapMarkersHelper().addListener(this);
 
 		return mainView;
+	}
+
+	@Nullable
+	@Override
+	public Set<InsetSide> getRootInsetSides() {
+		return null;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getScrollableViewIds() {
+		return null;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getBottomContainersIds() {
+		return null;
 	}
 
 	private View getEmptyView(@NonNull View mainView, boolean nightMode) {
@@ -292,10 +297,6 @@ public class MapMarkersHistoryFragment extends Fragment implements MapMarkerChan
 			adapter.createHeaders();
 			adapter.notifyDataSetChanged();
 		}
-	}
-
-	public OsmandApplication getMyApplication() {
-		return (OsmandApplication) getActivity().getApplication();
 	}
 
 	@Override

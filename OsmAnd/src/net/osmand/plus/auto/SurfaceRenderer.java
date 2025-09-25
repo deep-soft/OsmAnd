@@ -51,6 +51,7 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 
 	private static final double VISIBLE_AREA_Y_MIN_DETECTION_SIZE = 1.025;
 	private static final int MAP_RENDER_MESSAGE = OsmAndConstants.UI_HANDLER_MAP_VIEW + 7;
+	private static final int MAX_FRAME_RATE = 20;
 
 	private final CarContext carContext;
 	private final CarSurfaceView surfaceView;
@@ -229,7 +230,7 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 
 		@Override
 		public void onScale(float focusX, float focusY, float scaleFactor) {
-			//TODO handleScale(focusX, focusY, scaleFactor);
+			handleScale(focusX, focusY, scaleFactor);
 		}
 	};
 
@@ -413,7 +414,7 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 							offscreenMapRendererView.removeAllSymbolsProviders();
 							offscreenMapRendererView.resumeSymbolsUpdate();
 							offscreenMapRendererView.setSymbolsUpdateInterval(SYMBOLS_UPDATE_INTERVAL);
-							offscreenMapRendererView.enableBatterySavingMode();
+							offscreenMapRendererView.setMaximumFrameRate(MAX_FRAME_RATE);
 							mapRendererContext.setMapRendererView(offscreenMapRendererView);
 							mapView.setMinAllowedElevationAngle(MIN_ALLOWED_ELEVATION_ANGLE_AA);
 							float elevationAngle = mapView.normalizeElevationAngle(getApp().getSettings().getLastKnownMapElevation());
@@ -504,7 +505,10 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 			darkMode = newDarkMode;
 			drawSettings = new DrawSettings(newDarkMode, updateVectorRendering);
 			if (offscreenMapRendererView != null) {
-				float leftOffset = -surfaceAdditionalWidth * ((maxRatio - cachedRatioX) / (maxRatio - minRatio));
+				float leftOffset = 0.0f;
+				if (surfaceAdditionalWidth != 0) {
+					leftOffset = -surfaceAdditionalWidth * ((maxRatio - cachedRatioX) / (maxRatio - minRatio));
+				}
 				canvas.drawBitmap(offscreenMapRendererView.getBitmap(), leftOffset, 0, null);
 			}
 			mapView.drawOverMap(canvas, tileBox, drawSettings);
@@ -529,6 +533,18 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRende
 
 	public double getVisibleAreaWidth() {
 		return visibleArea != null ? visibleArea.width() : 0f;
+	}
+
+	public int getSurfaceAdditionalWidth() {
+		return surfaceAdditionalWidth;
+	}
+
+	public float getCachedRatioX() {
+		return cachedRatioX;
+	}
+
+	public float getCachedRatioY() {
+		return cachedRatioY;
 	}
 
 	@Override

@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.util.Pair;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -43,6 +44,7 @@ public class TextInfoWidget extends MapWidget implements ISupportSidePanel {
 	private int nightIconId;
 
 	private Integer cachedMetricSystem;
+	private Integer cachedAltitudeMetric;
 	private Integer cachedAngularUnits;
 
 
@@ -119,7 +121,9 @@ public class TextInfoWidget extends MapWidget implements ISupportSidePanel {
 
 	public void setContentTitle(String text) {
 		contentTitle = text;
-		setContentDescription(combine(textView.getText(), smallTextView.getText()));
+		if (textView != null && smallTextView != null) {
+			setContentDescription(combine(textView.getText(), smallTextView.getText()));
+		}
 	}
 
 	public void setText(String text, String subtext) {
@@ -159,6 +163,11 @@ public class TextInfoWidget extends MapWidget implements ISupportSidePanel {
 			updateNeeded = cachedMetricSystem == null || cachedMetricSystem != metricSystem;
 			cachedMetricSystem = metricSystem;
 		}
+		if (isAltitudeMetricDepended()) {
+			int altitudeMetric = app.getSettings().ALTITUDE_METRIC.get().ordinal();
+			updateNeeded = cachedAltitudeMetric == null || cachedAltitudeMetric != altitudeMetric;
+			cachedAltitudeMetric = altitudeMetric;
+		}
 		if (isAngularUnitsDepended()) {
 			int angularUnits = app.getSettings().ANGULAR_UNITS.get().ordinal();
 			updateNeeded |= cachedAngularUnits == null || cachedAngularUnits != angularUnits;
@@ -171,12 +180,20 @@ public class TextInfoWidget extends MapWidget implements ISupportSidePanel {
 		return false;
 	}
 
+	public boolean isAltitudeMetricDepended() {
+		return false;
+	}
+
 	public boolean isAngularUnitsDepended() {
 		return false;
 	}
 
-	public void setOnClickListener(@Nullable OnClickListener onClickListener) {
-		view.setOnClickListener(onClickListener);
+	public void setOnClickListener(@Nullable OnClickListener listener) {
+		view.setOnClickListener(listener);
+	}
+
+	public void setOnLongClickListener(@Nullable OnLongClickListener listener) {
+		view.setOnLongClickListener(listener);
 	}
 
 	@Override

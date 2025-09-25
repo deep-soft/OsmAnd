@@ -28,7 +28,7 @@ import androidx.fragment.app.FragmentManager;
 
 import net.osmand.data.BackgroundType;
 import net.osmand.plus.R;
-import net.osmand.plus.base.BaseOsmAndDialogFragment;
+import net.osmand.plus.base.BaseFullScreenDialogFragment;
 import net.osmand.plus.base.dialog.DialogManager;
 import net.osmand.plus.card.base.multistate.IMultiStateCardController;
 import net.osmand.plus.card.base.multistate.MultiStateCard;
@@ -47,9 +47,11 @@ import net.osmand.plus.widgets.dialogbutton.DialogButton;
 import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.shared.gpx.GpxUtilities.PointsGroup;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
-public class FavoriteAppearanceFragment extends BaseOsmAndDialogFragment {
+public class FavoriteAppearanceFragment extends BaseFullScreenDialogFragment {
 
 	public static final String TAG = FavoriteAppearanceFragment.class.getName();
 
@@ -85,6 +87,11 @@ public class FavoriteAppearanceFragment extends BaseOsmAndDialogFragment {
 		registerFavoriteAppearanceController();
 	}
 
+	@Override
+	protected int getThemeId() {
+		return nightMode ? R.style.OsmandDarkTheme_DarkActionbar : R.style.OsmandLightTheme_DarkActionbar_LightStatusBar;
+	}
+
 	@ColorRes
 	public int getStatusBarColorId() {
 		AndroidUiHelper.setStatusBarContentColor(getView(), nightMode);
@@ -93,24 +100,13 @@ public class FavoriteAppearanceFragment extends BaseOsmAndDialogFragment {
 
 	@NonNull
 	@Override
-	public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-		updateNightMode();
-		Activity activity = requireActivity();
-		int themeId = nightMode ? R.style.OsmandDarkTheme_DarkActionbar : R.style.OsmandLightTheme_DarkActionbar_LightStatusBar;
-		Dialog dialog = new Dialog(activity, themeId) {
+	public Dialog createDialog(@Nullable Bundle savedInstanceState) {
+		return new Dialog(requireActivity(), getThemeId()) {
 			@Override
 			public void onBackPressed() {
 				dismiss();
 			}
 		};
-		Window window = dialog.getWindow();
-		if (window != null) {
-			if (!settings.DO_NOT_USE_ANIMATIONS.get()) {
-				window.getAttributes().windowAnimations = R.style.Animations_Alpha;
-			}
-			window.setStatusBarColor(ColorUtilities.getColor(app, getStatusBarColorId()));
-		}
-		return dialog;
 	}
 
 	private void registerFavoriteAppearanceController() {
@@ -140,14 +136,19 @@ public class FavoriteAppearanceFragment extends BaseOsmAndDialogFragment {
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		updateNightMode();
-		view = themedInflater.inflate(R.layout.favorite_default_appearance_fragment, container, false);
-
+		view = inflate(R.layout.favorite_default_appearance_fragment, container, false);
 		setupToolbar();
 		setupButtons();
-
 		setupCards();
-
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getCollapsingAppBarLayoutId() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.appbar);
+		return ids;
 	}
 
 	private void setupCards(){
@@ -221,7 +222,7 @@ public class FavoriteAppearanceFragment extends BaseOsmAndDialogFragment {
 		saveButton.setOnClickListener(v -> savePressed());
 		saveButton.setButtonType(DialogButtonType.PRIMARY);
 		saveButton.setTitleId(R.string.shared_string_save);
-		AndroidUtils.setBackgroundColor(app, view.findViewById(R.id.buttons_container), ColorUtilities.getListBgColorId(nightMode));
+		AndroidUtils.setBackgroundColor(app, view.findViewById(R.id.bottom_buttons_container), ColorUtilities.getListBgColorId(nightMode));
 
 		DialogButton dismissButton = view.findViewById(R.id.dismiss_button);
 		AndroidUiHelper.updateVisibility(dismissButton, false);

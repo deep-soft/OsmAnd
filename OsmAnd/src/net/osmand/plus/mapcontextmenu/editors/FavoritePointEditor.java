@@ -8,7 +8,6 @@ import net.osmand.data.Amenity;
 import net.osmand.data.BaseDetailsObject;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
-import net.osmand.data.MapObject;
 import net.osmand.osm.edit.Entity;
 import net.osmand.osm.edit.Entity.EntityType;
 import net.osmand.plus.activities.MapActivity;
@@ -104,10 +103,10 @@ public class FavoritePointEditor extends PointEditor {
 		}
 		isNew = true;
 		if (categoryName != null && !categoryName.isEmpty()) {
-			FavoriteGroup category = mapActivity.getMyApplication().getFavoritesHelper()
+			FavoriteGroup category = mapActivity.getApp().getFavoritesHelper()
 					.getGroup(categoryName);
 			if (category == null) {
-				mapActivity.getMyApplication().getFavoritesHelper().addFavoriteGroup(categoryName, categoryColor);
+				mapActivity.getApp().getFavoritesHelper().addFavoriteGroup(categoryName, categoryColor);
 			}
 		} else {
 			categoryName = "";
@@ -116,7 +115,7 @@ public class FavoritePointEditor extends PointEditor {
 		favorite = new FavouritePoint(latLon.getLatitude(), latLon.getLongitude(), title, categoryName);
 		favorite.setDescription("");
 		favorite.setAddress("");
-		FavoritePointEditorFragment.showAutoFillInstance(mapActivity, autoFill);
+		FavoritePointEditorFragment.showInstance(mapActivity, autoFill);
 	}
 
 	public void edit(FavouritePoint favorite) {

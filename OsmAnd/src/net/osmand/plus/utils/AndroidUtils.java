@@ -6,6 +6,8 @@ import static android.Manifest.permission.BLUETOOTH;
 import static android.Manifest.permission.BLUETOOTH_ADMIN;
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import static android.Manifest.permission.BLUETOOTH_SCAN;
+import static android.content.Context.RECEIVER_EXPORTED;
+import static android.content.Context.RECEIVER_NOT_EXPORTED;
 import static android.graphics.Paint.ANTI_ALIAS_FLAG;
 import static android.graphics.Paint.FILTER_BITMAP_FLAG;
 import static android.util.TypedValue.COMPLEX_UNIT_DIP;
@@ -18,19 +20,15 @@ import android.app.KeyguardManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.Typeface;
+import android.graphics.*;
 import android.graphics.drawable.*;
 import android.hardware.display.DisplayManager;
 import android.net.Uri;
@@ -75,10 +73,12 @@ import net.osmand.osm.OsmRouteType;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
+import net.osmand.plus.help.HelpArticleUtils;
 import net.osmand.plus.render.RenderingIcons;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.views.OsmandMap;
+import net.osmand.plus.views.mapwidgets.OutlinedTextContainer;
+import net.osmand.plus.widgets.style.CustomURLSpan;
 import net.osmand.render.RenderingRuleProperty;
 import net.osmand.shared.gpx.primitives.RouteActivity;
 import net.osmand.util.Algorithms;
@@ -96,6 +96,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AndroidUtils {
+
 	private static final Log LOG = PlatformUtil.getLog(AndroidUtils.class);
 
 	public static final String STRING_PLACEHOLDER = "%s";
@@ -330,22 +331,17 @@ public class AndroidUtils {
 		return spannable;
 	}
 
-	public static void removeLinkUnderline(TextView textView) {
-		Spannable s = new SpannableString(textView.getText());
-		for (URLSpan span : s.getSpans(0, s.length(), URLSpan.class)) {
-			int start = s.getSpanStart(span);
-			int end = s.getSpanEnd(span);
-			s.removeSpan(span);
-			span = new URLSpan(span.getURL()) {
-				@Override
-				public void updateDrawState(@NonNull TextPaint ds) {
-					super.updateDrawState(ds);
-					ds.setUnderlineText(false);
-				}
-			};
-			s.setSpan(span, start, end, 0);
+	public static void removeLinkUnderline(@NonNull TextView textView) {
+		Spannable spannable = new SpannableString(textView.getText());
+
+		for (URLSpan span : spannable.getSpans(0, spannable.length(), URLSpan.class)) {
+			int start = spannable.getSpanStart(span);
+			int end = spannable.getSpanEnd(span);
+			spannable.removeSpan(span);
+			span = new CustomURLSpan(span.getURL());
+			spannable.setSpan(span, start, end, 0);
 		}
-		textView.setText(s);
+		textView.setText(spannable);
 	}
 
 	public static String formatDate(Context ctx, long time) {
@@ -783,7 +779,7 @@ public class AndroidUtils {
 	}
 
 	public static void addStatusBarPadding21v(@NonNull Activity activity, @NonNull View view) {
-		if (isInFullScreenMode(activity)) {
+		if (!InsetsUtils.isEdgeToEdgeSupported() && isInFullScreenMode(activity)) {
 			int paddingLeft = view.getPaddingLeft();
 			int paddingTop = view.getPaddingTop();
 			int paddingRight = view.getPaddingRight();
@@ -1330,6 +1326,7 @@ public class AndroidUtils {
 	}
 
 	public static void openUrl(@NonNull Context context, @NonNull String url, boolean nightMode) {
+		url = HelpArticleUtils.getLocalizedUrl(getApp(context), url);
 		openUrl(context, Uri.parse(url), nightMode);
 	}
 
@@ -1502,5 +1499,16 @@ public class AndroidUtils {
 	@NonNull
 	public static OsmandApplication getApp(@NonNull Context context) {
 		return ((OsmandApplication) context.getApplicationContext());
+	}
+
+	public static Intent registerBroadcastReceiver(@NonNull Context context, @Nullable String action, @Nullable BroadcastReceiver receiver) {
+		return registerBroadcastReceiver(context, action, receiver, false);
+	}
+
+	public static Intent registerBroadcastReceiver(@NonNull Context context, @Nullable String action, @Nullable BroadcastReceiver receiver, boolean export) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			return context.registerReceiver(receiver, new IntentFilter(action), export ? RECEIVER_EXPORTED : RECEIVER_NOT_EXPORTED);
+		}
+		return context.registerReceiver(receiver, new IntentFilter(action));
 	}
 }

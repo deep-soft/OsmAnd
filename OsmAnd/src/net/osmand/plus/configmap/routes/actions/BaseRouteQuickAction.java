@@ -4,7 +4,6 @@ import static net.osmand.plus.configmap.routes.RouteUtils.showRendererSnackbarFo
 
 import android.content.Context;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -20,6 +19,7 @@ import net.osmand.plus.configmap.ConfigureMapUtils;
 import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.settings.enums.ThemeUsageContext;
+import net.osmand.plus.utils.UiUtilities;
 import net.osmand.render.RenderingRuleProperty;
 
 public abstract class BaseRouteQuickAction extends QuickAction {
@@ -50,7 +50,7 @@ public abstract class BaseRouteQuickAction extends QuickAction {
 	@Override
 	public void execute(@NonNull MapActivity mapActivity, @Nullable Bundle params) {
 		String attrName = getAttrName();
-		OsmandApplication app = mapActivity.getMyApplication();
+		OsmandApplication app = mapActivity.getApp();
 		RenderingRuleProperty property = getProperty(app);
 		if (property != null) {
 			switchPreference(app);
@@ -63,9 +63,8 @@ public abstract class BaseRouteQuickAction extends QuickAction {
 	}
 
 	@Override
-	public void drawUI(@NonNull ViewGroup parent, @NonNull MapActivity mapActivity) {
-		View view = LayoutInflater.from(parent.getContext())
-				.inflate(R.layout.quick_action_with_text, parent, false);
+	public void drawUI(@NonNull ViewGroup parent, @NonNull MapActivity mapActivity, boolean nightMode) {
+		View view = UiUtilities.inflate(parent.getContext(), nightMode, R.layout.quick_action_with_text, parent, false);
 		((TextView) view.findViewById(R.id.text)).setText(getQuickActionSummary(mapActivity));
 		parent.addView(view);
 	}

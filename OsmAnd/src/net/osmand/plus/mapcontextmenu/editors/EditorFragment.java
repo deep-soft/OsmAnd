@@ -33,7 +33,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import net.osmand.data.BackgroundType;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.card.base.multistate.MultiStateCard;
 import net.osmand.plus.card.color.palette.main.ColorsPaletteCard;
 import net.osmand.plus.card.color.palette.main.ColorsPaletteController;
@@ -56,7 +56,7 @@ import net.osmand.util.Algorithms;
 
 import java.util.List;
 
-public abstract class EditorFragment extends BaseOsmAndFragment
+public abstract class EditorFragment extends BaseFullScreenFragment
 		implements CardListener, OnColorsPaletteListener, OnIconsPaletteListener<String> {
 
 	protected ShapesCard shapesCard;
@@ -136,7 +136,7 @@ public abstract class EditorFragment extends BaseOsmAndFragment
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		updateNightMode();
-		view = themedInflater.inflate(getLayoutId(), container, false);
+		view = inflate(getLayoutId(), container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 
 		setupToolbar();
@@ -158,6 +158,12 @@ public abstract class EditorFragment extends BaseOsmAndFragment
 		updateContent();
 
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getBottomContainersIds() {
+		return null;
 	}
 
 	@Override
@@ -219,7 +225,7 @@ public abstract class EditorFragment extends BaseOsmAndFragment
 		saveButton.setOnClickListener(v -> savePressed());
 		saveButton.setButtonType(DialogButtonType.PRIMARY);
 		saveButton.setTitleId(R.string.shared_string_save);
-		AndroidUtils.setBackgroundColor(app, view.findViewById(R.id.buttons_container), ColorUtilities.getListBgColorId(nightMode));
+		AndroidUtils.setBackgroundColor(app, view.findViewById(R.id.bottom_buttons_container), ColorUtilities.getListBgColorId(nightMode));
 	}
 
 	protected void setupNameChangeListener() {
@@ -442,10 +448,6 @@ public abstract class EditorFragment extends BaseOsmAndFragment
 		return nameEdit.getText().toString().trim();
 	}
 
-	protected Drawable getPaintedIcon(@DrawableRes int iconId, @ColorInt int color) {
-		return getPaintedContentIcon(iconId, color);
-	}
-
 	public void showExitDialog() {
 		hideKeyboard();
 		if (wasSaved()) {
@@ -475,15 +477,5 @@ public abstract class EditorFragment extends BaseOsmAndFragment
 	public void exitEditing() {
 		cancelled = true;
 		dismiss();
-	}
-
-	@Nullable
-	protected MapActivity getMapActivity() {
-		return (MapActivity) getActivity();
-	}
-
-	@NonNull
-	protected MapActivity requireMapActivity() {
-		return (MapActivity) requireActivity();
 	}
 }

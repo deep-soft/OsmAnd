@@ -34,7 +34,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 import net.osmand.data.LatLon;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.configmap.tracks.SortByBottomSheet;
 import net.osmand.plus.configmap.tracks.TrackSortModesHelper;
 import net.osmand.plus.configmap.tracks.TrackTabType;
@@ -68,6 +68,7 @@ import net.osmand.plus.track.helpers.SelectGpxTask.SelectGpxTaskListener;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.FileUtils.RenameCallback;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.shared.gpx.SmartFolderHelper;
 import net.osmand.shared.gpx.TrackItem;
@@ -81,10 +82,11 @@ import net.osmand.shared.util.KAlgorithms;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
-public abstract class BaseTrackFolderFragment extends BaseOsmAndFragment implements FragmentStateHolder,
+public abstract class BaseTrackFolderFragment extends BaseFullScreenFragment implements FragmentStateHolder,
 		SortTracksListener, TrackSelectionListener, TrackGroupsListener, EmptyTracksListener, OsmAuthorizationListener,
 		SelectGpxTaskListener, OnTrackFolderAddListener, GpxImportListener, TrackFolderOptionsListener,
 		OnTrackFileMoveListener, RenameCallback, SelectionHelperProvider<TrackItem>, SmartFolderOptionsListener {
@@ -163,6 +165,12 @@ public abstract class BaseTrackFolderFragment extends BaseOsmAndFragment impleme
 		setupAdapter(view);
 
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public Set<InsetSide> getRootInsetSides() {
+		return null;
 	}
 
 	@Override
@@ -355,7 +363,7 @@ public abstract class BaseTrackFolderFragment extends BaseOsmAndFragment impleme
 		sortFolders(selectedFolder, sortModesHelper, sortMode);
 		sortModesHelper.syncSettings();
 
-		app.showToastMessage(app.getString(R.string.sorted_sufolders_toast, selectedFolder.getName(), app.getString(sortMode.getNameId())));
+		app.showToastMessage(R.string.sorted_sufolders_toast, selectedFolder.getName(), app.getString(sortMode.getNameId()));
 	}
 
 	private void sortFolders(@NonNull TrackFolder trackFolder,

@@ -89,6 +89,14 @@ public class ChoosePlanFragment extends BasePurchaseDialogFragment implements Ca
 		return mainView;
 	}
 
+	@Nullable
+	@Override
+	public List<Integer> getCollapsingAppBarLayoutId() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.appbar);
+		return ids;
+	}
+
 	@Override
 	protected void updateContent(boolean progress) {
 		updateHeader();
@@ -114,7 +122,7 @@ public class ChoosePlanFragment extends BasePurchaseDialogFragment implements Ca
 	}
 
 	private View createFeatureItemView(@NonNull OsmAndFeature feature) {
-		View view = themedInflater.inflate(R.layout.purchase_dialog_list_item, listContainer, false);
+		View view = inflate(R.layout.purchase_dialog_list_item, listContainer, false);
 		view.setTag(feature);
 		view.setOnClickListener(v -> selectFeature(feature));
 		bindFeatureItem(view, feature, false);

@@ -1,36 +1,47 @@
 package net.osmand.plus.base;
 
-import android.graphics.drawable.Drawable;
+import android.annotation.SuppressLint;
+import android.app.Dialog;
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
 
-import androidx.annotation.ColorInt;
-import androidx.annotation.ColorRes;
-import androidx.annotation.DrawableRes;
-import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StyleRes;
+import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.base.dialog.IOsmAndFragment;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.ThemeUsageContext;
-import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.InsetsUtils;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 
-public abstract class BaseOsmAndDialogFragment extends DialogFragment implements AppModeDependentComponent {
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+
+public class BaseOsmAndDialogFragment extends DialogFragment implements IOsmAndFragment, ISupportInsets {
 
 	protected OsmandApplication app;
 	protected OsmandSettings settings;
 	protected ApplicationMode appMode;
 	protected UiUtilities iconsCache;
-	protected LayoutInflater themedInflater;
 	protected boolean nightMode;
+
+	private LayoutInflater themedInflater;
+
+	private WindowInsetsCompat lastRootInsets = null;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -39,10 +50,75 @@ public abstract class BaseOsmAndDialogFragment extends DialogFragment implements
 		settings = app.getSettings();
 		iconsCache = app.getUIUtilities();
 		appMode = restoreAppMode(app, appMode, savedInstanceState, getArguments());
-
 		updateNightMode();
-		setStyle(STYLE_NO_FRAME, nightMode ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme);
-		getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+	}
+
+	@SuppressLint("UseGetLayoutInflater")
+	protected void updateNightMode() {
+		nightMode = resolveNightMode();
+		Context themedCtx = new ContextThemeWrapper(requireActivity(), getDialogThemeId());
+		themedInflater = LayoutInflater.from(themedCtx);
+	}
+
+	@Override
+	public void onStart() {
+		super.onStart();
+
+		Dialog dialog = getDialog();
+		if (dialog != null && dialog.getWindow() != null && Build.VERSION.SDK_INT > 29) {
+			if (Build.VERSION.SDK_INT >= 36) {
+				//WindowCompat.enableEdgeToEdge(window);
+			} else {
+				WindowCompat.setDecorFitsSystemWindows(dialog.getWindow(), false);
+			}
+		}
+	}
+
+	@Override
+	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+		super.onViewCreated(view, savedInstanceState);
+		Dialog dialog = getDialog();
+		if (dialog != null && dialog.getWindow() != null && Build.VERSION.SDK_INT > 29) {
+			InsetsUtils.processInsets(this, dialog.getWindow().getDecorView(), view);
+		} else {
+			InsetsUtils.processInsets(this, view, null);
+		}
+	}
+
+	@Nullable
+	@Override
+	public Set<InsetSide> getRootInsetSides() {
+		return EnumSet.of(InsetSide.TOP);
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getScrollableViewIds() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(android.R.id.list);
+		ids.add(R.id.scroll_view);
+		return ids;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getFabIds() {
+		return null;
+	}
+
+	public void onApplyInsets(@NonNull WindowInsetsCompat insets) {
+
+	}
+
+	@Nullable
+	@Override
+	public WindowInsetsCompat getLastRootInsets() {
+		return lastRootInsets;
+	}
+
+	@Override
+	public void setLastRootInsets(@NonNull WindowInsetsCompat rootInsets) {
+		lastRootInsets = rootInsets;
 	}
 
 	@Override
@@ -51,65 +127,49 @@ public abstract class BaseOsmAndDialogFragment extends DialogFragment implements
 		saveAppModeToBundle(appMode, outState);
 	}
 
-	protected void updateNightMode() {
-		nightMode = isNightMode(isUsedOnMap());
-		themedInflater = UiUtilities.getInflater(requireContext(), nightMode);
-	}
-
-	public void setAppMode(@NonNull ApplicationMode appMode) {
-		this.appMode = appMode;
+	@StyleRes
+	protected int getDialogThemeId() {
+		return nightMode ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme;
 	}
 
 	@NonNull
-	public ApplicationMode getAppMode() {
-		return appMode;
+	@Override
+	public OsmandApplication getApp() {
+		return app;
+	}
+
+	@NonNull
+	@Override
+	public LayoutInflater getThemedInflater() {
+		return themedInflater;
+	}
+
+	@NonNull
+	@Override
+	public ThemeUsageContext getThemeUsageContext() {
+		return ThemeUsageContext.valueOf(isUsedOnMap());
 	}
 
 	protected boolean isUsedOnMap() {
 		return false;
 	}
 
-	@NonNull
-	protected View inflate(@LayoutRes int layoutRedId) {
-		return inflate(layoutRedId, null);
+	public final void setAppMode(@Nullable ApplicationMode appMode) {
+		this.appMode = appMode;
 	}
 
 	@NonNull
-	protected View inflate(@LayoutRes int layoutResId, @Nullable ViewGroup root) {
-		return inflate(layoutResId, root, false);
+	public final ApplicationMode getAppMode() {
+		return appMode;
 	}
 
 	@NonNull
-	protected View inflate(@LayoutRes int layoutResId, @Nullable ViewGroup root, boolean attachToRoot) {
-		return themedInflater.inflate(layoutResId, root, attachToRoot);
+	@Override
+	public UiUtilities getIconsCache() {
+		return iconsCache;
 	}
 
-	protected int getDimension(int id) {
-		return app.getResources().getDimensionPixelSize(id);
-	}
-
-	@ColorInt
-	protected int getColor(@ColorRes int colorId) {
-		return ColorUtilities.getColor(app, colorId);
-	}
-
-	protected Drawable getPaintedContentIcon(@DrawableRes int id, @ColorInt int color) {
-		return iconsCache.getPaintedIcon(id, color);
-	}
-
-	protected Drawable getIcon(@DrawableRes int id) {
-		return iconsCache.getIcon(id);
-	}
-
-	protected Drawable getIcon(@DrawableRes int id, @ColorRes int colorId) {
-		return iconsCache.getIcon(id, colorId);
-	}
-
-	protected Drawable getContentIcon(@DrawableRes int id) {
-		return iconsCache.getThemedIcon(id);
-	}
-
-	protected boolean isNightMode(boolean usedOnMap) {
-		return app.getDaynightHelper().isNightMode(appMode, ThemeUsageContext.valueOf(usedOnMap));
+	public boolean isNightMode() {
+		return nightMode;
 	}
 }

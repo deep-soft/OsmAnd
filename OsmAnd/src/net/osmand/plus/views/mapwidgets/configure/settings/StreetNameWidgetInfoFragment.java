@@ -1,9 +1,6 @@
 package net.osmand.plus.views.mapwidgets.configure.settings;
 
-import static net.osmand.plus.views.mapwidgets.WidgetType.STREET_NAME;
-
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
@@ -15,30 +12,36 @@ import androidx.annotation.NonNull;
 import net.osmand.plus.R;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.views.mapwidgets.WidgetType;
+import net.osmand.plus.views.mapwidgets.widgets.StreetNameWidget;
 
 public class StreetNameWidgetInfoFragment extends WidgetInfoBaseFragment {
 
 	private static final String SHOW_NEXT_TURN = "show_next_turn";
 
-	private boolean showNextTurnInfo;
+	private boolean showNextTurn;
+	private StreetNameWidget widget;
 
 	@NonNull
 	@Override
 	public WidgetType getWidget() {
-		return STREET_NAME;
+		return WidgetType.STREET_NAME;
 	}
 
 	@Override
 	protected void initParams(@NonNull Bundle bundle) {
 		super.initParams(bundle);
-
-		boolean show = settings.SHOW_NEXT_TURN_INFO.getModeValue(appMode);
-		showNextTurnInfo = bundle.getBoolean(SHOW_NEXT_TURN, show);
+		if (widgetInfo != null && widgetInfo.widget instanceof StreetNameWidget) {
+			widget = (StreetNameWidget) widgetInfo.widget;
+			boolean defaultValue = widget.isShowNextTurnEnabled(appMode);
+			showNextTurn = bundle.getBoolean(SHOW_NEXT_TURN, defaultValue);
+		} else {
+			dismiss();
+		}
 	}
 
 	@Override
-	protected void setupMainContent(@NonNull LayoutInflater themedInflater, @NonNull ViewGroup container) {
-		View view = themedInflater.inflate(R.layout.widget_preference_with_switch, container);
+	protected void setupMainContent(@NonNull ViewGroup container) {
+		View view = inflate(R.layout.widget_preference_with_switch, container);
 		setupShowNextTurnInfoPref(view);
 	}
 
@@ -51,9 +54,9 @@ public class StreetNameWidgetInfoFragment extends WidgetInfoBaseFragment {
 		updateShowNextTurnInfoPrefIcon(view);
 
 		CompoundButton compoundButton = view.findViewById(R.id.compound_button);
-		compoundButton.setChecked(showNextTurnInfo);
+		compoundButton.setChecked(showNextTurn);
 		compoundButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
-			showNextTurnInfo = isChecked;
+			showNextTurn = isChecked;
 			updateShowNextTurnInfoPrefIcon(view);
 		});
 
@@ -66,20 +69,19 @@ public class StreetNameWidgetInfoFragment extends WidgetInfoBaseFragment {
 		ImageView icon = view.findViewById(R.id.icon);
 		int activeColor = ColorUtilities.getActiveColor(app, nightMode);
 		int defaultColor = ColorUtilities.getDefaultIconColor(app, nightMode);
-		int iconColor = showNextTurnInfo ? activeColor : defaultColor;
-		icon.setImageDrawable(getPaintedContentIcon(R.drawable.ic_action_next_turn, iconColor));
+		int iconColor = showNextTurn ? activeColor : defaultColor;
+		icon.setImageDrawable(getPaintedIcon(R.drawable.ic_action_next_turn, iconColor));
 		icon.setVisibility(View.VISIBLE);
-	}
-
-	@Override
-	protected void applySettings() {
-		settings.SHOW_NEXT_TURN_INFO.setModeValue(appMode, showNextTurnInfo);
-		app.getRoutingHelper().onSettingsChanged(appMode);
 	}
 
 	@Override
 	public void onSaveInstanceState(@NonNull Bundle outState) {
 		super.onSaveInstanceState(outState);
-		outState.putBoolean(SHOW_NEXT_TURN, showNextTurnInfo);
+		outState.putBoolean(SHOW_NEXT_TURN, showNextTurn);
+	}
+
+	@Override
+	protected void applySettings() {
+		widget.setShowNextTurnEnabled(appMode, showNextTurn);
 	}
 }

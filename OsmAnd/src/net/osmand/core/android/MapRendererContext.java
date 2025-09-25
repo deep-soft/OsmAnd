@@ -2,6 +2,7 @@ package net.osmand.core.android;
 
 import static net.osmand.IndexConstants.GEOTIFF_DIR;
 import static net.osmand.IndexConstants.GEOTIFF_SQLITE_CACHE_DIR;
+import static net.osmand.IndexConstants.OPENGL_SHADERS_CACHE_DIR;
 import static net.osmand.plus.views.OsmandMapTileView.FOG_DEFAULT_COLOR;
 import static net.osmand.plus.views.OsmandMapTileView.FOG_NIGHTMODE_COLOR;
 import static net.osmand.plus.views.OsmandMapTileView.MAP_DEFAULT_COLOR;
@@ -20,7 +21,6 @@ import net.osmand.core.jni.ElevationConfiguration.VisualizationStyle;
 import net.osmand.core.jni.IGeoTiffCollection.RasterType;
 import net.osmand.core.jni.MapPresentationEnvironment.LanguagePreference;
 import net.osmand.core.jni.MapPrimitivesProvider.Mode;
-import net.osmand.core.jni.MapRasterMetricsLayerProvider;
 import net.osmand.data.Amenity;
 import net.osmand.data.BaseDetailsObject;
 import net.osmand.data.LatLon;
@@ -68,8 +68,6 @@ public class MapRendererContext {
 	public static final int TOP_PLACES_POI_SECTION = 1001;
 	public static final int SELECTED_POI_SECTION = 1002;
 	public static final int FAVORITES_SECTION = 1003;
-	public static final int RULER_MARKERS_SECTION = 1004;
-	public static final int MAP_MARKERS_SECTION = 1005;
 	public static boolean IGNORE_CORE_PRELOADED_STYLES = false; // enable to debug default.render.xml changes
 
 	private final OsmandApplication app;
@@ -206,10 +204,7 @@ public class MapRendererContext {
 
 		int zoom = app.getOsmandMap().getMapView().getZoom();
 		String langId = MapRenderRepositories.getMapPreferredLocale(app, zoom);
-		boolean transliterate = MapRenderRepositories.transliterateMapNames(app, zoom);
-		LanguagePreference langPref = transliterate
-				? LanguagePreference.LocalizedOrTransliterated
-				: LanguagePreference.LocalizedOrNative;
+		LanguagePreference langPref = MapRenderRepositories.getMapLanguageSetting(app, zoom);
 
 		loadRendererAddons();
 		String rendName = settings.RENDERER.get();
@@ -312,11 +307,7 @@ public class MapRendererContext {
 			String name = addonEntry.getKey();
 			String fileName = addonEntry.getValue();
 			if (mapStylesCollection.getStyleByName(fileName) == null) {
-				try {
-					loadStyleFromStream(fileName, app.getRendererRegistry().getInputStream(name));
-				} catch (IOException e) {
-					Log.e(TAG, "Failed to load '" + fileName + "'", e);
-				}
+				loadStyleFromStream(fileName, app.getRendererRegistry().getInputStream(name));
 			}
 		}
 	}
@@ -324,13 +315,9 @@ public class MapRendererContext {
 	private void loadRenderer(String rendName) {
 		RenderingRulesStorage renderer = app.getRendererRegistry().getRenderer(rendName);
 		if ((mapStylesCollection.getStyleByName(rendName) == null || IGNORE_CORE_PRELOADED_STYLES) && renderer != null) {
-			try {
-				loadStyleFromStream(rendName, app.getRendererRegistry().getInputStream(rendName));
-				if (renderer.getDependsName() != null) {
-					loadRenderer(renderer.getDependsName());
-				}
-			} catch (IOException e) {
-				Log.e(TAG, "Failed to load '" + rendName + "'", e);
+			loadStyleFromStream(rendName, app.getRendererRegistry().getInputStream(rendName));
+			if (renderer.getDependsName() != null) {
+				loadRenderer(renderer.getDependsName());
 			}
 		}
 	}
@@ -498,7 +485,12 @@ public class MapRendererContext {
 		}
 	}
 	public void presetMapRendererOptions(@NonNull MapRendererView mapRendererView, boolean MSAAEnabled) {
-		mapRendererView.setupOptions.setMaxNumberOfRasterMapLayersInBatch(1);
+		File shadersCache = new File(app.getCacheDir(), OPENGL_SHADERS_CACHE_DIR);
+		if (!shadersCache.exists()) {
+			shadersCache.mkdir();
+		}
+		mapRendererView.setupOptions.setPathToOpenGLShadersCache(shadersCache.getAbsolutePath());
+		mapRendererView.setupOptions.setMaxNumberOfRasterMapLayersInBatch(8);
 		mapRendererView.setMSAAEnabled(MSAAEnabled);
 	}
 

@@ -19,6 +19,7 @@ import com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.ConsumeParams;
 import com.android.billingclient.api.ConsumeResponseListener;
+import com.android.billingclient.api.PendingPurchasesParams;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.ProductDetailsResponseListener;
 import com.android.billingclient.api.Purchase;
@@ -85,6 +86,8 @@ public class BillingManager implements PurchasesUpdatedListener {
 		void onPurchasesUpdated(List<Purchase> purchases);
 
 		void onPurchaseCanceled();
+
+		void onError();
 	}
 
 	/**
@@ -108,7 +111,8 @@ public class BillingManager implements PurchasesUpdatedListener {
 		mSignatureBase64 = base64PublicKey;
 		mBillingUpdatesListener = updatesListener;
 		mBillingClient = BillingClient.newBuilder(mContext)
-				.enablePendingPurchases()
+				.enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+				.enableAutoServiceReconnection()
 				.setListener(this)
 				.build();
 
@@ -140,6 +144,7 @@ public class BillingManager implements PurchasesUpdatedListener {
 			mBillingUpdatesListener.onPurchaseCanceled();
 		} else {
 			LOG.warn("onPurchasesUpdated() got unknown responseCode: " + responseCode);
+			mBillingUpdatesListener.onError();
 		}
 	}
 
@@ -325,14 +330,12 @@ public class BillingManager implements PurchasesUpdatedListener {
 	 * Handle a result from querying of purchases and report an updated list to the listener
 	 */
 	private void onQueryPurchasesFinished(BillingResult billingResult, @Nullable List<Purchase> purchases) {
-		// Have we been disposed of in the meantime? If so, or bad result code, then quit
+		// Have we been disposed of in the meantime or bad result code?
 		if (mBillingClient == null || billingResult.getResponseCode() != BillingResponseCode.OK) {
-			LOG.warn("Billing client was null or result code (" + billingResult.getResponseCode()
-					+ ") was bad - quitting");
-			return;
+			LOG.warn("Billing client was null or result code (" + billingResult.getResponseCode() + ") was bad");
+		} else {
+			LOG.debug("Query inventory was successful.");
 		}
-
-		LOG.debug("Query inventory was successful.");
 
 		// Update the UI and purchases inventory with new list of purchases
 		mPurchases.clear();

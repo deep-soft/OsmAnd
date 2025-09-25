@@ -11,11 +11,9 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -58,6 +56,7 @@ import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
 import net.osmand.plus.views.mapwidgets.TurnDrawable;
 import net.osmand.plus.views.mapwidgets.WidgetsContextMenu;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
+import net.osmand.plus.views.mapwidgets.widgetstates.StreetNameWidgetState;
 import net.osmand.render.RenderingRuleSearchRequest;
 import net.osmand.render.RenderingRulesStorage;
 import net.osmand.util.Algorithms;
@@ -71,6 +70,7 @@ public class StreetNameWidget extends MapWidget {
 
 	private final WaypointHelper waypointHelper;
 	private final RendererRegistry rendererRegistry;
+	private final StreetNameWidgetState widgetState;
 
 	private LocationPointWrapper lastPoint;
 
@@ -97,6 +97,7 @@ public class StreetNameWidget extends MapWidget {
 
 		waypointHelper = app.getWaypointHelper();
 		rendererRegistry = app.getRendererRegistry();
+		widgetState = new StreetNameWidgetState(app, customId);
 
 		addressText = view.findViewById(R.id.map_address_text);
 		addressTextShadow = view.findViewById(R.id.map_address_text_shadow);
@@ -113,14 +114,16 @@ public class StreetNameWidget extends MapWidget {
 
 	private void setupLongClickListener() {
 		view.setOnLongClickListener(v -> {
-			WidgetsContextMenu.showMenu(view, mapActivity, widgetType, customId, null, panel, nightMode);
+			WidgetsContextMenu.showMenu(view, mapActivity, widgetType, customId, null, panel, nightMode, true);
 			return true;
 		});
 	}
 
 	@Override
 	public void updateInfo(@Nullable DrawSettings drawSettings) {
-		boolean showNextTurn = settings.SHOW_NEXT_TURN_INFO.get();
+		ApplicationMode appMode = settings.getApplicationMode();
+		boolean showNextTurn = isShowNextTurnEnabled(appMode);
+
 		StreetNameWidgetParams params = new StreetNameWidgetParams(mapActivity, showNextTurn);
 		CurrentStreetName streetName = params.streetName;
 		int turnArrowColorId = params.turnArrowColorId;
@@ -219,12 +222,8 @@ public class StreetNameWidget extends MapWidget {
 				ImageView closeButton = waypointInfoBar.findViewById(R.id.waypoint_close);
 				moreButton.setOnClickListener(view -> {
 					mapActivity.hideContextAndRouteInfoMenues();
-					ShowAlongTheRouteBottomSheet fragment = new ShowAlongTheRouteBottomSheet();
-					Bundle args = new Bundle();
-					args.putInt(ShowAlongTheRouteBottomSheet.EXPAND_TYPE_KEY, point.type);
-					fragment.setArguments(args);
-					fragment.setUsedOnMap(true);
-					fragment.show(mapActivity.getSupportFragmentManager(), ShowAlongTheRouteBottomSheet.TAG);
+					ShowAlongTheRouteBottomSheet.showInstance(
+							mapActivity.getSupportFragmentManager(), null, point.type);
 				});
 				closeButton.setOnClickListener(view -> {
 					waypointHelper.removeVisibleLocationPoint(point);
@@ -252,7 +251,7 @@ public class StreetNameWidget extends MapWidget {
 	public static boolean setShieldImage(@NonNull RoadShield shield,
 			@NonNull MapActivity mapActivity,
 			@NonNull LinearLayout shieldImagesContainer, boolean nightMode) {
-		OsmandApplication app = mapActivity.getMyApplication();
+		OsmandApplication app = mapActivity.getApp();
 		RouteDataObject object = shield.getRdo();
 		StringBuilder additional = shield.getAdditional();
 		String shieldValue = shield.getValue();
@@ -358,7 +357,7 @@ public class StreetNameWidget extends MapWidget {
 		shadowRadius = textState.textShadowRadius;
 
 		boolean portrait = AndroidUiHelper.isOrientationPortrait(mapActivity);
-		view.setBackgroundResource(portrait ? textState.boxTop : textState.boxFree);
+		view.setBackgroundResource(textState.widgetBackgroundId);
 
 		TextView waypointText = view.findViewById(R.id.waypoint_text);
 		TextView waypointTextShadow = view.findViewById(R.id.waypoint_text_shadow);
@@ -394,38 +393,6 @@ public class StreetNameWidget extends MapWidget {
 		return updatedVisibility;
 	}
 
-	@Override
-	public void attachView(@NonNull ViewGroup container, @NonNull WidgetsPanel panel,
-			@NonNull List<MapWidget> followingWidgets) {
-		ViewGroup specialContainer = getSpecialContainer();
-		boolean useSpecialPosition = panel == WidgetsPanel.TOP && specialContainer != null;
-		if (useSpecialPosition) {
-			specialContainer.removeAllViews();
-
-			boolean showTopCoordinates = visibilityHelper.shouldShowTopCoordinatesWidget();
-			if (!followingWidgets.isEmpty() && showTopCoordinates) {
-				useSpecialPosition = false;
-			}
-		}
-
-		if (useSpecialPosition) {
-			specialContainer.removeAllViews();
-			specialContainer.addView(view);
-		} else {
-			container.addView(view);
-		}
-	}
-
-	@Override
-	public void detachView(@NonNull WidgetsPanel widgetsPanel, @NonNull List<MapWidgetInfo> widgets, @NonNull ApplicationMode mode) {
-		super.detachView(widgetsPanel, widgets, mode);
-		// Clear in case link to previous view of StreetNameWidget is lost
-		ViewGroup specialContainer = getSpecialContainer();
-		if (specialContainer != null && !isAnyStreetNameEnabledForMode(widgets, mode)) {
-			specialContainer.removeAllViews();
-		}
-	}
-
 	private boolean isAnyStreetNameEnabledForMode(@NonNull List<MapWidgetInfo> widgets, @NonNull ApplicationMode mode) {
 		for (MapWidgetInfo widgetInfo : widgets) {
 			if (widgetInfo.getWidgetType() == STREET_NAME && widgetInfo.isEnabledForAppMode(mode)) {
@@ -435,9 +402,17 @@ public class StreetNameWidget extends MapWidget {
 		return false;
 	}
 
-	@Nullable
-	private ViewGroup getSpecialContainer() {
-		return mapActivity.findViewById(R.id.street_name_widget_special_container);
+	@NonNull
+	public StreetNameWidgetState getWidgetState() {
+		return widgetState;
+	}
+
+	public boolean isShowNextTurnEnabled(@NonNull ApplicationMode appMode) {
+		return widgetState.isShowNextTurnEnabled(appMode);
+	}
+
+	public void setShowNextTurnEnabled(@NonNull ApplicationMode appMode, boolean value) {
+		widgetState.setShowNextTurnEnabled(appMode, value);
 	}
 
 	static class StreetNameWidgetParams {
@@ -454,7 +429,7 @@ public class StreetNameWidget extends MapWidget {
 		public boolean showClosestWaypointFirstInAddress = true;
 
 		public StreetNameWidgetParams(@NonNull MapActivity mapActivity, boolean showNextTurn) {
-			this.app = mapActivity.getMyApplication();
+			this.app = mapActivity.getApp();
 			this.mapActivity = mapActivity;
 			this.settings = app.getSettings();
 			this.routingHelper = app.getRoutingHelper();

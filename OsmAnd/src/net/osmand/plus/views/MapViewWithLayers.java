@@ -28,7 +28,6 @@ import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMap.RenderingViewSetupListener;
 import net.osmand.plus.views.corenative.NativeCoreContext;
-import net.osmand.plus.plugins.PluginsHelper;
 
 public class MapViewWithLayers extends FrameLayout {
 
@@ -135,11 +134,12 @@ public class MapViewWithLayers extends FrameLayout {
 			atlasMapRendererView.setAzimuth(0);
 			atlasMapRendererView.removeAllSymbolsProviders();
 			atlasMapRendererView.resumeSymbolsUpdate();
+			//atlasMapRendererView.setFlatEarth(!settings.SPHERICAL_MAP.get());
 			float elevationAngle = mapView.normalizeElevationAngle(settings.getLastKnownMapElevation());
 			atlasMapRendererView.setElevationAngle(elevationAngle);
 			atlasMapRendererView.setSymbolsUpdateInterval(SYMBOLS_UPDATE_INTERVAL);
 			mapRendererContext.setMapRendererView(atlasMapRendererView);
-			mapView.applyBatterySavingModeSetting(atlasMapRendererView);
+			mapView.applyMaximumFrameRate(atlasMapRendererView);
 			mapView.applyDebugSettings(atlasMapRendererView);
 		}
 	}

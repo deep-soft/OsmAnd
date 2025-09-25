@@ -24,7 +24,7 @@ import androidx.fragment.app.FragmentManager;
 import net.osmand.CallbackWithObject;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.chooseplan.BasePurchaseDialogFragment.ButtonBackground;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.osmedit.OsmEditingPlugin;
@@ -41,14 +41,16 @@ import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-public class MappersFragment extends BaseOsmAndFragment {
+public class MappersFragment extends BaseFullScreenFragment {
 
 	public static final String TAG = MappersFragment.class.getSimpleName();
 	private static final Log log = PlatformUtil.getLog(MappersFragment.class);
@@ -71,7 +73,7 @@ public class MappersFragment extends BaseOsmAndFragment {
 
 	public static void showInstance(@NonNull FragmentActivity activity) {
 		FragmentManager manager = activity.getSupportFragmentManager();
-		if (!manager.isStateSaved() && manager.findFragmentByTag(TAG) == null) {
+		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG, true)) {
 			MappersFragment fragment = new MappersFragment();
 			fragment.setRetainInstance(true);
 			manager.beginTransaction()
@@ -103,7 +105,7 @@ public class MappersFragment extends BaseOsmAndFragment {
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		updateNightMode();
-		mainView = themedInflater.inflate(R.layout.fragment_mappers_osm, container, false);
+		mainView = inflate(R.layout.fragment_mappers_osm, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), mainView);
 
 		setupToolbar();
@@ -112,6 +114,13 @@ public class MappersFragment extends BaseOsmAndFragment {
 		fullUpdate();
 
 		return mainView;
+	}
+
+	@Override
+	public List<Integer> getCollapsingAppBarLayoutId() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(R.id.appbar);
+		return ids;
 	}
 
 	@Override
@@ -126,7 +135,7 @@ public class MappersFragment extends BaseOsmAndFragment {
 		Toolbar toolbar = mainView.findViewById(R.id.toolbar);
 		int iconId = AndroidUtils.getNavigationIconResId(app);
 		int color = ColorUtilities.getActiveButtonsAndLinksTextColor(app, nightMode);
-		toolbar.setNavigationIcon(getPaintedContentIcon(iconId, color));
+		toolbar.setNavigationIcon(getPaintedIcon(iconId, color));
 		toolbar.setNavigationContentDescription(R.string.shared_string_close);
 		toolbar.setNavigationOnClickListener(v -> dismiss());
 	}

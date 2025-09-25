@@ -13,10 +13,12 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.activity.ComponentActivity;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,17 +26,22 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.base.BaseFullScreenFragment;
 import net.osmand.plus.base.dialog.interfaces.dialog.IAskDismissDialog;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.quickaction.AddQuickActionsAdapter.ItemClickListener;
 import net.osmand.plus.quickaction.controller.AddQuickActionController;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.InsetsUtils;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.util.Algorithms;
 
-public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemClickListener, IAskDismissDialog {
+import java.util.EnumSet;
+import java.util.List;
+
+public class AddQuickActionFragment extends BaseFullScreenFragment implements ItemClickListener, IAskDismissDialog {
 
 	public static final String TAG = AddQuickActionFragment.class.getSimpleName();
 
@@ -48,6 +55,7 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 	private ImageView backButton;
 	private TextView title;
 	private ImageView searchButton;
+	private RecyclerView recyclerView;
 
 	private AddQuickActionController controller;
 	private boolean searchMode = false;
@@ -82,7 +90,7 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		updateNightMode();
-		View view = themedInflater.inflate(R.layout.fragment_add_quick_action, container, false);
+		View view = inflate(R.layout.fragment_add_quick_action, container, false);
 		if (Build.VERSION.SDK_INT < 30) {
 			AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 		}
@@ -94,6 +102,17 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 		return view;
 	}
 
+	@Override
+	public void onApplyInsets(@NonNull WindowInsetsCompat insets) {
+		InsetsUtils.applyPadding(recyclerView, insets, EnumSet.of(searchMode ? InsetSide.BOTTOM : InsetSide.RESET));
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getScrollableViewIds() {
+		return null;
+	}
+
 	private void setupOnBackPressedCallback() {
 		backPressedCallback = new OnBackPressedCallback(true) {
 			@Override
@@ -102,10 +121,7 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 					setSearchMode(false);
 				} else {
 					this.setEnabled(false);
-					FragmentActivity activity = getActivity();
-					if (activity != null) {
-						activity.onBackPressed();
-					}
+					callActivity(FragmentActivity::onBackPressed);
 				}
 			}
 		};
@@ -177,7 +193,7 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 		adapter = new AddQuickActionsAdapter(app, requireActivity(), this, nightMode);
 		adapter.setAdapterMode(DEFAULT_MODE);
 		adapter.setMap(controller.getAdapterItems());
-		RecyclerView recyclerView = view.findViewById(R.id.content_list);
+		recyclerView = view.findViewById(R.id.content_list);
 		recyclerView.setLayoutManager(new LinearLayoutManager(app));
 		recyclerView.setAdapter(adapter);
 		updateAdapter();
@@ -210,9 +226,11 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 
 	@Override
 	public void onSaveInstanceState(@NonNull Bundle outState) {
-		String searchQuery = adapter.getSearchQuery();
-		if (!Algorithms.isEmpty(searchQuery)) {
-			outState.putString(QUICK_ACTION_SEARCH_KEY, adapter.getSearchQuery());
+		if (adapter != null) {
+			String searchQuery = adapter.getSearchQuery();
+			if (!Algorithms.isEmpty(searchQuery)) {
+				outState.putString(QUICK_ACTION_SEARCH_KEY, adapter.getSearchQuery());
+			}
 		}
 		outState.putBoolean(QUICK_ACTION_SEARCH_MODE_KEY, searchMode);
 		super.onSaveInstanceState(outState);
@@ -220,15 +238,14 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 
 	@Override
 	public void onItemClick(@NonNull QuickActionType quickActionType) {
-		FragmentActivity activity = getActivity();
-		if (activity != null) {
+		callActivity(activity -> {
 			FragmentManager manager = activity.getSupportFragmentManager();
 			if (quickActionType.getId() != 0) {
 				CreateEditActionDialog.showInstance(manager, quickActionType.getId());
 			} else {
 				AddCategoryQuickActionFragment.showInstance(manager, quickActionType.getCategory());
 			}
-		}
+		});
 	}
 
 	@Override
@@ -239,19 +256,13 @@ public class AddQuickActionFragment extends BaseOsmAndFragment implements ItemCl
 	@Override
 	public void onResume() {
 		super.onResume();
-		FragmentActivity activity = getActivity();
-		if (activity instanceof MapActivity) {
-			((MapActivity) activity).disableDrawer();
-		}
+		callMapActivity(MapActivity::disableDrawer);
 	}
 
 	@Override
 	public void onPause() {
 		super.onPause();
-		FragmentActivity activity = getActivity();
-		if (activity instanceof MapActivity) {
-			((MapActivity) activity).enableDrawer();
-		}
+		callMapActivity(MapActivity::enableDrawer);
 	}
 
 	public static void showInstance(@NonNull FragmentManager manager) {

@@ -104,9 +104,11 @@ import net.osmand.plus.wikipedia.WikiArticleShowImages;
 import net.osmand.render.RenderingClass;
 import net.osmand.render.RenderingRuleProperty;
 import net.osmand.render.RenderingRulesStorage;
+import net.osmand.router.GeneralRouter;
 import net.osmand.shared.gpx.ColoringPurpose;
 import net.osmand.shared.obd.OBDDataComputer;
 import net.osmand.shared.routing.ColoringType;
+import net.osmand.shared.settings.enums.AltitudeMetrics;
 import net.osmand.shared.settings.enums.MetricsConstants;
 import net.osmand.shared.settings.enums.SpeedConstants;
 import net.osmand.util.Algorithms;
@@ -493,9 +495,7 @@ public class OsmandSettings {
 		ApplicationMode appMode = getApplicationMode();
 		ApplicationMode nextAppMode = getSwitchedAppMode(appMode, next);
 		if (appMode != nextAppMode && setApplicationMode(nextAppMode)) {
-			String pattern = ctx.getString(R.string.application_profile_changed);
-			String message = String.format(pattern, nextAppMode.toHumanString());
-			ctx.showShortToastMessage(message);
+			ctx.showShortToastMessage(R.string.application_profile_changed, nextAppMode.toHumanString());
 			return true;
 		}
 		return false;
@@ -1126,6 +1126,16 @@ public class OsmandSettings {
 		}
 	}.makeProfile();
 
+	public final EnumStringPreference<AltitudeMetrics> ALTITUDE_METRIC = (EnumStringPreference<AltitudeMetrics>) new EnumStringPreference<AltitudeMetrics>(this,
+			"altitude_metrics", AltitudeMetrics.METERS, AltitudeMetrics.values()) {
+
+		@Override
+		public AltitudeMetrics getProfileDefaultValue(ApplicationMode mode) {
+			MetricsConstants mc = METRIC_SYSTEM.getModeValue(mode);
+			return AltitudeMetrics.Companion.fromMetricsConstant(mc);
+		}
+	}.makeProfile();
+
 	//public final OsmandPreference<Integer> COORDINATES_FORMAT = new IntPreference("coordinates_format", PointDescription.FORMAT_DEGREES).makeGlobal();
 
 	public final OsmandPreference<AngularConstants> ANGULAR_UNITS = new EnumStringPreference<AngularConstants>(this,
@@ -1387,6 +1397,9 @@ public class OsmandSettings {
 	public final OsmandPreference<Boolean> ACCESSIBILITY_SMART_AUTOANNOUNCE =
 			new BooleanAccessibilityPreference(this, "accessibility_smart_autoannounce", true).makeProfile();
 
+	public final OsmandPreference<Boolean> ACCESSIBILITY_PINCH_ZOOM_MAGNIFICATION =
+			new BooleanPreference(this, "accessibility_pinch_zoom_magnification", false).makeProfile();
+
 	// cache of metrics constants as they are used very often
 	public final OsmandPreference<Integer> ACCESSIBILITY_AUTOANNOUNCE_PERIOD = new IntPreference(this, "accessibility_autoannounce_period", 10000).makeProfile().cache();
 
@@ -1460,6 +1473,8 @@ public class OsmandSettings {
 		}
 
 	}.makeGlobal().makeShared().cache();
+
+	public final OsmandPreference<Boolean> MAP_SHOW_LOCAL_NAMES = new BooleanPreference(this, "map_show_local_names", false).makeGlobal().makeShared().cache();
 
 	public boolean usingEnglishNames() {
 		return MAP_PREFERRED_LOCALE.get().equals("en");
@@ -1623,7 +1638,6 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> ENABLE_TIME_CONDITIONAL_ROUTING = new BooleanPreference(this, "enable_time_conditional_routing", true).makeProfile();
 
 	public final CommonPreference<Boolean> SHOW_MINOR_TURNS = new BooleanPreference(this, "show_minor_turns", true).makeProfile();
-	public final CommonPreference<Boolean> SHOW_NEXT_TURN_INFO = new BooleanPreference(this, "show_next_turn_info", false).makeProfile();
 
 	public boolean simulateNavigation;
 	public boolean simulateNavigationStartedFromAdb;
@@ -1713,6 +1727,8 @@ public class OsmandSettings {
 	public final OsmandPreference<Integer> GPX_SEGMENT_INDEX = new IntPreference(this, "gpx_route_segment", -1).makeGlobal().makeShared().cache();
 	public final OsmandPreference<Integer> GPX_ROUTE_INDEX = new IntPreference(this, "gpx_route_index", -1).makeGlobal().makeShared().cache();
 	public final OsmandPreference<Boolean> GPX_PASS_WHOLE_ROUTE = new BooleanPreference(this, "gpx_pass_whole_route", false).makeGlobal().makeShared().cache();
+	public final OsmandPreference<ReverseTrackStrategy> GPX_REVERSE_STRATEGY =
+			new EnumStringPreference<>(this, "gpx_reverse_strategy", ReverseTrackStrategy.RECALCULATE_ALL_ROUTE_POINTS, ReverseTrackStrategy.values()).makeGlobal().makeShared().cache();
 
 	public final OsmandPreference<Boolean> AVOID_TOLL_ROADS = new BooleanPreference(this, "avoid_toll_roads", false).makeProfile().cache();
 	public final OsmandPreference<Boolean> AVOID_MOTORWAY = new BooleanPreference(this, "avoid_motorway", false).makeProfile().cache();
@@ -3190,10 +3206,11 @@ public class OsmandSettings {
 
 	@NonNull
 	public CommonPreference<Boolean> getCustomRenderBooleanProperty(@NonNull String attrName, boolean defaultValue) {
-		if (!customBooleanRendersProps.containsKey(attrName)) {
-			registerCustomRenderBooleanProperty(attrName, defaultValue);
+		CommonPreference<Boolean> preference = customBooleanRendersProps.get(attrName);
+		if(preference == null) {
+			preference = registerCustomRenderBooleanProperty(attrName, defaultValue);
 		}
-		return customBooleanRendersProps.get(attrName);
+		return preference;
 	}
 
 	@NonNull
@@ -3206,20 +3223,24 @@ public class OsmandSettings {
 
 	@NonNull
 	public CommonPreference<String> getCustomRoutingProperty(@NonNull String attrName, String defaultValue) {
-		if (!customRoutingProps.containsKey(attrName)) {
+		CommonPreference<String> preference = customRoutingProps.get(attrName);
+		if (preference == null) {
 			String id = attrName.startsWith(ROUTING_PREFERENCE_PREFIX) ? attrName : ROUTING_PREFERENCE_PREFIX + attrName;
-			customRoutingProps.put(attrName, new StringPreference(this, id, defaultValue).makeProfile());
+			preference = new StringPreference(this, id, defaultValue).makeProfile();
+			customRoutingProps.put(attrName, preference);
 		}
-		return customRoutingProps.get(attrName);
+		return preference;
 	}
 
 	@NonNull
 	public CommonPreference<Boolean> getCustomRoutingBooleanProperty(@NonNull String attrName, boolean defaultValue) {
-		if (!customBooleanRoutingProps.containsKey(attrName)) {
+		CommonPreference<Boolean> preference = customBooleanRoutingProps.get(attrName);
+		if (preference == null) {
 			String id = attrName.startsWith(ROUTING_PREFERENCE_PREFIX) ? attrName : ROUTING_PREFERENCE_PREFIX + attrName;
-			customBooleanRoutingProps.put(attrName, new BooleanStringPreference(this, id, defaultValue).makeProfile());
+			preference = new BooleanStringPreference(this, id, defaultValue).makeProfile();
+			customBooleanRoutingProps.put(attrName, preference);
 		}
-		return customBooleanRoutingProps.get(attrName);
+		return preference;
 	}
 
 	@NonNull
@@ -3228,12 +3249,12 @@ public class OsmandSettings {
 	}
 
 	public CommonPreference<Boolean> getBooleanRenderClassProperty(@NonNull String name, boolean defaultValue) {
-		if (!customBooleanRenderClassProps.containsKey(name)) {
-			CommonPreference<Boolean> preference = new BooleanPreference(this, name, defaultValue).makeProfile();
+		CommonPreference<Boolean> preference = customBooleanRenderClassProps.get(name);
+		if (preference == null) {
+			preference = new BooleanPreference(this, name, defaultValue).makeProfile();
 			customBooleanRenderClassProps.put(name, preference);
-			return preference;
 		}
-		return customBooleanRenderClassProps.get(name);
+		return preference;
 	}
 
 	public final OsmandPreference<Boolean> SHOW_TRAVEL = new BooleanPreference(this, "show_travel_routes", false).makeProfile().cache();
@@ -3464,4 +3485,34 @@ public class OsmandSettings {
 	public final CommonPreference<Integer> CONTEXT_GALLERY_SPAN_GRID_COUNT_LANDSCAPE = new IntPreference(this, "context_gallery_span_grid_count_landscape", 7).makeProfile();
 
 	public final CommonPreference<Boolean> ENABLE_MSAA = new BooleanPreference(this, "enable_msaa", false).makeGlobal().makeShared().cache();
+	public final CommonPreference<Boolean> SPHERICAL_MAP = new BooleanPreference(this, "spherical_map", false).makeGlobal().makeShared().cache();
+
+	@NonNull
+	public OsmandPreference<Boolean> getAllowPrivatePreference(@NonNull ApplicationMode appMode) {
+		String derivedProfile = appMode.getDerivedProfile();
+		CommonPreference<Boolean> allowPrivate =
+				getCustomRoutingBooleanProperty(GeneralRouter.ALLOW_PRIVATE, false);
+		CommonPreference<Boolean> allowPrivateForTruck =
+				getCustomRoutingBooleanProperty(GeneralRouter.ALLOW_PRIVATE_FOR_TRUCK, false);
+		return Algorithms.objectEquals(derivedProfile, "truck") ? allowPrivateForTruck : allowPrivate;
+	}
+
+	public void setPrivateAccessRoutingAsked() {
+		List<ApplicationMode> modes = ApplicationMode.values(ctx);
+		for (ApplicationMode mode : modes) {
+			if (!getAllowPrivatePreference(mode).getModeValue(mode)) {
+				FORCE_PRIVATE_ACCESS_ROUTING_ASKED.setModeValue(mode, true);
+			}
+		}
+	}
+
+	public void setAllowPrivateAccessAllModes(boolean allow) {
+		List<ApplicationMode> modes = ApplicationMode.values(ctx);
+		for (ApplicationMode mode : modes) {
+			OsmandPreference<Boolean> preference = getAllowPrivatePreference(mode);
+			if (preference.getModeValue(mode) != allow) {
+				preference.setModeValue(mode, allow);
+			}
+		}
+	}
 }

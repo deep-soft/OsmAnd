@@ -14,7 +14,6 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Spanned;
 import android.view.LayoutInflater;
@@ -37,6 +36,7 @@ import net.osmand.Location;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
+import net.osmand.plus.OsmAndTaskManager;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
@@ -61,6 +61,7 @@ import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.FontCache;
+import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.utils.UpdateLocationUtils;
 import net.osmand.plus.utils.UpdateLocationUtils.UpdateLocationViewCache;
@@ -158,7 +159,7 @@ public class FavoritesTreeFragment extends OsmandExpandableListFragment implemen
 				adapter.synchronizeGroups();
 			}
 		});
-		task.executeOnExecutor(singleThreadExecutor);
+		OsmAndTaskManager.executeTask(task, singleThreadExecutor);
 	}
 
 	@Override
@@ -237,6 +238,20 @@ public class FavoritesTreeFragment extends OsmandExpandableListFragment implemen
 			}
 		}
 		return view;
+	}
+
+	@Nullable
+	@Override
+	public Set<InsetSide> getRootInsetSides() {
+		return null;
+	}
+
+	@Nullable
+	@Override
+	public List<Integer> getScrollableViewIds() {
+		List<Integer> ids = new ArrayList<>();
+		ids.add(android.R.id.list);
+		return ids;
 	}
 
 	@Override
@@ -594,7 +609,7 @@ public class FavoritesTreeFragment extends OsmandExpandableListFragment implemen
 
 	public void shareFavorites(@Nullable FavoriteGroup group) {
 		ShareFavoritesAsyncTask shareFavoritesTask = new ShareFavoritesAsyncTask(app, group, this);
-		shareFavoritesTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+		OsmAndTaskManager.executeTask(shareFavoritesTask);
 	}
 
 	private void initListExpandedState() {
