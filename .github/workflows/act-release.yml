@@ -1,5 +1,6 @@
-# 2025-07-26 18:00
+# 2025-09-25 20:20
 # gradle.properties : org.gradle.jvmargs=-Xmx2048M -Dkotlin.daemon.jvm.options\="-Xmx2048M"
+# exclude help/* web/*' from src archive
 name: act-release
 
 on:
@@ -207,7 +208,7 @@ jobs:
         filename: '${{ env.TAG_NAME }}-${{ env.TAG_VERSION }}-src'
         directory: '.'
         path: '.'
-        exclusions: '*.git/* /*node_modules/* .editorconfig'
+        exclusions: '*.git/* /*node_modules/* .editorconfig help/* web/*'
         env_variable: 'ZIP_ARCHIVE_SRC'
         # archive name is ${{ env.ZIP_ARCHIVE_RELEASE }}
 
